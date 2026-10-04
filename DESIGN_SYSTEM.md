@@ -24,12 +24,13 @@ Tipografia: Segoe UI, Arial, sans-serif. Base 14px; metadados 12px; títulos de 
 Espaçamento: 4, 8, 12, 16, 24 e 32px. Cantos: 6px em controles, 10px em cartões. Sombras discretas apenas em elementos elevados. Bordas de 1px.
 
 ## Estrutura
-Cabeçalho branco com borda superior azul, marca Torre e indicação de demonstração. Navegação curta: Planejamento e Configurações. Conteúdo com título, semana selecionada, ações e quadro principal. Agenda à esquerda; pendências à direita no desktop.
+Cabeçalho branco com borda superior azul, marca Torre e indicação de demonstração. Navegação: Tarefas, Planejamento e Configurações. Tarefas é a entrada principal, com lista independente, busca e filtros. Planejamento mantém agenda à esquerda e pendências à direita no desktop.
 
 ## Componentes
 - Abas Tudo / Pessoal / Profissional com indicação textual e sublinhado azul.
 - Agenda: sete colunas, horários e blocos com início/fim explícitos. Ocupado em cinza, tarefas pessoais em violeta claro, profissionais em azul claro. Não depender apenas da cor.
 - Cartão de tarefa: descrição, área, duração, origem e prazo, com ação Planejar e Concluir.
+- Linha de tarefa na lista independente: checkbox de conclusão, descrição, área, duração, origem e prazo. Concluir é a ação principal; reservar horário é opcional. Mostrar reserva existente sem ocultar a tarefa. Concluídas permitem reabrir. No celular, ações ficam abaixo do conteúdo.
 - Captura: diálogo com rótulos persistentes; descrição, área e duração obrigatórias; prazo opcional.
 - Planejamento: diálogo de dia e horário como alternativa ao arraste; validação de colisão e jornada.
 - Jornada: linhas por dia da semana, ativação e início/fim.
