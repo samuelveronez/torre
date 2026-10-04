@@ -24,7 +24,7 @@ Tipografia: Segoe UI, Arial, sans-serif. Base 14px; metadados 12px; títulos de 
 Espaçamento: 4, 8, 12, 16, 24 e 32px. Cantos: 6px em controles, 10px em cartões. Sombras discretas apenas em elementos elevados. Bordas de 1px.
 
 ## Estrutura
-Cabeçalho branco com borda superior azul, marca Torre e indicação de demonstração. Navegação: Tarefas, Planejamento e Configurações. Tarefas é a entrada principal, com lista independente, busca e filtros. Planejamento mantém agenda à esquerda e pendências à direita no desktop.
+Estrutura de app web tradicional: menu lateral branco de 248px com marca, seletor de área, captura e navegação; configurações e perfil no rodapé do menu. Barra superior fixa com busca de tarefas sempre disponível e captura rápida. A busca leva à lista de tarefas e mantém seu texto ao navegar. Conteúdo à direita com margens de 36px; manter azul, cinza claro e cartões brancos do GSA. Referência estrutural: imagem enviada em 04/10/2026, sem reproduzir tema escuro, IA ou funções fora do escopo. No celular, menu lateral abre por botão e a busca permanece no topo.
 
 ## Componentes
 - Abas Tudo / Pessoal / Profissional com indicação textual e sublinhado azul.

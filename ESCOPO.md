@@ -7,6 +7,7 @@ Reunir pendências e planejar um dia que caiba na agenda em 5 a 15 minutos. Redu
 
 ## Experiência
 - Webapp pessoal responsivo: planejar no computador, consultar e capturar no celular.
+- Layout web com menu lateral, seletor de área e busca de tarefas fixa no topo em todas as telas. Buscar abre a lista; agenda e configurações continuam acessíveis pelo menu. No celular, menu recolhível.
 - Visão Tarefas independente como entrada principal: capturar, consultar e concluir sem precisar reservar horário.
 - Agenda semanal na visão Planejamento, com foco opcional em um dia.
 - Lista inclui tarefas com e sem reserva; filtros por área e status, busca por nome e ordenação por prazo, duração ou nome. Concluídas podem ser reabertas; reservar horário é opcional.
