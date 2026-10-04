@@ -13,6 +13,12 @@ Reunir pendências e planejar um dia que caiba na agenda em 5 a 15 minutos. Redu
 - Lista inclui tarefas com e sem reserva; filtros por área e status, busca por nome e ordenação por prazo, duração ou nome. Concluídas podem ser reabertas; reservar horário é opcional.
 - Agenda e pendências juntas; abas Tudo, Pessoal e Profissional.
 - Lista simples, sem projetos ou agrupamentos por contexto.
+- Lista compacta com abertura de painel lateral de detalhes; no celular, detalhes ocupam a área de conteúdo.
+- Detalhes editáveis: título, descrição, área, duração, prazo e link HTTP/HTTPS. Link simples, sem prévia ou anexos.
+- Situações: A fazer, Aguardando resposta e Concluída. Captura entra diretamente em A fazer, sem processamento obrigatório.
+- Aguardando resposta exige pessoa/equipe e data de acompanhamento. Data de acompanhamento é distinta do prazo. Mostrar ambos na lista, destacar acompanhamento vencido e permitir filtrar/ordenar por acompanhamento.
+- Ao passar para Aguardando resposta, retirar reserva existente da agenda e manter a tarefa na lista. Retornar a A fazer permite planejar novamente.
+- Configurações oferecem temas Claro e Escuro; preferência persistida neste navegador.
 - Captura rápida: descrição, área e duração estimada. Prazo opcional.
 - Destacar prazos próximos e filtrar tarefas pela duração da janela disponível.
 - Arrastar tarefa para um horário; oferecer alternativa por botão para celular e teclado.
@@ -35,7 +41,7 @@ Calendário profissional: aparece no Gmail sem conteúdo. Verificar permissões 
 - Datas e horários: armazenar instantes com fuso e apresentar em America/Sao_Paulo; duração em minutos.
 
 ## Modelo de dados previsto
-tasks: id, user_id, title, area, duration_minutes, due_date, status, source, google_list_id, google_task_id.
+tasks: id, user_id, title, description, reference_url, area, duration_minutes, due_date, status (todo/waiting/completed), waiting_for, follow_up_date, source, google_list_id, google_task_id. Compatibilidade local: tarefas existentes sem situation são A fazer; done continua indicando conclusão.
 scheduled_blocks: id, user_id, task_id, start_at, end_at.
 busy_blocks: id, user_id, start_at, end_at, source, external_id; sem conteúdo corporativo.
 work_hours: user_id, weekday, start_time, end_time, enabled.
@@ -55,6 +61,7 @@ Agenda semanal, foco no dia, filtros de área e duração, cadastro de tarefas, 
 
 ## Fora do escopo
 IA, centro de treinamento, gamificação, pontuação, finanças, leitura automática de e-mails, colaboração e gerenciamento de projetos.
+Também ficam para depois: processamento obrigatório de caixa de entrada, anexos, prévias automáticas, biblioteca e classificação Algum dia/talvez.
 
 ## Referências técnicas
 - https://docs.github.com/en/pages/getting-started-with-github-pages/what-is-github-pages

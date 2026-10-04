@@ -1,0 +1,2 @@
+export type Task={id:string;title:string;area:'Pessoal'|'Profissional';minutes:number;due:string;source:string;done:boolean;at?:string;description?:string;link?:string;situation?:'todo'|'waiting';waitingFor?:string;followUp?:string};
+export function safeLink(value?:string){try{const url=new URL(value||'');return ['https:','http:'].includes(url.protocol)?url.href:undefined;}catch{return undefined;}}

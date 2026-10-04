@@ -36,6 +36,9 @@ Estrutura de app web tradicional: menu lateral branco de 248px com marca, seleto
 - Jornada: linhas por dia da semana, ativação e início/fim.
 - Botão primário azul; secundário branco com borda; destrutivo apenas onde necessário.
 - Avisos: mensagens curtas de resultado ou erro em região de status.
+- Lista compacta com título acionável, checkbox, área, duração, situação, prazo e acompanhamento; detalhes secundários no painel lateral de 350px. Linha selecionada recebe fundo azul discreto. Painel móvel ocupa a largura completa e permite fechar.
+- Painel de detalhes: edição explícita com Salvar alterações, descrição, link, área, duração, prazo e situação. Aguardando resposta revela responsável e data de acompanhamento. Conclusão e reserva opcionais ficam no rodapé.
+- Temas em Configurações: Claro preserva GSA; Escuro usa canvas #141A23, superfícies #1D2531, bordas #354152, texto #E6EBF2 e secundário #AEBDCE. Estados azuis e violetas ganham fundos escuros com textos claros. A escolha vale para listas, agenda, configurações e diálogos.
 
 ## Estados
 Estado vazio convida a capturar a primeira tarefa. Filtro sem resultados oferece limpar filtros. Integração futura deve distinguir carregando, desconectado, erro e atualizado; nunca apresentar dados fictícios como conexão ativa.
