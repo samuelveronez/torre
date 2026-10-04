@@ -18,6 +18,7 @@ Reunir pendências e planejar um dia que caiba na agenda em 5 a 15 minutos. Redu
 - Situações: A fazer, Aguardando resposta e Concluída. Captura entra diretamente em A fazer, sem processamento obrigatório.
 - Aguardando resposta exige pessoa/equipe e data de acompanhamento. Data de acompanhamento é distinta do prazo. Mostrar ambos na lista, destacar acompanhamento vencido e permitir filtrar/ordenar por acompanhamento.
 - Ao passar para Aguardando resposta, retirar reserva existente da agenda e manter a tarefa na lista. Retornar a A fazer permite planejar novamente.
+- Alterar área ou duração de tarefa reservada retira a reserva para permitir novo planejamento sem colisões.
 - Configurações oferecem temas Claro e Escuro; preferência persistida neste navegador.
 - Captura rápida: descrição, área e duração estimada. Prazo opcional.
 - Destacar prazos próximos e filtrar tarefas pela duração da janela disponível.
