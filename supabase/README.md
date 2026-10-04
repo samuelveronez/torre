@@ -15,7 +15,9 @@ Tabelas prefixadas `torre_` para evitar colisão com outros apps:
 
 Todas exigem usuário autenticado e isolam linhas por `auth.uid()`. A integração pode ser lida pelo dono, mas só o backend altera seu estado. Não há dados de demonstração, usuário inicial ou senhas nesta migration.
 
-O frontend atual continua local; esta migration não conecta o app automaticamente. Depois de aplicar, configurar Supabase Auth, URL/publishable key e camada de persistência. `service_role` e tokens Google permanecem apenas no backend/Vault.
+Migration aplicada em 4 de outubro de 2026 ao projeto `nvxwqrpztecrvrxoddxf` (Torre de Controle, São Paulo). O frontend está conectado por `src/supabase.ts`, com login em `src/Cloud.tsx` e persistência em `src/useCloudData.ts`. `service_role` e tokens Google permanecem apenas no backend/Vault.
+
+Verificação: seis tabelas com RLS habilitada, consulta SQL remota respondendo e auditoria de segurança sem alertas. A validação local cobre isolamento entre usuários, espera, conclusão, reservas e conflitos. O login real de uma conta pessoal ainda depende de cadastro e confirmação de e-mail pelo usuário. O estado é recarregado ao entrar e após cada gravação; atualizações em outro dispositivo aparecem ao recarregar a página.
 
 Ao entrar no app, criar preferências e os sete dias de jornada por upsert autenticado. Chamadas de `torre_release_expired_blocks()` liberam apenas reservas vencidas do próprio usuário. Chamá-la ao abrir ou atualizar a agenda.
 
