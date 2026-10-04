@@ -70,3 +70,10 @@ Também ficam para depois: processamento obrigatório de caixa de entrada, anexo
 
 ## Pontos ainda a validar
 Permissões da agenda compartilhada; credenciais OAuth Google; criação do Supabase; escolha dos horários reais de trabalho; comportamento e legibilidade das telas após avaliação do usuário.
+
+## Estrutura de dados preparada — 04/10/2026
+Migration versionada em `supabase/migrations/202610040001_torre.sql`, com seis tabelas: tarefas, reservas, blocos ocupados, jornada semanal, preferências e estado das integrações. Todas têm RLS por usuário; tokens não são armazenados nas tabelas públicas. Regras de espera, conclusão e conflitos são validadas no banco.
+
+Validação local com PostgreSQL/PGlite passou para execução da migration, isolamento entre dois usuários, bloqueio de acesso anônimo, permissões de integração, espera, conclusão e conflitos. Executar `node supabase/validate.mjs` após instalar `@electric-sql/pglite` em `.db-validation`.
+
+Aplicação remota pendente: criar novo projeto `torre` após login no Supabase. O frontend permanece em armazenamento local até implementar autenticação e persistência remota.
