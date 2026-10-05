@@ -35,3 +35,32 @@
 .app-shell .sidebar-label-heading{margin:16px 0 4px}.app-shell .sidebar-label-heading .labels-heading{width:auto;margin:0}.app-shell .sidebar-labels .sidebar-label-edit{width:30px;padding:6px;flex-shrink:0}.app-shell .sidebar-labels .sidebar-label-actions button{width:auto;padding:6px 8px;font-size:12px}.sidebar-label-form textarea{resize:vertical;background:var(--ux-surface);color:var(--ux-ink);border:1px solid var(--ux-border);border-radius:6px;padding:8px}
 
 .labels-archive-toggle{display:flex;flex-direction:row;align-items:center;gap:8px;margin:16px 0;font-size:13px}.labels-archive-toggle input{width:16px;height:16px;min-height:16px;margin:0}.app-shell .sidebar-labels .sidebar-label-archive{font-size:12px;justify-content:center;padding:6px 8px;min-height:34px;border:1px solid var(--ux-border)}
+
+/* Mobile rows reserve the first line for task text, independent of action widths. */
+@media(max-width:760px){
+ :root .app-shell .task-row{display:grid;grid-template-columns:22px minmax(0,1fr) 44px 44px;align-items:start;column-gap:8px;row-gap:12px}
+ :root .app-shell .task-row .task-grip{display:none}
+ :root .app-shell .task-row .task-check{grid-column:1;grid-row:1;margin:3px 0 0;width:22px;height:22px;min-height:22px}
+ :root .app-shell .task-row .task-row-content{grid-column:2/-1;grid-row:1;min-width:0}
+ :root .app-shell .task-row .task-title{width:100%;font-size:15px;line-height:1.45;white-space:normal;text-align:left}
+ :root .app-shell .task-row .inline-priority{grid-column:2;grid-row:2;margin:0;width:100%;max-width:220px;min-width:0}
+ :root .app-shell .task-row .inline-priority select{font-size:16px;min-height:44px;padding:8px}
+ :root .app-shell .task-row .row-plan{grid-column:3;grid-row:2;min-width:44px;min-height:44px;padding:10px;justify-content:center}
+ :root .app-shell .task-row .details-arrow{grid-column:4;grid-row:2;min-width:44px;min-height:44px;padding:10px;justify-content:center}
+ :root .app-shell .task-row:has(.task-select){grid-template-columns:22px 22px minmax(0,1fr) 44px 44px}
+ :root .app-shell .task-row .task-select{grid-column:1;grid-row:1;margin:3px 0 0;width:22px;height:22px}
+ :root .app-shell .task-row:has(.task-select) .task-check{grid-column:2}
+ :root .app-shell .task-row:has(.task-select) .task-row-content{grid-column:3/-1}
+ :root .app-shell .task-row:has(.task-select) .inline-priority{grid-column:3}
+ :root .app-shell .task-row:has(.task-select) .row-plan{grid-column:4}
+ :root .app-shell .task-row:has(.task-select) .details-arrow{grid-column:5}
+ :root .app-shell .task-row .task-meta{font-size:12px;line-height:1.5;overflow-wrap:anywhere}
+ .app-shell input:not([type=checkbox]):not([type=color]),.app-shell select,.app-shell textarea{font-size:16px}
+ .app-shell .top-search input{font-size:16px}
+}
+
+@media(max-width:360px){
+ :root .app-shell .task-row .inline-priority{grid-column:2/-1;max-width:none}
+ :root .app-shell .task-row .row-plan,:root .app-shell .task-row .details-arrow{grid-row:3}
+ :root .app-shell .task-row:has(.task-select) .inline-priority{grid-column:3/-1}
+}
