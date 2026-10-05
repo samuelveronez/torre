@@ -43,3 +43,10 @@ A pedido do usuário, não foram executados novos testes de seleção múltipla,
 Implementação: Meu dia com tarefas reservadas/prazo e grupos recolhíveis, navegação de data, disponibilidade Google e timeline lateral de 360 pixels; lista compartilhada e editor global; submenu das configurações; filtros combinados; densidade local por usuário; inclusão recente; seleção e ações em lote; atribuição de label por arrastar; toasts com Desfazer e duração de 12 segundos. A classificação de labels no backend usa JWT do usuário, textos de tarefas dessa conta e somente labels ativas existentes. Anexos e segredos não são enviados ao navegador.
 
 Limites existentes: datas importadas do Google Tasks continuam editáveis no Google. Classificação por IA limitada a 20 tarefas por chamada. Desfazer preserva os demais campos e recusa sobrescrever mudanças posteriores nos campos alterados; restauração de reservas respeita as validações do banco. Conclusões Google podem ser desfeitas pelo toast; reabertura habitual permanece no Google Tasks.
+
+## Label drag correction — 2026-10-05
+- Source allowed move while label requested copy; changed task drag to copyMove.
+- Task-specific payload, valid UUIDs, selected-task support, visible grip and label hover feedback.
+- Native automated gesture starts but does not reach target in controlled browser; end-to-end manual localhost test confirmed by user: label added.
+- Three drag protocol tests passed; production build passed.
+
