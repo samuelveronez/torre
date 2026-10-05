@@ -23,6 +23,16 @@ Ao entrar no app, criar preferências e os sete dias de jornada por upsert auten
 
 Situações: todo/waiting/completed. UI Pessoal/Profissional corresponde a personal/professional. Fontes: torre/google_tasks. Não importar demonstrações como tarefas reais do Google.
 
-Regras no banco: validação de duração, espera com responsável e data, conclusão com timestamp, remoção de reserva ao concluir/aguardar/alterar área ou duração, prevenção de conflito de reservas e respeito à jornada. Importação de blocos ocupados que conflitam com reservas é rejeitada; o backend deve informar o conflito e liberar/reagendar antes de tentar novamente. Alterar jornada não reorganiza reservas anteriores automaticamente.
+Regras no banco: validação de duração, espera com responsável e data, conclusão com timestamp, remoção de reserva ao concluir/aguardar/alterar área ou duração, respeito à jornada e preservação de reservas manuais sobrepostas. A sincronização importa blocos ocupados sem apagar reservas. Propostas automáticas validam conflitos no banco antes de aplicar. Alterar jornada não reorganiza reservas anteriores automaticamente.
 
 Referências: [RLS](https://supabase.com/docs/guides/database/postgres/row-level-security), [funções](https://supabase.com/docs/guides/database/functions).
+
+## Convites e reservas sobrepostas
+
+A migração `migrations/20261005102708_calendar_responses_manual_overlaps.sql` adiciona `response_status` aos eventos Google, permite reservas manuais simultâneas e impede que a sincronização as apague. A assinatura de `torre_apply_calendar` permanece igual e retorna zero reservas liberadas. O campo novo começa nulo; a próxima sincronização o preenche.
+
+Aceitos, talvez e sem resposta bloqueiam sugestões automáticas quando o calendário bloqueia planejamento e o evento não está marcado como livre. Recusados ficam disponíveis para consulta e não bloqueiam. A interface permite mostrar recusados nas agendas diária e semanal. No modo Somente ocupado, não há resposta nem detalhes de convites.
+
+Reservas manuais dispensam agenda atualizada e aceitam conflitos, mantendo tarefa em A fazer, duração, horário futuro, jornada e intervalo 7h–22h. A aplicação de propostas da IA verifica agenda atualizada e conflitos com eventos, tarefas existentes e outras tarefas da proposta sob o bloqueio transacional por usuário.
+
+Validação: `node supabase/validate-calendar.mjs` (usa PGlite instalado em `.db-validation`); `deno test --no-check supabase/tests`; `npm run build`. O teste `supabase/tests/agenda_ui.mjs` usa Playwright e uma prévia Vite em 5181 (`TORRE_TEST_URL` permite outra URL). Todas as chamadas Supabase nele são interceptadas com dados fictícios. `PLAYWRIGHT_MODULE` pode apontar para uma instalação externa do Playwright.

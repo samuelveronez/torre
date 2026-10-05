@@ -16,6 +16,14 @@ Em Authentication → URL Configuration, definir Site URL e adicionar Redirect U
 
 O app pede acesso Tasks para devolver conclusão e Calendar somente leitura. No modo “Somente ocupado”, não persiste o conteúdo dos eventos. Calendários com acesso freeBusyReader permanecem nesse modo. Um cliente OAuth em modo Testing pode exigir reconexão após sete dias; configurar o consentimento Google conforme o uso pretendido.
 
+## Agenda fiel e alocação manual
+
+Em Calendários e listas, escolha Detalhes permitidos para importar cada convite com sua resposta: Aceito, Talvez, Sem resposta ou Recusado. A resposta é da conta conectada; uma resposta desconhecida não é tratada como aceite. Somente ocupado continua disponível para privacidade, com intervalos sem detalhes.
+
+As agendas diária e semanal mostram eventos e tarefas sobrepostos lado a lado. Eventos de dia inteiro têm uma faixa própria. Mostrar recusados permite consultá-los; eles não bloqueiam sugestões. Clique em um cartão para consultar detalhes completos, inclusive no celular. Na semana, dias com muitos eventos ganham largura e podem ser consultados com rolagem horizontal ou foco no dia.
+
+Para reservar uma tarefa, use Reservar/Planejar e escolha dia e hora, arraste para a agenda ou escolha uma tarefa em Meu dia e clique no horário, inclusive sobre um compromisso. Sobreposições geram aviso e são salvas sem confirmação extra. A sincronização preserva essas reservas. A agenda desatualizada também permite reserva manual; a IA exige agenda atualizada e procura intervalos livres, evitando aceitos, talvez e convites sem resposta. Ajustes de uma proposta da IA continuam sujeitos à validação de conflitos.
+
 Funções publicadas: torre-integrations (valida JWT no código), torre-google-callback (state único por usuário), torre-google-worker (token privado do Vault). O cron executa a fila de conclusões a cada cinco minutos.
 
 ## Captura e labels

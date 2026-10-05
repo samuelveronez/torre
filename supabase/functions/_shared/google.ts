@@ -1,4 +1,5 @@
 import {createClient} from 'npm:@supabase/supabase-js@2.117.2';
+import {invitationResponse,blocksPlanning} from './calendar.ts';
 export const site='https://torre.veronez.app/';
 export const callback=`${Deno.env.get('SUPABASE_URL')}/functions/v1/torre-google-callback`;
 export const db=createClient(Deno.env.get('SUPABASE_URL')!,Deno.env.get('SUPABASE_SERVICE_ROLE_KEY')!);
@@ -46,13 +47,14 @@ export function midnight(date:string,tz:string){let time=new Date(date+'T00:00:0
 export async function syncCalendar(user:string,token:string,start:string,end:string){
  if(!Number.isFinite(Date.parse(start))||!Number.isFinite(Date.parse(end))||Date.parse(end)<=Date.parse(start)||Date.parse(end)-Date.parse(start)>32*86400000)throw new Error('Intervalo de agenda inválido.');
  const {data:calendars}=await checked(db.from('torre_calendars').select('*').eq('user_id',user).eq('selected',true));const events:any[]=[];
+ const {data:account}=await checked(db.from('torre_google_status').select('email').eq('user_id',user).maybeSingle());
  for(const c of calendars??[]){
   if(c.mode==='busy'||c.access_role==='freeBusyReader'){
    const data=await api(token,'calendar/v3/freeBusy',{method:'POST',body:JSON.stringify({timeMin:start,timeMax:end,timeZone:c.timezone,items:[{id:c.id}]})});const result=data.calendars?.[c.id];if(!result||result.errors?.length)throw new Error('Sem acesso à disponibilidade de '+c.name);
-   for(const b of result.busy??[])events.push({calendar_id:c.id,id:`busy:${b.start}:${b.end}`,title:'Ocupado',location:null,start_at:b.start,end_at:b.end,all_day:false,blocks_time:c.blocks_time});
+   for(const b of result.busy??[])events.push({calendar_id:c.id,id:`busy:${b.start}:${b.end}`,title:'Ocupado',location:null,start_at:b.start,end_at:b.end,all_day:false,blocks_time:c.blocks_time,response_status:null});
   }else{
-   const items=await pages(token,`calendar/v3/calendars/${encodeURIComponent(c.id)}/events?singleEvents=true&timeMin=${encodeURIComponent(start)}&timeMax=${encodeURIComponent(end)}`);
-   for(const e of items){if(e.status==='cancelled')continue;const allDay=!!e.start.date;events.push({calendar_id:c.id,id:e.id,title:e.summary||'Ocupado',location:e.visibility==='private'?null:e.location??null,start_at:allDay?midnight(e.start.date,c.timezone):e.start.dateTime,end_at:allDay?midnight(e.end.date,c.timezone):e.end.dateTime,all_day:allDay,blocks_time:c.blocks_time&&e.transparency!=='transparent'});}
+   const items=await pages(token,`calendar/v3/calendars/${encodeURIComponent(c.id)}/events?singleEvents=true&showHiddenInvitations=true&timeMin=${encodeURIComponent(start)}&timeMax=${encodeURIComponent(end)}`);
+   for(const e of items){if(e.status==='cancelled')continue;const allDay=!!e.start.date;const response=invitationResponse(e,account?.email??null,c.id);events.push({calendar_id:c.id,id:e.id,title:e.summary||'Ocupado',location:e.visibility==='private'?null:e.location??null,start_at:allDay?midnight(e.start.date,c.timezone):e.start.dateTime,end_at:allDay?midnight(e.end.date,c.timezone):e.end.dateTime,all_day:allDay,blocks_time:blocksPlanning(c.blocks_time,e.transparency,response),response_status:response});}
   }
  }
  return (await checked(db.rpc('torre_apply_calendar',{p_user:user,p_start:start,p_end:end,p_events:events}))).data;

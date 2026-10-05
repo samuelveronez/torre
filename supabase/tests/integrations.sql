@@ -35,15 +35,9 @@ insert into public.torre_google_status(user_id,connected) values('a7ba7610-735e-
 insert into public.torre_calendars(user_id,id,name,access_role,selected) values('a7ba7610-735e-4da5-a17f-104419aca001','test','Agenda teste','owner',true);
 set local role authenticated;
 set local request.jwt.claim.sub='a7ba7610-735e-4da5-a17f-104419aca001';
-do $$ begin
- begin insert into public.torre_scheduled_blocks(task_id,start_at,end_at) select id,'2099-01-05 19:00:00-03','2099-01-05 19:30:00-03' from public.torre_tasks where capture_id='a7ba7610-735e-4da5-a17f-104419aca004' and archived_at is null;raise exception 'Expected stale rejection';exception when raise_exception then if sqlerrm='Expected stale rejection' then raise;end if;end;
-end $$;
-reset role;
-update public.torre_google_status set connected=false where user_id='a7ba7610-735e-4da5-a17f-104419aca001';
-set local role authenticated;
 insert into public.torre_scheduled_blocks(task_id,start_at,end_at) select id,'2099-01-05 19:00:00-03','2099-01-05 19:30:00-03' from public.torre_tasks where capture_id='a7ba7610-735e-4da5-a17f-104419aca004' and archived_at is null;
 reset role;
 select public.torre_apply_calendar('a7ba7610-735e-4da5-a17f-104419aca001','2099-01-05','2099-01-12','[{"calendar_id":"test","id":"event","title":"Ocupado","location":null,"start_at":"2099-01-05T22:00:00Z","end_at":"2099-01-05T23:00:00Z","all_day":false,"blocks_time":true}]'::jsonb);
-do $$ begin if exists(select 1 from public.torre_scheduled_blocks where user_id='a7ba7610-735e-4da5-a17f-104419aca001') then raise exception 'Conflict reconciliation failed';end if;end $$;
-select 'PASS: idempotency, labels, undo, filename fallback, failed uploads, owner isolation, secret ACL, stale calendar rejection, atomic conflict reconciliation' as tests;
+do $$ begin if not exists(select 1 from public.torre_scheduled_blocks where user_id='a7ba7610-735e-4da5-a17f-104419aca001') then raise exception 'Sync erased manual reservation';end if;end $$;
+select 'PASS: idempotency, labels, undo, filename fallback, failed uploads, owner isolation, secret ACL, stale calendar manual reservation, preservation after sync' as tests;
 rollback;
