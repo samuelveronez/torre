@@ -1,12 +1,13 @@
-import {useState} from 'react';
+import {useEffect,useState} from 'react';
 import {X,ExternalLink,Clock,Plus,ChevronRight} from 'lucide-react';
 import {LabelPicker,AttachmentList} from './FeatureUI';
 import type {Features} from './features';
 import {type Task,safeLink} from './task';
-type Props={features:Features;tasks:Task[];area:string;query:string;onClearFilters:()=>void;onComplete:(id:string)=>void;onReopen:(id:string)=>void;onPlan:(id:string)=>void;onUnplan:(id:string)=>void;onNew:()=>void;onSave:(task:Task)=>void};
+type Props={initialTaskId?:string;features:Features;tasks:Task[];area:string;query:string;onClearFilters:()=>void;onComplete:(id:string)=>void;onReopen:(id:string)=>void;onPlan:(id:string)=>void;onUnplan:(id:string)=>void;onNew:()=>void;onSave:(task:Task)=>void};
 const formatDate=(value:string)=>new Date(value+'T12:00').toLocaleDateString('pt-BR');
-export function TaskList({features,tasks,area,query,onClearFilters,onComplete,onReopen,onPlan,onUnplan,onNew,onSave}:Props){
+export function TaskList({initialTaskId,features,tasks,area,query,onClearFilters,onComplete,onReopen,onPlan,onUnplan,onNew,onSave}:Props){
  const [status,setStatus]=useState('Em aberto');const [sort,setSort]=useState('Prazo');const [selected,setSelected]=useState<string|null>(null);
+ useEffect(()=>{if(initialTaskId)setSelected(initialTaskId);},[initialTaskId]);
  const current=tasks.find(t=>t.id===selected);const now=new Date();const today=`${now.getFullYear()}-${String(now.getMonth()+1).padStart(2,'0')}-${String(now.getDate()).padStart(2,'0')}`;
  const matching=tasks.filter(t=>(area==='Tudo'||t.area===area)&&[t.title,t.description,t.waitingFor].join(' ').toLocaleLowerCase('pt-BR').includes(query.trim().toLocaleLowerCase('pt-BR')));
  const filtered=matching.filter(t=>status==='Todas'||(status==='Concluídas'?t.done:status==='A fazer'?!t.done&&t.situation!=='waiting':status==='Aguardando resposta'?!t.done&&t.situation==='waiting':!t.done)).sort((a,b)=>sort==='Duração'?a.minutes-b.minutes:sort==='Nome'?a.title.localeCompare(b.title,'pt-BR'):sort==='Acompanhamento'?(a.followUp||'9999').localeCompare(b.followUp||'9999'):(a.due||'9999').localeCompare(b.due||'9999'));

@@ -1,7 +1,7 @@
 import {useEffect,useRef,useState} from 'react';
 import {supabase} from './supabase';
 export type Label={id:string;name:string;description:string;color:string;archived:boolean};
-export type Capture={id:string;body:string;title:string;state:string;error:string|null;triage_until:string|null;created_at:string};
+export type Capture={id:string;body:string;title:string;mode:'list'|'free';state:string;error:string|null;triage_until:string|null;created_at:string};
 export type Attachment={id:string;capture_id:string;name:string;path:string;size:number;state:string;error:string|null};
 export type Calendar={id:string;name:string;color:string;selected:boolean;mode:'busy'|'details';access_role:string;blocks_time:boolean};
 export type CalendarEvent={id:string;calendar_id:string;title:string;location:string|null;start_at:string;end_at:string;all_day:boolean;blocks_time:boolean};
@@ -29,8 +29,8 @@ export function useFeatures(userId:string,start:Date,onTasks:()=>void){
  try{await ensure(supabase.from('torre_attachments').update({state:'uploading',error:null}).eq('id',a.id));const existing=await supabase.storage.from('torre-attachments').createSignedUrl(a.path,60);if(existing.error)await ensure(supabase.storage.from('torre-attachments').upload(a.path,file,{upsert:false,contentType:'application/octet-stream'}));await ensure(supabase.from('torre_attachments').update({state:'uploaded',error:null}).eq('id',a.id));}
  catch(e){await supabase.from('torre_attachments').update({state:'error',error:(e as Error).message}).eq('id',a.id);throw e;}
  }
- async function capture(id:string,text:string,files:File[]){if(files.length>10||files.some(f=>f.size>20*1024*1024))throw new Error('Até dez arquivos, com 20 MB cada.');if(!text.trim()&&!files.length)throw new Error('Digite um texto ou anexe um arquivo.');
- await ensure(supabase.from('torre_captures').upsert({id,user_id:userId,body:text},{onConflict:'id',ignoreDuplicates:true}));
+ async function capture(id:string,text:string,files:File[],mode:'list'|'free'='list'){if(text.length>20000)throw new Error('Até 20 mil caracteres por captura.');if(files.length>10||files.some(f=>f.size>20*1024*1024))throw new Error('Até dez arquivos, com 20 MB cada.');if(!text.trim()&&!files.length)throw new Error('Digite um texto ou anexe um arquivo.');
+ await ensure(supabase.from('torre_captures').upsert({id,user_id:userId,body:text,mode},{onConflict:'id',ignoreDuplicates:true}));
  const existing=await ensure(supabase.from('torre_attachments').select('*').eq('capture_id',id));
  for(const [ordinal,file] of files.entries()){const old=existing.data?.find(a=>a.ordinal===ordinal);const attachmentId=old?.id??crypto.randomUUID();const a:Attachment=old??{id:attachmentId,capture_id:id,name:file.name,size:file.size,path:`${userId}/${id}/${attachmentId}`,state:'uploading',error:null};if(!old)await ensure(supabase.from('torre_attachments').insert({...a,user_id:userId,ordinal}));if(a.state!=='uploaded')try{await upload(a,file);}catch{/* Persisted error remains retryable in inbox. */}}
  await load();

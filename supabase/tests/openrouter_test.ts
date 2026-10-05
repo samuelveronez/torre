@@ -2,7 +2,7 @@ import {buildQuestions,parseDecision,classify,classifierModel} from '../function
 const input={text:'Revisar relatório do cliente\nContexto preservado',labels:[{id:'document',name:'Documentos',description:'Relatórios'},{id:'home',name:'Casa',description:''}]};
 function assert(value:unknown){if(!value)throw new Error('Assertion failed');}
 const response=()=>({answers:{area:{type:'choice',choice:'professional',probabilities:{professional:.95,personal:.05}},label_0:{type:'noul',noul:.92},label_1:{type:'noul',noul:.2}}});
-Deno.test('Jev selects multiple existing labels conservatively and preserves text',()=>{
+Deno.test('Mercury selects multiple existing labels conservatively and preserves text',()=>{
  const data=response();data.answers.label_1.noul=.85;const result=parseDecision(data,input);
  assert(result.labelIds.join(',')==='document,home');assert(result.area==='professional');assert(result.title==='Revisar relatório do cliente');assert(result.description===input.text);assert(result.durationMinutes===30);assert(result.dueDate===undefined);
  data.answers.area.probabilities.professional=.5;assert(parseDecision(data,input).area==='personal');
