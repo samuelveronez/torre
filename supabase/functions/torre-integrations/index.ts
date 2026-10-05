@@ -1,7 +1,7 @@
-import {classifierModel} from '../_shared/openrouter.ts';
-import {triageMany,extractionModel} from '../_shared/intelligence.ts';
+import {classifierModel,buildQuestions,parseDecision} from '../_shared/openrouter.ts';
+import {triageMany,extractionModel,request} from '../_shared/intelligence.ts';
 import {propose} from '../_shared/planning.ts';
-import {db,checked,secret,googleToken,completeJobs,discover,syncTasks,syncCalendar,callback,site} from '../_shared/google.ts';
+import {db,checked,secret,googleToken,api,completeJobs,discover,syncTasks,syncCalendar,callback,site} from '../_shared/google.ts';
 const cors={'Access-Control-Allow-Origin':new URL(site).origin,'Access-Control-Allow-Headers':'authorization, apikey, content-type, x-client-info','Access-Control-Allow-Methods':'POST, OPTIONS'};
 Deno.serve(async(req)=>{
  const headers={...cors};const json=(data:unknown,status=200)=>new Response(JSON.stringify(data),{status,headers:{...headers,'Content-Type':'application/json'}});
@@ -23,6 +23,17 @@ Deno.serve(async(req)=>{
    // Test uses synthetic text only; no capture data or files are sent during activation.
    await triageMany({text:'Comprar frutas para minha casa',labels:[]},key,'free');
    await checked(db.from('torre_ai_settings').upsert({user_id:uid,has_key:true,provider:'openrouter',model:classifierModel,enabled:true}));return json({ok:true,model:classifierModel});
+  }
+  if(input.action==='classify-tasks'||input.action==='undo-completion'){
+   const ids=input.taskIds;if(!Array.isArray(ids)||ids.length<1||ids.length>200||new Set(ids).size!==ids.length||ids.some(x=>typeof x!=='string'||!/^[0-9a-f-]{36}$/i.test(x)))throw new Error('Seleção de tarefas inválida.');
+   const {data:tasks}=await checked(db.from('torre_tasks').select('*').eq('user_id',uid).is('archived_at',null).in('id',ids));if(tasks?.length!==ids.length)throw new Error('Tarefa indisponível nesta conta.');
+   if(input.action==='undo-completion'){
+    if(tasks.some((t:any)=>t.source!=='google_tasks'||t.status!=='completed'||!t.completed_at||Date.parse(t.completed_at)<Date.now()-60000))throw new Error('O período de desfazer terminou. Reabra esta tarefa no Google Tasks.');
+    const token=await googleToken(uid);for(const task of tasks){await api(token,`tasks/v1/lists/${encodeURIComponent(task.google_list_id)}/tasks/${encodeURIComponent(task.google_task_id)}`,{method:'PATCH',body:JSON.stringify({status:'needsAction',completed:null})});await checked(db.from('torre_sync_jobs').delete().eq('task_id',task.id).eq('user_id',uid));await checked(db.from('torre_tasks').update({status:'todo',google_completion_pending:false,sync_error:null}).eq('id',task.id).eq('user_id',uid));}return json({ok:true});
+   }
+   if(ids.length>20)throw new Error('Classifique até 20 tarefas por vez.');
+   const {data:settings}=await checked(db.from('torre_ai_settings').select('*').eq('user_id',uid).maybeSingle());if(!settings?.enabled||settings.provider!=='openrouter')throw new Error('Ative a IA nas configurações.');const key=await secret(uid,'ai');if(!key)throw new Error('Cadastre sua chave OpenRouter.');
+   const {data:labels}=await checked(db.from('torre_labels').select('id,name,description').eq('user_id',uid).eq('archived',false));const inputs=tasks.map((t:any)=>({text:[t.title,t.description].filter(Boolean).join('\n').slice(0,20000),labels:labels??[]}));const questions:Record<string,unknown>={};inputs.forEach((item:any,i:number)=>{for(const [name,q] of Object.entries(buildQuestions(item)))questions[`task_${i}_${name}`]={...(q as object),instructions:`Classifique somente tasks[${i}], independentemente das outras. ${(q as any).instructions.replaceAll('capture_text',`tasks[${i}].text`)}`};});const payload=await request('alpha/decisions',{model:classifierModel,state:{tasks:inputs.map((item:any)=>({text:item.text}))},questions},key);const results=inputs.map((item:any,i:number)=>{const answers:Record<string,unknown>={};for(const name of Object.keys(buildQuestions(item)))answers[name]=payload.answers?.[`task_${i}_${name}`];return {taskId:tasks[i].id,labelIds:parseDecision({answers},item).labelIds};});return json({results});
   }
   if(input.action==='triage'){
    if(typeof input.captureId!=='string'||!/^[0-9a-f-]{36}$/i.test(input.captureId))return json({error:'Captura inválida.'},400);

@@ -26,6 +26,7 @@ export async function discover(user:string,token:string){
 export async function completeJobs(user:string,token:string){
  const jobs=await checked(db.from('torre_sync_jobs').select('*').eq('user_id',user).lte('next_attempt_at',new Date().toISOString()));
  for(const job of jobs.data??[]){try{const {data:task}=await checked(db.from('torre_tasks').select('*').eq('id',job.task_id).single());
+  if(task.status!=='completed'||!task.google_completion_pending){await checked(db.from('torre_sync_jobs').delete().eq('id',job.id));continue;}
   await api(token,`tasks/v1/lists/${encodeURIComponent(task.google_list_id)}/tasks/${encodeURIComponent(task.google_task_id)}`,{method:'PATCH',body:JSON.stringify({status:'completed'})});
   await checked(db.from('torre_tasks').update({google_completion_pending:false,sync_error:null}).eq('id',task.id));await checked(db.from('torre_sync_jobs').delete().eq('id',job.id));
  }catch(e){const error=String((e as Error).message??e);await db.from('torre_sync_jobs').update({attempts:job.attempts+1,next_attempt_at:new Date(Date.now()+Math.min(3600000,60000*2**Math.min(job.attempts,6))).toISOString(),error}).eq('id',job.id);await db.from('torre_tasks').update({sync_error:error}).eq('id',job.task_id);}}

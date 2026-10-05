@@ -4,8 +4,9 @@ import {invoke,type Features} from './features';
 export type Placement={taskId:string;start:string;end:string;reason:string};
 type Proposal={id:string;placements:Placement[];unplaced:string[];expires_at:string};
 const localInput=(value:string)=>{const d=new Date(value);return `${d.getFullYear()}-${String(d.getMonth()+1).padStart(2,'0')}-${String(d.getDate()).padStart(2,'0')}T${String(d.getHours()).padStart(2,'0')}:${String(d.getMinutes()).padStart(2,'0')}`;};
-export function WeekPlanner({tasks,week,features,onPreview,onApplied}:{tasks:Task[];week:Date;features:Features;onPreview:(rows:Placement[])=>void;onApplied:()=>void}){
+export function WeekPlanner({tasks,week,features,onPreview,onApplied,autoOpenKey=0}:{autoOpenKey?:number;tasks:Task[];week:Date;features:Features;onPreview:(rows:Placement[])=>void;onApplied:()=>void}){
  const [open,setOpen]=useState(false),[selected,setSelected]=useState<string[]>([]),[accepted,setAccepted]=useState<string[]>([]),[instruction,setInstruction]=useState(''),[proposal,setProposal]=useState<Proposal|null>(null),[busy,setBusy]=useState(false),[error,setError]=useState('');const revision=useRef(0);
+ useEffect(()=>{if(autoOpenKey)setOpen(true);},[autoOpenKey]);
  const key=week.toISOString();
  useEffect(()=>{revision.current++;setProposal(null);setSelected([]);setAccepted([]);onPreview([]);setBusy(false);},[key]);
  useEffect(()=>()=>{revision.current++;},[]);
