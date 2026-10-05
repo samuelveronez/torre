@@ -5,7 +5,7 @@ import {db,checked,secret,googleToken,api,completeJobs,discover,syncTasks,syncCa
 const cors={'Access-Control-Allow-Origin':new URL(site).origin,'Access-Control-Allow-Headers':'authorization, apikey, content-type, x-client-info','Access-Control-Allow-Methods':'POST, OPTIONS'};
 Deno.serve(async(req)=>{
  const headers={...cors};const json=(data:unknown,status=200)=>new Response(JSON.stringify(data),{status,headers:{...headers,'Content-Type':'application/json'}});
- const origin=req.headers.get('Origin');if(origin&&['http://127.0.0.1:5180','http://127.0.0.1:5173','http://127.0.0.1:5174',new URL(site).origin].includes(origin))headers['Access-Control-Allow-Origin']=origin;else headers['Access-Control-Allow-Origin']=new URL(site).origin;
+ const origin=req.headers.get('Origin');if(origin&&['http://127.0.0.1:5180','http://127.0.0.1:5173','http://127.0.0.1:5174','https://samuelveronez.github.io',new URL(site).origin].includes(origin))headers['Access-Control-Allow-Origin']=origin;else headers['Access-Control-Allow-Origin']=new URL(site).origin;
  if(req.method==='OPTIONS')return new Response('ok',{headers});
  try{
   // Every user action validates the bearer JWT with Supabase Auth.

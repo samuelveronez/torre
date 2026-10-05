@@ -1,5 +1,5 @@
 import {createClient} from 'npm:@supabase/supabase-js@2.117.2';
-export const site='https://samuelveronez.github.io/torre/';
+export const site='https://torre.veronez.app/';
 export const callback=`${Deno.env.get('SUPABASE_URL')}/functions/v1/torre-google-callback`;
 export const db=createClient(Deno.env.get('SUPABASE_URL')!,Deno.env.get('SUPABASE_SERVICE_ROLE_KEY')!);
 export async function checked<T extends {error:unknown}>(promise:PromiseLike<T>):Promise<T>{const result=await promise;if(result.error)throw result.error;return result;}
