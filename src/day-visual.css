@@ -1,0 +1,44 @@
+/* Visual integration only. Calendar positioning stays owned by AgendaEvents. */
+.app-shell{font-family:'Segoe UI',Arial,sans-serif;font-size:14px;line-height:1.5}
+.app-shell button,.app-shell input,.app-shell select,.app-shell textarea{font-family:inherit}
+.app-shell .heading h1{font-size:26px;font-weight:700}
+.app-shell .sidebar-section{margin-top:20px;margin-bottom:8px;font-size:12px;line-height:1.5}
+.app-shell .labels-heading{display:flex;align-items:center;justify-content:space-between;gap:8px;width:100%;border:0;background:transparent;padding:8px 16px;border-radius:6px;min-height:36px;color:var(--ux-muted);font-size:12px;font-weight:600;margin:16px 0 4px}
+.app-shell .labels-heading:hover{background:var(--ux-soft)}
+.app-shell .labels-heading>span{display:flex;align-items:center;gap:8px}
+.app-shell .labels-heading .labels-filter-count{font-size:12px;color:var(--ux-blue)}
+.app-shell .sidebar-labels[hidden]{display:none}
+.app-shell .sidebar-labels{padding:0;display:grid;gap:4px;border:0}
+.app-shell .sidebar-labels button{min-height:36px;padding:8px 16px;font-size:14px;line-height:1.5}
+.app-shell .home-layout.daily-view{grid-template-columns:minmax(0,1fr) minmax(360px,420px);gap:24px}
+.app-shell .day-focus-heading{display:flex;align-items:center;justify-content:space-between;gap:12px;padding:20px 24px;border-bottom:1px solid var(--ux-border)}
+.app-shell .day-focus-heading h2{font-size:18px;font-weight:600;margin:0}
+.app-shell .day-focus-heading small{font-size:12px;color:var(--ux-muted)}
+.app-shell .day-group{padding:0 24px}
+.app-shell .day-group h2,.app-shell .day-group summary{font-size:16px;padding:16px 0;font-weight:600}
+.app-shell .count{font-family:inherit;font-size:12px;font-weight:600}
+.app-shell .toolbar>span{font-family:inherit;font-size:14px;line-height:1.5;color:var(--ux-muted)}
+.app-shell .section-empty{font-size:14px;padding-bottom:16px}
+.app-shell .home-tasks .task-row{padding:14px 0}
+.app-shell .task-title{font-family:inherit;font-size:14px;font-weight:600;line-height:1.5}
+.app-shell .task-meta{font-family:inherit;font-size:12px;line-height:1.5;gap:8px}
+.app-shell .day-list-footer{display:flex;align-items:center;justify-content:space-between;gap:12px;padding:12px 0;border-top:1px solid var(--ux-border)}
+.app-shell .day-list-footer button{min-height:36px;font-size:12px;padding:6px 10px}
+.app-shell .daily-actions button{font-size:14px;min-height:40px;padding:8px 12px}
+.app-shell .daily-actions .primary{display:none}
+.app-shell .home-agenda.daily-agenda{padding:20px;position:static}
+.app-shell .daily-agenda h2{font-size:16px}
+.app-shell .agenda-sync small,.app-shell .agenda-sync button,.app-shell .day-navigation button,.app-shell .daily-agenda>small{font-size:12px}
+.app-shell .day-navigation button{min-height:36px}
+.app-shell .today-commitments{border-top:1px solid var(--ux-border);border-bottom:1px solid var(--ux-border);padding:12px 0;margin:12px 0}
+.app-shell .today-commitments h3{font-size:14px;font-weight:600;margin-bottom:8px}
+.app-shell .today-commitments ul{list-style:none;margin:0;padding:0;display:grid;gap:8px}
+.app-shell .today-commitments li{display:grid;grid-template-columns:82px minmax(0,1fr);gap:8px;font-size:12px;overflow-wrap:anywhere}
+.app-shell .today-commitments time{color:var(--ux-muted)}
+.app-shell .today-commitments details{margin-top:8px;font-size:12px}
+.app-shell .today-commitments summary{cursor:pointer;color:var(--ux-blue)}
+.app-shell .today-commitments p{font-size:12px;margin:0}
+.app-shell .daily-time-scroll{height:500px;max-height:65dvh}
+@media(max-width:1099px){.app-shell .home-layout.daily-view{grid-template-columns:minmax(0,1fr)}}
+@media(max-width:760px){.app-shell .day-focus-heading{padding:16px;flex-wrap:wrap}.app-shell .day-group{padding:0 16px}.app-shell .home-agenda.daily-agenda{padding:16px}.app-shell .daily-actions button{font-size:12px}.app-shell .heading h1{font-size:24px}}
+@media(pointer:coarse){.app-shell .labels-heading,.app-shell .sidebar-labels button,.app-shell .day-list-footer button{min-height:44px}}
