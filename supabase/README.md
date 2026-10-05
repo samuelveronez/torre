@@ -36,3 +36,9 @@ Aceitos, talvez e sem resposta bloqueiam sugestões automáticas quando o calend
 Reservas manuais dispensam agenda atualizada e aceitam conflitos, mantendo tarefa em A fazer, duração, horário futuro, jornada e intervalo 7h–22h. A aplicação de propostas da IA verifica agenda atualizada e conflitos com eventos, tarefas existentes e outras tarefas da proposta sob o bloqueio transacional por usuário.
 
 Validação: `node supabase/validate-calendar.mjs` (usa PGlite instalado em `.db-validation`); `deno test --no-check supabase/tests`; `npm run build`. O teste `supabase/tests/agenda_ui.mjs` usa Playwright e uma prévia Vite em 5181 (`TORRE_TEST_URL` permite outra URL). Todas as chamadas Supabase nele são interceptadas com dados fictícios. `PLAYWRIGHT_MODULE` pode apontar para uma instalação externa do Playwright.
+
+### Eventos anônimos e permissões
+
+A migração `20261005143000_anonymous_calendar_overlaps.sql` mantém a assinatura de `torre_apply_calendar`. No modo Somente ocupado, a integração consulta os eventos com somente ID, status e horários, preservando sobreposições sem guardar títulos, participantes ou respostas. O FreeBusy continua sendo a fonte dos bloqueios automáticos. No payload interno, `display_only` identifica eventos para exibição e `availability_only` identifica intervalos que não devem virar cartões. Se o Google negar os eventos individuais (403/404) ou não fornecer horários apesar de haver ocupação, a agenda usa disponibilidade consolidada e informa a limitação. Erros transitórios interrompem a sincronização sem substituir os dados anteriores.
+
+A opção Detalhes permitidos exige uma permissão superior a freeBusyReader. Configurações explica o bloqueio e permite atualizar permissões após uma mudança no Google. Salvamentos exibem andamento, sucesso e erro.

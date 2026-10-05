@@ -1,0 +1,17 @@
+import assert from 'node:assert/strict';
+import fs from 'node:fs';
+import vm from 'node:vm';
+import ts from 'typescript';
+const source=fs.readFileSync('supabase/functions/_shared/google.ts','utf8').replace(/^import .*;\r?\n/gm,'').replace(/export const db=createClient[^\n]+/,'export const db=testDb;');
+let captured,notice,listStatus=200,requests=[];
+const calendar={id:'work',name:'Trabalho',mode:'busy',access_role:'freeBusyReader',timezone:'America/Sao_Paulo',blocks_time:true};
+const testDb={from(table){const result={data:table==='torre_calendars'?[calendar]:{email:'me@example.com'},error:null};const chain={select(){return chain},eq(){return chain},maybeSingle(){return Promise.resolve(result)},update(value){notice=value.notice;return chain},then(resolve){return Promise.resolve(result).then(resolve)}};return chain;},rpc(_name,args){captured=args.p_events;return Promise.resolve({data:0,error:null})}};
+const exports={};const context={exports,testDb,Deno:{env:{get:()=>''}},Date,Intl,URLSearchParams,fetch:async(url)=>{requests.push(url);if(url.endsWith('/freeBusy'))return new Response(JSON.stringify({calendars:{work:{busy:[{start:'2099-01-05T12:00:00Z',end:'2099-01-05T14:00:00Z'}]}}}));return new Response(JSON.stringify({items:[{id:'a',start:{dateTime:'2099-01-05T12:00:00Z'},end:{dateTime:'2099-01-05T13:00:00Z'},summary:'Private title',location:'Private place',attendees:[{email:'private@example.com'}]},{id:'b',start:{dateTime:'2099-01-05T12:30:00Z'},end:{dateTime:'2099-01-05T14:00:00Z'}}]}),{status:listStatus});}};
+vm.runInNewContext(ts.transpileModule(source,{compilerOptions:{module:ts.ModuleKind.CommonJS,target:ts.ScriptTarget.ES2022}}).outputText,context);
+await exports.syncCalendar('user','mock','2099-01-05T00:00:00Z','2099-01-12T00:00:00Z');
+assert.equal(captured.filter(e=>e.display_only).length,2);assert.equal(captured.filter(e=>e.availability_only).length,1);
+assert(!JSON.stringify(captured).includes('Private'));assert(!JSON.stringify(captured).includes('private@example'));
+assert.equal(new URL(requests[1]).searchParams.get('fields'),'nextPageToken,items(id,status,start,end)');
+listStatus=403;await exports.syncCalendar('user','mock','2099-01-05T00:00:00Z','2099-01-12T00:00:00Z');assert.equal(captured.length,1);assert.match(notice,/intervalos consolidados/);
+listStatus=500;captured=null;await assert.rejects(()=>exports.syncCalendar('user','mock','2099-01-05T00:00:00Z','2099-01-12T00:00:00Z'),/500/);assert.equal(captured,null);
+console.log('Anonymous calendar: separate overlapping events, privacy, canonical availability and fallback passed.');

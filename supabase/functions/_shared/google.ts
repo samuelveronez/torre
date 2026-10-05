@@ -14,7 +14,7 @@ export async function googleToken(user:string){
 }
 export async function api(token:string,path:string,options:RequestInit={}){
  const response=await fetch(`https://www.googleapis.com/${path}`,{...options,headers:{Authorization:`Bearer ${token}`,'Content-Type':'application/json',...options.headers}});
- if(!response.ok)throw new Error(`Google respondeu ${response.status}. Tente sincronizar novamente.`);
+ if(!response.ok)throw Object.assign(new Error(`Google respondeu ${response.status}. Tente sincronizar novamente.`),{status:response.status});
  return response.status===204?{}:await response.json();
 }
 export async function pages(token:string,path:string){let result:any[]=[];let page='';do{const data=await api(token,`${path}${path.includes('?')?'&':'?'}maxResults=100${page?'&pageToken='+encodeURIComponent(page):''}`);result.push(...(data.items??[]));page=data.nextPageToken??'';}while(page);return result;}
@@ -46,16 +46,32 @@ export async function syncTasks(user:string,token:string){
 export function midnight(date:string,tz:string){let time=new Date(date+'T00:00:00Z').getTime();const target=time;for(let n=0;n<3;n++){const parts=new Intl.DateTimeFormat('en-US',{timeZone:tz,year:'numeric',month:'2-digit',day:'2-digit',hour:'2-digit',minute:'2-digit',second:'2-digit',hourCycle:'h23'}).formatToParts(time);const get=(k:string)=>parts.find(p=>p.type===k)!.value;const local=Date.UTC(+get('year'),+get('month')-1,+get('day'),+get('hour'),+get('minute'),+get('second'));time+=target-local;}return new Date(time).toISOString();}
 export async function syncCalendar(user:string,token:string,start:string,end:string){
  if(!Number.isFinite(Date.parse(start))||!Number.isFinite(Date.parse(end))||Date.parse(end)<=Date.parse(start)||Date.parse(end)-Date.parse(start)>32*86400000)throw new Error('Intervalo de agenda inválido.');
- const {data:calendars}=await checked(db.from('torre_calendars').select('*').eq('user_id',user).eq('selected',true));const events:any[]=[];
+ const {data:calendars}=await checked(db.from('torre_calendars').select('*').eq('user_id',user).eq('selected',true));const events:any[]=[];const notices:string[]=[];
  const {data:account}=await checked(db.from('torre_google_status').select('email').eq('user_id',user).maybeSingle());
  for(const c of calendars??[]){
   if(c.mode==='busy'||c.access_role==='freeBusyReader'){
    const data=await api(token,'calendar/v3/freeBusy',{method:'POST',body:JSON.stringify({timeMin:start,timeMax:end,timeZone:c.timezone,items:[{id:c.id}]})});const result=data.calendars?.[c.id];if(!result||result.errors?.length)throw new Error('Sem acesso à disponibilidade de '+c.name);
-   for(const b of result.busy??[])events.push({calendar_id:c.id,id:`busy:${b.start}:${b.end}`,title:'Ocupado',location:null,start_at:b.start,end_at:b.end,all_day:false,blocks_time:c.blocks_time,response_status:null});
+   const busy=result.busy??[];
+   let items:any[]|null=null;
+   try{items=await pages(token,`calendar/v3/calendars/${encodeURIComponent(c.id)}/events?singleEvents=true&timeMin=${encodeURIComponent(start)}&timeMax=${encodeURIComponent(end)}&fields=${encodeURIComponent('nextPageToken,items(id,status,start,end)')}`);}
+   catch(e){if(![403,404].includes((e as {status?:number}).status??0))throw e;}
+   if(items&&!items.some(e=>e.status!=='cancelled'&&e.start&&e.end)&&busy.length)items=null;
+   if(items===null){
+    notices.push(`${c.name}: o Google não disponibilizou os eventos individuais à Torre. Exibindo os intervalos consolidados de ocupado; as sobreposições não podem ser detalhadas nesta sincronização.`);
+    for(const b of busy)events.push({calendar_id:c.id,id:`busy:${b.start}:${b.end}`,title:'Ocupado',location:null,start_at:b.start,end_at:b.end,all_day:false,blocks_time:c.blocks_time,response_status:null});
+   }else{
+    for(const e of items){if(e.status==='cancelled'||!e.start||!e.end)continue;const allDay=!!e.start.date;const from=allDay?midnight(e.start.date,c.timezone):e.start.dateTime;const to=allDay?midnight(e.end.date,c.timezone):e.end.dateTime;
+     events.push({calendar_id:c.id,id:e.id,title:'Ocupado',location:null,start_at:from,end_at:to,all_day:allDay,blocks_time:c.blocks_time&&busy.some((b:{start:string;end:string})=>Date.parse(b.start)<Date.parse(to)&&Date.parse(b.end)>Date.parse(from)),response_status:null,display_only:true});
+    }
+    // FreeBusy is authoritative for automatic planning; anonymous events are for display.
+    for(const b of busy)events.push({calendar_id:c.id,id:`busy:${b.start}:${b.end}`,start_at:b.start,end_at:b.end,blocks_time:c.blocks_time,availability_only:true});
+   }
   }else{
    const items=await pages(token,`calendar/v3/calendars/${encodeURIComponent(c.id)}/events?singleEvents=true&showHiddenInvitations=true&timeMin=${encodeURIComponent(start)}&timeMax=${encodeURIComponent(end)}`);
    for(const e of items){if(e.status==='cancelled')continue;const allDay=!!e.start.date;const response=invitationResponse(e,account?.email??null,c.id);events.push({calendar_id:c.id,id:e.id,title:e.summary||'Ocupado',location:e.visibility==='private'?null:e.location??null,start_at:allDay?midnight(e.start.date,c.timezone):e.start.dateTime,end_at:allDay?midnight(e.end.date,c.timezone):e.end.dateTime,all_day:allDay,blocks_time:blocksPlanning(c.blocks_time,e.transparency,response),response_status:response});}
   }
  }
- return (await checked(db.rpc('torre_apply_calendar',{p_user:user,p_start:start,p_end:end,p_events:events}))).data;
+ const applied=(await checked(db.rpc('torre_apply_calendar',{p_user:user,p_start:start,p_end:end,p_events:events}))).data;
+ if(notices.length)await checked(db.from('torre_google_status').update({notice:notices.join('\n')}).eq('user_id',user));
+ return applied;
 }
