@@ -24,10 +24,12 @@ Ctrl/Cmd+K abre a captura. Até dez arquivos de vinte MB, em bucket privado. Fal
 
 ## IA
 
-A chave pessoal é armazenada criptografada no Vault. O frontend recebe apenas indicação de existência. O modelo e provedor ainda não foram escolhidos: chamadas de triagem por IA permanecem desativadas, com processamento manual disponível. O contrato e validação estão em `supabase/functions/_shared/triage.ts`; o futuro adaptador recebe somente texto digitado e labels existentes.
+A chave pessoal OpenRouter fica criptografada no Vault; o frontend recebe apenas indicação de existência. Configurações permite ativar e testar `typesafe/jev-1.13`, ou desativar. A ativação testa um texto sintético e só salva a configuração após uma resposta válida. O adaptador usa a Decisions API (`/api/alpha/decisions`), sem enviar anexos. Jev classifica cada label ativa por Noul (limiar 0,8) e a área por Choice; baixa certeza mantém Pessoal. Não gera prosa: o título usa a primeira linha e a descrição preserva o texto original; 30 minutos e nenhum prazo. Novas capturas textuais são classificadas após serem salvas. Falhas mantêm a captura para tentativa manual, e um bloqueio de 90 segundos evita chamadas simultâneas. A criação e o histórico são atômicos e idempotentes. Desfazer arquiva a tarefa e devolve a captura à entrada. Os RPCs de IA são exclusivos do backend. Nenhum fallback para outro modelo é utilizado.
 
 ## Validação
 
 `npm run build` verifica o frontend. `deno check supabase/functions/torre-integrations/index.ts supabase/functions/torre-google-callback/index.ts supabase/functions/torre-google-worker/index.ts` verifica o backend. `deno test supabase/tests/triage_test.ts` valida respostas da IA. `supabase/tests/integrations.sql` usa dados temporários e ROLLBACK para verificar regras no banco remoto.
 
 Testes reais de consentimento, renovação Google e entrega de e-mail exigem configuração das credenciais e entrada da conta. Não considerar esses fluxos confirmados apenas porque as funções foram publicadas.
+
+Validação adicional: `deno test supabase/tests/openrouter_test.ts supabase/tests/triage_test.ts`; `supabase/tests/openrouter.sql` testa exclusão mútua, autorização, labels, idempotência e desfazer, com ROLLBACK.

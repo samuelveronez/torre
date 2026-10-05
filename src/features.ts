@@ -1,7 +1,7 @@
 import {useEffect,useRef,useState} from 'react';
 import {supabase} from './supabase';
 export type Label={id:string;name:string;description:string;color:string;archived:boolean};
-export type Capture={id:string;body:string;title:string;state:string;error:string|null;created_at:string};
+export type Capture={id:string;body:string;title:string;state:string;error:string|null;triage_until:string|null;created_at:string};
 export type Attachment={id:string;capture_id:string;name:string;path:string;size:number;state:string;error:string|null};
 export type Calendar={id:string;name:string;color:string;selected:boolean;mode:'busy'|'details';access_role:string;blocks_time:boolean};
 export type CalendarEvent={id:string;calendar_id:string;title:string;location:string|null;start_at:string;end_at:string;all_day:boolean;blocks_time:boolean};
@@ -13,7 +13,8 @@ export async function invoke(action:string,fields:Record<string,unknown>={}){
 }
 export async function ensure<T extends {error:unknown}>(promise:PromiseLike<T>){const value=await promise;if(value.error)throw value.error;return value;}
 export function useFeatures(userId:string,start:Date,onTasks:()=>void){
- const [labels,setLabels]=useState<Label[]>([]),[captures,setCaptures]=useState<Capture[]>([]),[attachments,setAttachments]=useState<Attachment[]>([]),[calendars,setCalendars]=useState<Calendar[]>([]),[events,setEvents]=useState<CalendarEvent[]>([]),[lists,setLists]=useState<{id:string;name:string;selected:boolean;area:string}[]>([]),[google,setGoogle]=useState<GoogleStatus|null>(null),[ai,setAi]=useState<{has_key:boolean;provider:string|null;model:string|null}|null>(null),[error,setError]=useState(''),[working,setWorking]=useState(false);
+ const [triaging,setTriaging]=useState<string|null>(null);
+ const [labels,setLabels]=useState<Label[]>([]),[captures,setCaptures]=useState<Capture[]>([]),[attachments,setAttachments]=useState<Attachment[]>([]),[calendars,setCalendars]=useState<Calendar[]>([]),[events,setEvents]=useState<CalendarEvent[]>([]),[lists,setLists]=useState<{id:string;name:string;selected:boolean;area:string}[]>([]),[google,setGoogle]=useState<GoogleStatus|null>(null),[ai,setAi]=useState<{has_key:boolean;provider:string|null;model:string|null;enabled:boolean}|null>(null),[error,setError]=useState(''),[working,setWorking]=useState(false);
  const syncQueued=useRef(false),latestSync=useRef<()=>Promise<void>>(async()=>{});
  const lock=useRef(false),googleRef=useRef<GoogleStatus|null>(null),tasksRefresh=useRef(onTasks);tasksRefresh.current=onTasks;
  const from=start.toISOString(),to=new Date(start.getTime()+7*86400000).toISOString();
@@ -33,9 +34,13 @@ export function useFeatures(userId:string,start:Date,onTasks:()=>void){
  const existing=await ensure(supabase.from('torre_attachments').select('*').eq('capture_id',id));
  for(const [ordinal,file] of files.entries()){const old=existing.data?.find(a=>a.ordinal===ordinal);const attachmentId=old?.id??crypto.randomUUID();const a:Attachment=old??{id:attachmentId,capture_id:id,name:file.name,size:file.size,path:`${userId}/${id}/${attachmentId}`,state:'uploading',error:null};if(!old)await ensure(supabase.from('torre_attachments').insert({...a,user_id:userId,ordinal}));if(a.state!=='uploaded')try{await upload(a,file);}catch{/* Persisted error remains retryable in inbox. */}}
  await load();
+ const settings=await ensure(supabase.from('torre_ai_settings').select('enabled').eq('user_id',userId).maybeSingle());
+ if(settings.data?.enabled&&text.trim()&&!lock.current){void triageCapture(id);}
  }
+ async function triageCapture(id:string){if(lock.current)return;setTriaging(id);try{await run(()=>invoke('triage',{captureId:id}));}finally{setTriaging(null);}}
  const fresh=!!google?.calendar_synced_at&&!google.error&&Date.now()-Date.parse(google.calendar_synced_at)<300000&&!!google.range_start&&!!google.range_end&&Date.parse(google.range_start)<=Date.parse(from)&&Date.parse(google.range_end)>=Date.parse(to);
- return {labels,captures,attachments,calendars,events,lists,google,ai,error,working,run,load,sync,fresh,capture,upload,
+ return {labels,captures,attachments,calendars,events,lists,google,ai,error,working,triaging,run,load,sync,fresh,capture,upload,
+ triage:triageCapture,
  convert:(id:string,title:string,labelIds:string[])=>run(()=>ensure(supabase.rpc('torre_convert_capture',{p_capture:id,p_title:title,p_labels:labelIds}))),
  undo:(id:string)=>run(()=>ensure(supabase.rpc('torre_undo_capture',{p_capture:id}))),
  download:async(a:Attachment)=>{const {data}=await ensure(supabase.storage.from('torre-attachments').createSignedUrl(a.path,60,{download:a.name}));window.open(data!.signedUrl,'_blank','noopener,noreferrer');}

@@ -1,0 +1,21 @@
+begin;
+insert into auth.users(id,aud,role) values('a7ba7610-735e-4da5-a17f-104419aca001','authenticated','authenticated'),('a7ba7610-735e-4da5-a17f-104419aca002','authenticated','authenticated');
+insert into public.torre_captures(id,user_id,body) values('a7ba7610-735e-4da5-a17f-104419aca004','a7ba7610-735e-4da5-a17f-104419aca001','Revisar relatório');
+insert into public.torre_labels(id,user_id,name) values('a7ba7610-735e-4da5-a17f-104419aca003','a7ba7610-735e-4da5-a17f-104419aca001','Relatórios');
+do $$ declare result jsonb; task uuid; again uuid; begin
+ if has_function_privilege('authenticated','public.torre_finish_triage(uuid,uuid,uuid,text,jsonb,jsonb)','execute') then raise exception 'Privileged function exposed'; end if;
+ begin perform public.torre_claim_triage('a7ba7610-735e-4da5-a17f-104419aca002','a7ba7610-735e-4da5-a17f-104419aca004','a7ba7610-735e-4da5-a17f-104419aca006');raise exception 'Owner isolation failed';exception when raise_exception then if sqlerrm='Owner isolation failed' then raise;end if;end;
+ result:=public.torre_claim_triage('a7ba7610-735e-4da5-a17f-104419aca001','a7ba7610-735e-4da5-a17f-104419aca004','a7ba7610-735e-4da5-a17f-104419aca006');
+ if result->>'text'<>'Revisar relatório' then raise exception 'Claim text wrong';end if;
+ begin perform public.torre_claim_triage('a7ba7610-735e-4da5-a17f-104419aca001','a7ba7610-735e-4da5-a17f-104419aca004','a7ba7610-735e-4da5-a17f-104419aca007');raise exception 'Lease failed';exception when raise_exception then if sqlerrm='Lease failed' then raise;end if;end;
+ begin perform public.torre_finish_triage('a7ba7610-735e-4da5-a17f-104419aca001','a7ba7610-735e-4da5-a17f-104419aca004','a7ba7610-735e-4da5-a17f-104419aca006','Revisar relatório','{"title":"Revisar","labelIds":["a7ba7610-735e-4da5-a17f-104419aca002"]}','{}');raise exception 'Invalid label accepted';exception when raise_exception then if sqlerrm='Invalid label accepted' then raise;end if;end;
+ task:=public.torre_finish_triage('a7ba7610-735e-4da5-a17f-104419aca001','a7ba7610-735e-4da5-a17f-104419aca004','a7ba7610-735e-4da5-a17f-104419aca006','Revisar relatório','{"title":"Revisar","area":"professional","labelIds":["a7ba7610-735e-4da5-a17f-104419aca003"]}','{"model":"typesafe/jev-1.13"}');
+ again:=public.torre_finish_triage('a7ba7610-735e-4da5-a17f-104419aca001','a7ba7610-735e-4da5-a17f-104419aca004','a7ba7610-735e-4da5-a17f-104419aca006','Revisar relatório','{}','{}');
+ if task<>again or (select count(*) from public.torre_triage_history where task_id=task)<>1 then raise exception 'Idempotency failed'; end if;
+ if not exists(select 1 from public.torre_tasks where id=task and area='professional' and duration_minutes=30 and due_date is null and description='Revisar relatório') then raise exception 'Task contents wrong';end if;
+end $$;
+set local role authenticated;
+set local request.jwt.claim.sub='a7ba7610-735e-4da5-a17f-104419aca001';
+select public.torre_undo_capture('a7ba7610-735e-4da5-a17f-104419aca004');
+do $$ begin if exists(select 1 from public.torre_tasks where capture_id='a7ba7610-735e-4da5-a17f-104419aca004' and archived_at is null) then raise exception 'Undo failed';end if;end $$;
+rollback;
