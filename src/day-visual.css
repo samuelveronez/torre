@@ -42,3 +42,15 @@
 @media(max-width:1099px){.app-shell .home-layout.daily-view{grid-template-columns:minmax(0,1fr)}}
 @media(max-width:760px){.app-shell .day-focus-heading{padding:16px;flex-wrap:wrap}.app-shell .day-group{padding:0 16px}.app-shell .home-agenda.daily-agenda{padding:16px}.app-shell .daily-actions button{font-size:12px}.app-shell .heading h1{font-size:24px}}
 @media(pointer:coarse){.app-shell .labels-heading,.app-shell .sidebar-labels button,.app-shell .day-list-footer button{min-height:44px}}
+.inline-priority{flex:0 0 138px;min-width:0;max-width:100%;display:grid;gap:4px}
+.inline-priority select{width:100%;font:inherit;font-size:12px;min-height:36px;padding:6px 8px;border:1px solid var(--ux-border);background:var(--ux-surface);color:var(--ux-ink)}
+.inline-priority .priority-high{border-left:3px solid #ba0517}
+.inline-priority .priority-medium{border-left:3px solid #8a5700}
+.inline-priority .priority-low{border-left:3px solid #2e7045}
+.inline-priority small{font-size:12px;white-space:normal;overflow-wrap:anywhere}
+.inline-priority [role=alert]{color:#ba0517}
+.day-focus-heading .focus-order{font-size:12px;display:flex;gap:8px;align-items:center;flex-direction:row}
+.focus-order select{font-size:12px;min-height:36px;padding:6px 8px;max-width:180px}
+[data-theme=dark] .inline-priority [role=alert]{color:#ffb5bd}
+@media(max-width:760px){.app-shell .task-row{flex-wrap:wrap}.task-row .inline-priority{margin-left:30px;flex-basis:138px}.day-focus-heading{flex-wrap:wrap}.day-focus-heading .focus-order{width:100%}}
+@media(pointer:coarse){.inline-priority select{min-height:44px}}
