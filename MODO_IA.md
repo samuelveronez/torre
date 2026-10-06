@@ -6,6 +6,8 @@ O agente avalia tarefas em português e faz CRUD de tarefas e labels. Não possu
 
 Abra **Modo IA** no menu. A chave cadastrada em **Configurações → IA** é reutilizada; o chat não depende de ativar a triagem automática de capturas.
 
+Respostas usam Markdown (títulos, negrito, listas e tabelas). Campos e valores aparecem em português do Brasil; IDs ficam somente nos destinos internos das referências clicáveis e não no texto visível. A apresentação também traduz os valores técnicos do histórico e remove colunas de IDs. HTML bruto e imagens externas não são renderizados.
+
 - **Analisar** consulta dados e responde sem gravar alterações.
 - **Executar pedido** aplica comandos explícitos. Arquivamentos de múltiplos registros exibem uma prévia para aplicar.
 - **Desfazer pedido** restaura os campos alterados quando os registros ainda correspondem ao resultado da operação. Criações são arquivadas; seus vínculos novos são removidos. Não recria reservas nem reabre conclusões do Google Tasks.

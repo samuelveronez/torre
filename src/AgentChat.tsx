@@ -1,17 +1,19 @@
 import {useEffect,useRef,useState} from 'react';
 import {Bot,Send,RotateCcw,Check,MessageSquare,LoaderCircle} from 'lucide-react';
+import Markdown,{defaultUrlTransform} from 'react-markdown';
+import remarkGfm from 'remark-gfm';
+import {agentFieldNames as fieldNames,agentValues as values,remarkAgentPresentation} from './agentPresentation';
 import {supabase} from './supabase';
 import {ensure,invoke,type Features} from './features';
 import './agent.css';
 
 type Operation={entity:'task'|'label';id:string;title:string;before:Record<string,unknown>|null;patch:Record<string,unknown>};
 type Run={id:string;message:string;mode:'analyze'|'execute';state:'processing'|'ready'|'answered'|'applied'|'undone'|'error';response:string;model:string|null;error:string|null;operations:Operation[];created_at:string};
-const fieldNames:Record<string,string>={title:'Título',name:'Nome',description:'Descrição',reference_url:'Link',area:'Área',duration_minutes:'Duração',due_date:'Prazo',status:'Situação',waiting_for:'Aguardando',follow_up_date:'Acompanhamento',priority:'Prioridade',archived_at:'Arquivamento',label_ids:'Labels',color:'Cor',archived:'Arquivamento'};
-const values:Record<string,string>={personal:'Pessoal',professional:'Profissional',todo:'A fazer',waiting:'Aguardando',completed:'Concluída',none:'Sem prioridade',low:'Baixa',medium:'Média',high:'Alta'};
-function responseParts(text:string,onTask:(id:string)=>void,onLabel:(id:string)=>void){
- const pattern=/\[([^\]]{1,180})\]\((task|label):([0-9a-f-]{36})\)/gi;const parts=[];let start=0;let match;
- while((match=pattern.exec(text))){parts.push(text.slice(start,match.index));const [,title,type,id]=match;parts.push(<button className="agent-reference" key={match.index} onClick={()=>type==='task'?onTask(id):onLabel(id)}>{title}</button>);start=pattern.lastIndex;}
- parts.push(text.slice(start));return parts;
+function AgentResponse({text,onTask,onLabel}:{text:string;onTask:(id:string)=>void;onLabel:(id:string)=>void}){
+ return <div className="agent-response"><Markdown skipHtml remarkPlugins={[remarkGfm,remarkAgentPresentation]} urlTransform={url=>/^(task|label):[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i.test(url)?url:defaultUrlTransform(url)} components={{
+  a:({href,children})=>{const ref=/^(task|label):([0-9a-f-]{36})$/i.exec(href??'');if(ref)return <button type="button" className="agent-reference" onClick={()=>ref[1]==='task'?onTask(ref[2]):onLabel(ref[2])}>{children}</button>;return /^https?:\/\//i.test(href??'')?<a href={href} target="_blank" rel="noopener noreferrer">{children}</a>:<span>{children}</span>;},
+  img:()=>null,table:({children})=><div className="agent-table-scroll"><table>{children}</table></div>
+ }}>{text}</Markdown></div>;
 }
 export function AgentChat({userId,features,onRefresh,onTask,onLabel,onSettings}:{userId:string;features:Features;onRefresh:()=>void;onTask:(id:string)=>void;onLabel:(id:string)=>void;onSettings:()=>void}){
  const [runs,setRuns]=useState<Run[]>([]),[text,setText]=useState(''),[mode,setMode]=useState<'analyze'|'execute'>('analyze'),[busy,setBusy]=useState(''),[error,setError]=useState(''),[loading,setLoading]=useState(true);
@@ -34,7 +36,7 @@ export function AgentChat({userId,features,onRefresh,onTask,onLabel,onSettings}:
  {!features.ai?.has_key&&<div className="notice"><p>Cadastre sua chave OpenRouter para conversar com o agente.</p><button onClick={onSettings}>Configurar IA</button></div>}
  <div className="agent-suggestions" aria-label="Sugestões de pedidos">{['Avalie minhas tarefas e explique o que merece atenção.','Quais tarefas estão atrasadas?','Revise minhas labels e sugira melhorias.'].map(s=><button key={s} disabled={!!busy} onClick={()=>{setMode('analyze');setText(s);}}><MessageSquare size={15}/>{s}</button>)}</div>
  <div className="agent-history" aria-label="Histórico da conversa" aria-busy={loading||!!busy}>{loading?<p role="status">Carregando conversa…</p>:!runs.length?<div className="agent-empty"><Bot size={32}/><p>Comece com uma pergunta sobre suas tarefas.</p><small>Use Executar pedido quando quiser criar ou alterar registros.</small></div>:runs.map(run=><article className="agent-turn" key={run.id}><div className="agent-user"><small>Você · {run.mode==='analyze'?'Analisar':'Executar pedido'}</small><p>{run.message}</p></div><div className="agent-answer"><small><Bot size={15}/> Agente</small>{busy===run.id?<p className="agent-working" role="status"><LoaderCircle size={16}/> {run.state==='ready'?'Aplicando pedido…':run.state==='applied'?'Desfazendo…':'Consultando suas tarefas e labels…'}</p>:<>
- {run.response&&<p className="agent-response">{responseParts(run.response,onTask,onLabel)}</p>}
+ {run.response&&<AgentResponse text={run.response} onTask={onTask} onLabel={onLabel}/>}
  {run.operations.length>0&&<><p className="agent-result" role="status">{run.state==='applied'?`Pedido aplicado: ${run.operations.length} registro(s).`:run.state==='undone'?'Pedido desfeito.':run.state==='ready'?'Proposta preparada. Confira as alterações antes de aplicar.':''}</p><details open={run.state==='ready'}><summary>{run.state==='ready'?'Revisar alterações':'Ver alterações'}</summary><ul className="agent-operations">{run.operations.map(op=><li key={op.id}><strong>{op.before?'Alterar':'Criar'} {op.entity==='task'?'tarefa':'label'}: {op.title}</strong><dl>{Object.entries(op.patch).map(([k,v])=><div key={k}><dt>{fieldNames[k]??k}</dt><dd>{showValue(k,v)}</dd></div>)}</dl></li>)}</ul></details>{run.state==='ready'&&<button className="primary" disabled={!!busy} onClick={()=>void action('agent-apply',run)}><Check size={16}/> Aplicar pedido</button>}{run.state==='applied'&&<><button disabled={!!busy} onClick={()=>void action('agent-undo',run)}><RotateCcw size={15}/> Desfazer pedido</button>{run.operations.some(o=>o.entity==='task')&&<small className="agent-footnote">Conclusões do Google ficam pendentes de sincronização. Desfazer não recria reservas e não reabre tarefas concluídas do Google.</small>}</> }</>}
  {run.error&&<p role="alert">{run.error}</p>}{(run.state==='error'||run.state==='processing')&&<button disabled={!!busy} onClick={()=>void action('agent-chat',run)}>Tentar novamente este pedido</button>}
  </>}</div></article>)}<div ref={bottom}/></div>
