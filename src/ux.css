@@ -64,3 +64,11 @@
  :root .app-shell .task-row .row-plan,:root .app-shell .task-row .details-arrow{grid-row:3}
  :root .app-shell .task-row:has(.task-select) .inline-priority{grid-column:3/-1}
 }
+
+/* Dialogs and detail drawers live outside AppShell: include their fields on iOS. */
+@media(max-width:760px){
+ :root dialog input:not([type=checkbox]):not([type=color]),:root dialog select,:root dialog textarea,
+ :root .task-details input:not([type=checkbox]):not([type=color]),:root .task-details select,:root .task-details textarea{font-size:16px}
+ :root dialog{max-width:calc(100vw - 24px);max-height:calc(100dvh - 32px);overflow-y:auto}
+ :root dialog input,:root dialog select,:root dialog textarea{min-width:0;max-width:100%;box-sizing:border-box}
+}
