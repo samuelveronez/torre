@@ -31,18 +31,74 @@ Se houver ambiguidade ou nomes duplicados, peça esclarecimento sem propor alter
 Tarefas Google: não editar título, descrição ou prazo, nem reabrir concluídas. Pode alterar campos locais, labels e concluir (sincronização pendente). Não prometa sincronização imediata. Concluir, aguardar, arquivar ou alterar duração/área pode liberar uma reserva existente pelas regras do app; desfazer não recria reservas.
 ${mode==='analyze'?'Modo analisar: nenhuma alteração é permitida. Apenas consulte e recomende.':'Modo executar pedido: proponha apenas mudanças explicitamente solicitadas na mensagem atual. Use propose_changes para entregar uma descrição do que será feito e o lote. Nunca diga que salvou: a ferramenta prepara o lote, o servidor confirma a execução. Se o usuário só pedir avaliação, responda sem mudanças.'}
 Para referenciar tarefas no texto use [título](task:UUID), para labels use [nome](label:UUID). Nunca inclua IDs inventados ou links externos. Respostas sem ferramentas devem ser texto natural.`;}
-const properties={entity:{type:'string',enum:['task','label']},id:{type:'string',description:'UUID consultado para editar; new:slug para criar'},patch:{type:'object',description:'Campos a alterar. Task: title, description, reference_url, area personal/professional, duration_minutes, due_date YYYY-MM-DD/null, status todo/waiting/completed, waiting_for, follow_up_date, priority none/low/medium/high, archived_at true/null, label_ids lista final. Label: name, description, color #RRGGBB, archived boolean.'}};
+const patchProperties={
+ title:{type:'string',maxLength:180},name:{type:'string',maxLength:60},description:{type:'string',maxLength:20000},
+ reference_url:{type:['string','null'],description:'Link HTTP/HTTPS ou null para remover.'},
+ area:{type:'string',enum:['personal','professional']},duration_minutes:{type:'integer',minimum:5,maximum:480,multipleOf:5},
+ due_date:{type:['string','null'],description:'Data YYYY-MM-DD ou null para remover.'},
+ status:{type:'string',enum:['todo','waiting','completed']},waiting_for:{type:'string',maxLength:500},
+ follow_up_date:{type:['string','null'],description:'Data YYYY-MM-DD ou null para remover.'},
+ priority:{type:'string',enum:['none','low','medium','high']},
+ archived_at:{type:['boolean','null'],description:'Somente true para arquivar ou null para restaurar. O servidor gera a data.'},
+ label_ids:{type:'array',maxItems:50,items:{type:'string'},description:'Lista final completa de UUIDs consultados ou new:slug de labels criadas antes neste lote.'},
+ color:{type:'string',pattern:'^#[0-9a-fA-F]{6}$'},archived:{type:'boolean'}
+};
+const properties={entity:{type:'string',enum:['task','label']},id:{type:'string',description:'UUID consultado para editar; new:slug para criar'},patch:{type:'object',properties:patchProperties,additionalProperties:false,description:'Inclua somente os campos alterados e permitidos para a entity escolhida. Task: title, description, reference_url, area, duration_minutes, due_date, status, waiting_for, follow_up_date, priority, archived_at, label_ids. Label: name, description, color, archived.'}};
 export const agentTools=[
  {type:'function',function:{name:'query_tasks',description:'Consultar tarefas com paginação e total do filtro. Use todas as páginas relevantes antes de alterar um conjunto. ids permite recuperar referências de uma conversa anterior; use status all para incluir concluídas.',parameters:{type:'object',properties:{ids:{type:'array',maxItems:50,items:{type:'string'}},query:{type:'string'},status:{type:'string',enum:['active','todo','waiting','completed','all']},archived:{type:'boolean'},due_before:{type:'string'},label_id:{type:'string'},offset:{type:'integer',minimum:0,maximum:10000}},additionalProperties:false}}},
  {type:'function',function:{name:'query_labels',description:'Consultar labels, incluindo arquivadas, com paginação.',parameters:{type:'object',properties:{query:{type:'string'},offset:{type:'integer',minimum:0,maximum:10000}},additionalProperties:false}}},
  {type:'function',function:{name:'propose_changes',description:'Preparar um único lote atômico de tarefas e labels. Não executa SQL ou agenda.',parameters:{type:'object',properties:{response:{type:'string'},operations:{type:'array',minItems:1,maxItems:50,items:{type:'object',properties,required:['entity','id','patch'],additionalProperties:false}}},required:['response','operations'],additionalProperties:false}}}
 ];
 
+export type AgentErrorReason='key'|'policy'|'incompatible'|'unavailable'|'quota'|'capacity'|'request'|'timeout'|'network'|'invalid_response'|'paid_model'|'provider';
+export class AgentModelError extends Error{
+ readonly requestedModel='openrouter/free';
+ readonly status:number|null;readonly code:number|null;readonly reason:AgentErrorReason;
+ constructor(message:string,status:number|null,code:number|null,reason:AgentErrorReason){super(message);this.name='AgentModelError';this.status=status;this.code=code;this.reason=reason;}
+ diagnostic(){return {event:'torre_agent_openrouter_error',model:this.requestedModel,status:this.status,code:this.code,reason:this.reason};}
+}
+export function classifyAgentError(status:number,payload:unknown){
+ const error=(payload as any)?.error;
+ // Provider text is used only to classify the error; never log or return the raw body.
+ const text=typeof error?.message==='string'?error.message.slice(0,2000).toLowerCase():'';
+ const code=typeof error?.code==='number'&&Number.isInteger(error.code)&&error.code>=100&&error.code<=599?error.code:null;
+ const effective=status===200&&code?code:status;let reason:AgentErrorReason='provider',message='O provedor gratuito falhou. Tente novamente mais tarde.';
+ if(effective===401){reason='key';message='Chave OpenRouter inválida ou expirada. Atualize em Configurações → IA.';}
+ else if(/data policy|privacy|guardrail|\bzdr\b|allowed providers|provider (allow|block)list/.test(text)){reason='policy';message='As políticas da sua conta OpenRouter bloquearam os modelos gratuitos. Revise a chave, os provedores e as opções de modelos gratuitos em https://openrouter.ai/settings/privacy. Suas configurações não foram alteradas.';}
+ else if(effective===403){reason='policy';message='Sua conta ou chave OpenRouter não autorizou este modelo gratuito. Confira as permissões da chave e as restrições da conta.';}
+ else if(effective===429){
+  const daily=/daily|per.day|requests.per.day|rpd|quota/.test(text);reason=daily?'quota':'capacity';
+  message=daily?'Cota diária dos modelos gratuitos esgotada. Tente após a renovação da cota.':'Os modelos gratuitos atingiram o limite de chamadas ou estão sem capacidade. Aguarde e tente novamente.';
+ }
+ else if(effective===402){reason='quota';message='OpenRouter recusou a chamada por um limite de crédito da conta ou da chave. O agente continua restrito a modelos gratuitos; nenhuma opção paga foi usada.';}
+ else if(effective===404){
+  const incompatible=/tool|parameter|compatible/.test(text);reason=incompatible?'incompatible':'unavailable';
+  message=incompatible?'Nenhum provedor gratuito disponível aceita as ferramentas desta chamada. Tente novamente mais tarde.':'OpenRouter não encontrou um endpoint gratuito disponível. Tente novamente mais tarde ou confira as restrições da conta.';
+ }
+ else if(effective===400||effective===422){reason='request';message='OpenRouter recusou o formato da chamada ou das ferramentas. O diagnóstico foi registrado para corrigir a integração.';}
+ else if(effective===408||effective===504){reason='timeout';message='O provedor gratuito demorou a responder. Tente novamente.';}
+ return new AgentModelError(`${message} [OpenRouter HTTP ${status}${code&&code!==status?`; código ${code}`:''}] Nenhuma alteração foi realizada.`,status,code,reason);
+}
+function modelFailure(error:AgentModelError):never{console.warn(JSON.stringify(error.diagnostic()));throw error;}
 export async function callAgentModel(messages:unknown[],mode:'analyze'|'execute',key:string,fetcher:typeof fetch=fetch){
  let response:Response;
- try{response=await fetcher('https://openrouter.ai/api/v1/chat/completions',{method:'POST',headers:{Authorization:`Bearer ${key}`,'Content-Type':'application/json'},signal:AbortSignal.timeout(35000),body:JSON.stringify({model:'openrouter/free',messages,tools:agentTools.filter(t=>mode==='execute'||t.function.name!=='propose_changes'),max_tokens:3000,temperature:.2,parallel_tool_calls:false,provider:{require_parameters:true}})});}catch{throw new Error('OpenRouter demorou ou está indisponível. Nenhuma alteração foi realizada.');}
- if(!response.ok)throw new Error(({401:'Chave OpenRouter inválida. Atualize em Configurações → IA.',403:'OpenRouter não autorizou os modelos gratuitos.',404:'Nenhum modelo gratuito compatível está disponível.',429:'Limite ou capacidade dos modelos gratuitos atingido. Tente novamente mais tarde.'} as Record<number,string>)[response.status]??'OpenRouter não conseguiu responder. Nenhuma alteração foi realizada.');
- const payload=await response.json();if(typeof payload.model!=='string'||!(payload.model.endsWith(':free')||payload.model==='openrouter/free')||Number(payload.usage?.cost??0)>0)throw new Error('Resposta recusada: o modo IA aceita apenas modelos gratuitos.');
- const message=payload.choices?.[0]?.message;if(!message||(!message.content&&!message.tool_calls))throw new Error('O modelo gratuito retornou uma resposta vazia.');
+ try{response=await fetcher('https://openrouter.ai/api/v1/chat/completions',{method:'POST',headers:{Authorization:`Bearer ${key}`,'Content-Type':'application/json'},signal:AbortSignal.timeout(35000),body:JSON.stringify({model:'openrouter/free',messages,tools:agentTools.filter(t=>mode==='execute'||t.function.name!=='propose_changes'),max_tokens:3000,provider:{require_parameters:false}})});}
+ catch(e){const timeout=['TimeoutError','AbortError'].includes((e as Error)?.name);return modelFailure(new AgentModelError(timeout?'OpenRouter demorou a responder. Nenhuma alteração foi realizada.':'Não foi possível conectar ao OpenRouter. Nenhuma alteração foi realizada.',null,null,timeout?'timeout':'network'));}
+ let payload:any;try{payload=await response.json();}catch{return modelFailure(response.ok?new AgentModelError('OpenRouter retornou uma resposta inválida. Nenhuma alteração foi realizada.',response.status,null,'invalid_response'):classifyAgentError(response.status,null));}
+ if(!response.ok||payload?.error)return modelFailure(classifyAgentError(response.status,payload));
+ if(typeof payload?.model!=='string'||!(payload.model.endsWith(':free')||payload.model==='openrouter/free')||Number(payload.usage?.cost??0)>0)return modelFailure(new AgentModelError('Resposta recusada: o modo IA aceita apenas modelos gratuitos. Nenhuma alteração foi realizada.',response.status,null,'paid_model'));
+ const message=payload.choices?.[0]?.message;if(!message||(typeof message.content!=='string'&&!Array.isArray(message.tool_calls))||(!message.content&&!message.tool_calls?.length))return modelFailure(new AgentModelError('O modelo gratuito retornou uma resposta vazia. Nenhuma alteração foi realizada.',response.status,null,'invalid_response'));
  return {message,model:payload.model};
+}
+
+export async function testAgentModel(key:string,fetcher:typeof fetch=fetch){
+ const result=await callAgentModel([
+  {role:'system',content:'Teste sintético de compatibilidade. Não consulte dados reais. Responda apenas usando propose_changes para preparar a criação de uma label Teste sintético. Inclua response, entity label, id new:teste e patch name Teste sintético. Esta ferramenta não será executada.'},
+  {role:'user',content:'Prepare uma label chamada Teste sintético usando propose_changes.'}
+ ],'execute',key,fetcher);
+ const calls=result.message.tool_calls;if(!Array.isArray(calls)||calls.length!==1||calls[0]?.function?.name!=='propose_changes')throw new Error('O modelo gratuito respondeu, mas não usou a ferramenta do teste. Nenhum registro foi criado. Tente novamente.');
+ let args:any;try{args=JSON.parse(calls[0].function.arguments);}catch{throw new Error('O modelo gratuito retornou argumentos inválidos no teste. Nenhum registro foi criado.');}
+ if(typeof args.response!=='string'||!Array.isArray(args.operations)||args.operations.length!==1||args.operations[0]?.entity!=='label'||args.operations[0]?.id!=='new:teste')throw new Error('O modelo gratuito não seguiu o formato do teste. Nenhum registro foi criado.');
+ const patch=validateAgentPatch('label',args.operations[0].patch,true);if(patch.name!=='Teste sintético')throw new Error('O modelo gratuito não seguiu o nome sintético do teste. Nenhum registro foi criado.');
+ return {ok:true,model:result.model,message:'Modelo gratuito respondeu e preparou uma operação válida. Nenhum registro foi criado.'};
 }

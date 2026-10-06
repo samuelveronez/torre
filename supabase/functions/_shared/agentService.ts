@@ -1,7 +1,11 @@
 import {db,checked,secret} from './google.ts';
-import {agentId,validateAgentPatch,needsAgentReview,agentInstructions,callAgentModel,type AgentOperation} from './agent.ts';
+import {agentId,validateAgentPatch,needsAgentReview,agentInstructions,callAgentModel,testAgentModel,type AgentOperation} from './agent.ts';
 
 export async function agentAction(uid:string,input:any){
+ if(input.action==='agent-test'){
+  const key=await secret(uid,'ai');if(!key)throw new Error('Cadastre sua chave OpenRouter em Configurações → IA.');
+  return await testAgentModel(key);
+ }
  if(!agentId(input.runId))throw new Error('Pedido inválido.');
  if(input.action==='agent-apply'||input.action==='agent-undo'){
   const {data}=await checked(db.rpc('torre_agent_apply',{p_user:uid,p_run:input.runId,p_undo:input.action==='agent-undo'}));return {run:data};

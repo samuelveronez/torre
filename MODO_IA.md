@@ -22,7 +22,9 @@ O frontend usa `agent-chat`, `agent-apply` e `agent-undo` da função `torre-int
 
 O contexto contém totais da conta inteira e um recorte paginado de tarefas e labels. Descrições longas são limitadas a 2 mil caracteres e marcadas como truncadas. O agente pode buscar outras páginas, inclusive concluídas e arquivadas. Histórico mostrado: últimos 30 pedidos; contexto do modelo: últimos seis. Limites iniciais: quatro chamadas ao modelo, 50 alterações por lote e saída de até 3 mil tokens por chamada.
 
-O modelo é `openrouter/free`; não há fallback pago. Ferramentas são declaradas na API de chat, e a resposta servida precisa identificar um modelo gratuito. A disponibilidade e as cotas dependem do OpenRouter. Testes locais de inferência usam respostas simuladas; não garantem disponibilidade de um provedor gratuito em um momento específico.
+O modelo é `openrouter/free`; não há fallback pago. Ferramentas têm schemas explícitos, e a resposta servida precisa identificar um modelo gratuito. A chamada não exige suporte a parâmetros opcionais (`require_parameters=false`) e não envia temperatura nem chamadas paralelas. A disponibilidade e as cotas dependem do OpenRouter.
+
+Em **Configurações → IA → Testar agente gratuito**, o backend usa a chave cadastrada para pedir uma chamada de ferramenta com texto sintético. O teste não envia tarefas, não executa a ferramenta e não cria registros. A interface mostra o modelo servido ou o diagnóstico: chave, política de dados, compatibilidade, cota, capacidade ou timeout. Logs registram somente modelo solicitado, status, código e categoria; nunca chave, prompts ou corpo bruto do provedor. Testes locais usam respostas simuladas; o botão valida a disponibilidade real naquele momento.
 
 ## Publicação
 

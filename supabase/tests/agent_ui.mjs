@@ -5,7 +5,7 @@ const browser=await chromium.launch({channel:'msedge',headless:true});
 const uid='a7ba7610-735e-4da5-a17f-104419acf001',task='a7ba7610-735e-4da5-a17f-104419acf002';
 const user={id:uid,email:'test@example.com',aud:'authenticated',role:'authenticated',app_metadata:{},user_metadata:{},created_at:'2026-10-06T00:00:00Z'};
 const tables={torre_tasks:[{id:task,user_id:uid,title:'Pagar aluguel',description:'Conta mensal',area:'personal',duration_minutes:30,status:'todo',source:'torre',priority:'high',due_date:'2026-10-06',created_at:'2026-10-05T00:00:00Z'}],torre_preferences:[{user_id:uid,timezone:'America/Sao_Paulo',theme:'light'}],torre_work_hours:Array.from({length:7},(_,weekday)=>({weekday,user_id:uid,enabled:true,start_time:'09:00',end_time:'18:00'})),torre_ai_settings:[{user_id:uid,has_key:true,enabled:true}],torre_agent_runs:[],torre_scheduled_blocks:[],torre_task_labels:[],torre_labels:[],torre_captures:[],torre_attachments:[],torre_google_lists:[],torre_google_status:[],torre_calendars:[],torre_calendar_events:[]};
-const calls=[],errors=[];
+const calls=[],errors=[];let testFails=false;
 const context=await browser.newContext({viewport:{width:1440,height:1000},timezoneId:'America/Sao_Paulo'});
 await context.route('https://nvxwqrpztecrvrxoddxf.supabase.co/**',async route=>{
  const request=route.request(),url=new URL(request.url());const headers={'Content-Type':'application/json','Access-Control-Allow-Origin':'*','Access-Control-Allow-Headers':'*','Access-Control-Allow-Methods':'*'};
@@ -13,6 +13,7 @@ await context.route('https://nvxwqrpztecrvrxoddxf.supabase.co/**',async route=>{
  if(url.pathname.startsWith('/auth/'))return route.fulfill({status:200,headers,body:JSON.stringify(user)});
  if(url.pathname.includes('/functions/')){
   const input=request.postDataJSON();calls.push(input);let run=tables.torre_agent_runs.find(r=>r.id===input.runId);
+  if(input.action==='agent-test')return route.fulfill({status:testFails?400:200,headers,body:JSON.stringify(testFails?{error:'A política de dados da conta bloqueou os provedores gratuitos. Nenhuma alteração foi realizada.'}:{ok:true,model:'test/model:free'})});
   if(input.action==='agent-chat'){
    run={id:input.runId,message:input.message,mode:input.mode,state:input.mode==='analyze'?'answered':input.message.includes('Arquive')?'ready':'applied',response:input.mode==='analyze'?`Confira [Pagar aluguel](task:${task}): vence hoje.`:'Pedido para alterar as tarefas.',model:'test/model:free',error:null,operations:input.mode==='analyze'?[]:[{entity:'task',id:task,title:'Pagar aluguel',before:{},patch:input.message.includes('Arquive')?{archived_at:'2026-10-06T12:00:00Z'}:{priority:'medium'}}],created_at:new Date().toISOString()};tables.torre_agent_runs.push(run);
   }else if(input.action==='agent-apply')run.state='applied';else if(input.action==='agent-undo')run.state='undone';else throw new Error('Unexpected action');
@@ -42,5 +43,11 @@ try{
  await page.setViewportSize({width:390,height:844});await page.screenshot({path:'.db-validation/agent-mobile.png',fullPage:true});
  assert.equal(await page.evaluate(()=>document.documentElement.scrollWidth>window.innerWidth),false,'Mobile horizontal overflow');
  await page.evaluate(()=>{document.documentElement.dataset.theme='dark';window.scrollTo(0,0);});await page.screenshot({path:'.db-validation/agent-dark.png',fullPage:true});
- assert.deepEqual(errors,[]);console.log('PASS: agent analysis, task reference, execute, undo, batch review, history and mobile layout');
+ await page.setViewportSize({width:1440,height:1000});await page.getByRole('button',{name:'Configurações',exact:true}).click();await page.getByRole('button',{name:'IA',exact:true}).click();
+ const runsBefore=tables.torre_agent_runs.length,tasksBefore=JSON.stringify(tables.torre_tasks);
+ await page.getByRole('button',{name:'Testar agente gratuito'}).click();await page.getByText('Modelo gratuito validado: test/model:free. Nenhum registro foi criado.',{exact:true}).waitFor();
+ testFails=true;await page.getByRole('button',{name:'Testar agente gratuito'}).click();await page.getByRole('alert').filter({hasText:'A política de dados da conta'}).waitFor();
+ assert.equal(tables.torre_agent_runs.length,runsBefore);assert.equal(JSON.stringify(tables.torre_tasks),tasksBefore);assert.equal(tables.torre_labels.length,0);assert.equal(calls.length,7);
+ await page.screenshot({path:'.db-validation/agent-settings-test.png',fullPage:true});
+ assert.deepEqual(errors,[]);console.log('PASS: agent analysis, task reference, execute, undo, batch review, history, mobile and synthetic test success/error without writes');
 }finally{await browser.close();}
