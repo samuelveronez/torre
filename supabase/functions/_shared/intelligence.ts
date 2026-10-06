@@ -1,5 +1,6 @@
+import {enrichWaiting,waitingDate} from './workflow.ts';
 import {classifierModel,buildQuestions,parseDecision} from './openrouter.ts';
-import type {TriageInput,TriageResult} from './triage.ts';
+import {validateTriage,type TriageInput,type TriageResult} from './triage.ts';
 export const extractionModel='openrouter/free';
 export type Extracted={title:string;description:string;sourceText:string};
 export async function request(path:string,body:unknown,key:string){
@@ -33,7 +34,7 @@ export async function triageMany(input:TriageInput,key:string,mode:string){
  if(!input.text.trim()||input.text.length>20000)throw new Error('Digite até 20 mil caracteres.');
  let items:Extracted[],extractionAudit:unknown=null;
  if(mode==='free'){
-  const output=await generate('Extraia as tarefas explicitamente mencionadas no texto, inclusive ideias para guardar como receita de bolo. Não invente ações nem divida etapas de uma mesma tarefa. Preserve o contexto necessário de cada item. Corrija apenas grafia do título. Formato: {"tasks":[{"title":"até 180 caracteres","description":"contexto do item","sourceText":"trecho exato do texto original"}]}. Máximo 20 tarefas.',{text:input.text},key);
+  const output=await generate('Extraia as tarefas explicitamente mencionadas no texto, inclusive ideias para guardar como receita de bolo. Não invente ações nem divida etapas de uma mesma tarefa. Preserve quem deve agir, ações já feitas, dependências, negativas e datas de acompanhamento de cada item. Não transforme espera em ação do usuário. Corrija apenas grafia do título. Formato: {"tasks":[{"title":"até 180 caracteres","description":"contexto do item","sourceText":"trecho exato do texto original"}]}. Máximo 20 tarefas.',{text:input.text},key);
   items=validateExtraction(output.data,input.text);extractionAudit=output.audit;
  }else{
   const parts=splitCandidates(input.text);const questions:Record<string,unknown>={};
@@ -42,8 +43,14 @@ export async function triageMany(input:TriageInput,key:string,mode:string){
   if(parts.length>1){const output=await request('alpha/decisions',{model:classifierModel,state:{items:parts},questions},key);for(let i=1;i<parts.length;i++){const a=output.answers?.[`boundary_${i}`];if(a?.type!=='noul'||typeof a.noul!=='number'||a.noul<0||a.noul>1)throw new Error('Separação inválida do classificador.');if(a.noul>=.8)groups.push(parts[i]);else groups[groups.length-1]+=', '+parts[i];}extractionAudit={model:classifierModel,answers:output.answers,cost:output.usage?.cost??null};}
   items=groups.map(text=>({title:text.slice(0,180),description:text,sourceText:text}));
  }
- const questions:Record<string,unknown>={};items.forEach((item,i)=>{for(const [name,q] of Object.entries(buildQuestions({...input,text:item.description}))){questions[`task_${i}_${name}`]={...(q as object),instructions:`Classifique SOMENTE tasks[${i}], independentemente das outras tarefas. ${(q as any).instructions.replaceAll('capture_text',`tasks[${i}].text`)}`};}});
- const payload=await request('alpha/decisions',{model:classifierModel,state:{tasks:items.map(x=>({text:x.description,title:x.title}))},questions},key);
- const results:TriageResult[]=items.map((item,i)=>{const answers:Record<string,unknown>={};for(const name of Object.keys(buildQuestions(input)))answers[name]=payload.answers?.[`task_${i}_${name}`];return {...parseDecision({answers},{...input,text:item.description}),title:item.title,description:item.description};});
- return {results,audit:{provider:'openrouter',model:classifierModel,extraction:extractionAudit,items,answers:payload.answers,cost:payload.usage?.cost??null}};
+ const questions:Record<string,unknown>={};items.forEach((item,i)=>{for(const [name,q] of Object.entries(buildQuestions({...input,text:item.sourceText},true))){questions[`task_${i}_${name}`]={...(q as object),instructions:`Classifique SOMENTE tasks[${i}], independentemente das outras tarefas. ${(q as any).instructions.replaceAll('capture_text',`tasks[${i}].text`)}`};}});
+ const payload=await request('alpha/decisions',{model:classifierModel,state:{tasks:items.map(x=>({text:x.sourceText,title:x.title}))},questions},key);
+ let results:TriageResult[]=items.map((item,i)=>{const answers:Record<string,unknown>={};for(const name of Object.keys(buildQuestions(input,true)))answers[name]=payload.answers?.[`task_${i}_${name}`];const waiting=answers.waiting as any;if(waiting?.type!=='noul'||typeof waiting.noul!=='number'||!Number.isFinite(waiting.noul)||waiting.noul<0||waiting.noul>1)throw new Error('Situação inválida do classificador.');return {...parseDecision({answers},{...input,text:item.description}),title:item.title,description:item.description,situation:waiting.noul>=.85?'waiting':'todo'};});
+ const today=waitingDate();const waitingItems=items.map((item,i)=>({...item,index:i})).filter(item=>results[item.index].situation==='waiting');let workflowAudit:unknown=null;
+ if(waitingItems.length){
+ const output=await generate('Extraia apenas de cada sourceText a pessoa/equipe de quem o usuário já aguarda e a data explicitamente indicada para acompanhar/cobrar. Não invente responsável. waitingFor=null se não houver responsável. Não use prazo de entrega como data de acompanhamento. followUpDate=null quando não há data de acompanhamento. Resolva datas relativas usando today e timezone. Copie waitingFor e dateEvidence como trechos exatos de sourceText. Formato: {"items":[{"index":0,"waitingFor":"trecho exato ou null","followUpDate":"YYYY-MM-DD ou null","dateEvidence":"trecho exato ou null"}]}. Retorne um item por entrada, com o mesmo index.',{items:waitingItems,today,timezone:'America/Sao_Paulo'},key);
+ results=enrichWaiting(results,items,output.data,today);workflowAudit=output.audit;
+ }
+ results=results.map(result=>validateTriage(result,input));
+ return {results,audit:{provider:'openrouter',model:classifierModel,extraction:extractionAudit,workflow:workflowAudit,today,items,answers:payload.answers,cost:payload.usage?.cost??null}};
 }

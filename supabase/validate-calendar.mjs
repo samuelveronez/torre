@@ -18,7 +18,8 @@ try {
  await db.exec(await read('./schema/openrouter-triage.sql'));
  await db.exec(await read('./migrations/20261005011145_capture_many_and_week_proposal.sql'));
  await db.exec(await read('./migrations/20261005102708_calendar_responses_manual_overlaps.sql'));
- for(const path of ['./tests/calendar_overlaps.sql','./tests/integrations.sql','./tests/capture_many.sql']){
+ await db.exec(await read('./migrations/20261006123023_capture_workflow_status.sql'));
+ for(const path of ['./tests/calendar_overlaps.sql','./tests/integrations.sql','./tests/capture_many.sql','./tests/capture_workflow.sql']){
   await db.exec(await read(path));console.log('PASS:',path);
  }
 } catch(error){console.error(error.message,error.detail??'',error.where??'');process.exitCode=1;} finally {await db.close();}

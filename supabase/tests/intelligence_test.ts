@@ -18,14 +18,14 @@ Deno.test('Extraction must reference original text and cannot silently truncate'
 Deno.test('Free text extraction then batched classification uses only free models',async()=>{
  const original=fetch,calls:any[]=[];
  try{globalThis.fetch=async(url,opts)=>{const body=JSON.parse(opts!.body as string);calls.push({url,body});if(body.model===extractionModel)return Response.json({choices:[{finish_reason:'stop',message:{content:JSON.stringify({tasks:[{title:'Consertar o carro',description:'concertar o carro',sourceText:'concertar o carro'},{title:'Comprar notebook',description:'comprar notebook',sourceText:'comprar notebook'}]})}}]});
- return Response.json({answers:{task_0_area:{type:'choice',choice:'personal',probabilities:{personal:.95}},task_1_area:{type:'choice',choice:'professional',probabilities:{professional:.95}},task_0_label_0:{type:'noul',noul:.95},task_1_label_0:{type:'noul',noul:.1}}});};
+ return Response.json({answers:{task_0_waiting:{type:'noul',noul:.1},task_1_waiting:{type:'noul',noul:.1},task_0_area:{type:'choice',choice:'personal',probabilities:{personal:.95}},task_1_area:{type:'choice',choice:'professional',probabilities:{professional:.95}},task_0_label_0:{type:'noul',noul:.95},task_1_label_0:{type:'noul',noul:.1}}});};
  const result=await triageMany({text:'concertar o carro, comprar notebook',labels:[{id:'car',name:'Manutenção',description:'carro'}]},'fake-key','free');
  assert(result.results.length===2&&result.results[0].labelIds[0]==='car'&&result.results[1].labelIds.length===0);assert(calls[0].body.model==='openrouter/free'&&calls[1].body.model===classifierModel);assert(calls[0].body.response_format.type==='json_object');assert(!JSON.stringify(calls).includes('attachment'));assert(result.results[0].title==='Consertar o carro');
  }finally{globalThis.fetch=original;}
 });
 Deno.test('Uncertain list boundaries merge instead of making extra tasks',async()=>{
  const original=fetch;let call=0;
- try{globalThis.fetch=async()=>Response.json(++call===1?{answers:{boundary_1:{type:'noul',noul:.2},boundary_2:{type:'noul',noul:.95}}}:{answers:{task_0_area:{type:'choice',choice:'personal',probabilities:{personal:1}},task_1_area:{type:'choice',choice:'personal',probabilities:{personal:1}}}});
+ try{globalThis.fetch=async()=>Response.json(++call===1?{answers:{boundary_1:{type:'noul',noul:.2},boundary_2:{type:'noul',noul:.95}}}:{answers:{task_0_waiting:{type:'noul',noul:.1},task_1_waiting:{type:'noul',noul:.1},task_0_area:{type:'choice',choice:'personal',probabilities:{personal:1}},task_1_area:{type:'choice',choice:'personal',probabilities:{personal:1}}}});
  const output=await triageMany({text:'comprar ingredientes, farinha, consertar carro',labels:[]},'fake','list');assert(output.results.length===2&&output.results[0].description==='comprar ingredientes, farinha');
  }finally{globalThis.fetch=original;}
 });
