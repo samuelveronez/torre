@@ -1,5 +1,5 @@
 import assert from 'node:assert/strict';
-import {validateAgentPatch,needsAgentReview,agentInstructions,callAgentModel,classifyAgentError,testAgentModel,agentTools,AgentModelError} from '../functions/_shared/agent.ts';
+import {agentModel,validateAgentPatch,needsAgentReview,agentInstructions,callAgentModel,classifyAgentError,testAgentModel,agentTools,AgentModelError} from '../functions/_shared/agent.ts';
 assert.throws(()=>validateAgentPatch('task',{user_id:'foreign'}));
 assert.throws(()=>validateAgentPatch('task',{at:'2026-10-07T12:00:00Z'}));
 assert.throws(()=>validateAgentPatch('task',{due_date:'2026-02-30'}));
@@ -55,4 +55,14 @@ try{
 const testResponse=async()=>new Response(JSON.stringify({model:'test/model:free',choices:[{message:{role:'assistant',tool_calls:[{id:'test-call',type:'function',function:{name:'propose_changes',arguments:JSON.stringify({response:'Teste',operations:[{entity:'label',id:'new:teste',patch:{name:'Teste sintético'}}]})}}]}}]}));
 assert.equal((await testAgentModel('test',testResponse)).ok,true);
 await assert.rejects(()=>testAgentModel('test',fake),/não usou a ferramenta/);
-console.log('PASS: schemas, reduced request filters, free-only routing, safe diagnostics, provider errors and synthetic tool test');
+assert.equal(agentModel(undefined),'openrouter/free');assert.equal(agentModel('google/gemini-2.5-flash'),'google/gemini-2.5-flash');
+for(const invalid of ['google/gemini-pro','auto','',null])assert.throws(()=>agentModel(invalid),/Escolha/);
+const paid='google/gemini-2.5-flash';let paidCalls=0;
+const paidFake=async(_url,options)=>{paidCalls++;sent=JSON.parse(options.body);return new Response(JSON.stringify({model:paid,usage:{cost:.001},choices:[{message:{role:'assistant',content:'Resposta Gemini.'}}]}));};
+assert.equal((await callAgentModel([],'analyze','test',paidFake,paid)).model,paid);assert.equal(sent.model,paid);assert.equal('models' in sent,false);assert.equal(sent.tools.some(t=>t.function.name==='propose_changes'),false);
+await callAgentModel([],'execute','test',paidFake,paid);assert.equal(sent.tools.some(t=>t.function.name==='propose_changes'),true);
+await assert.rejects(()=>callAgentModel([],'analyze','test',paidFake,'unknown/model'),/Escolha/);assert.equal(paidCalls,2,'Unknown model must not invoke provider');
+await assert.rejects(()=>callAgentModel([],'analyze','test',fake,paid),e=>e.reason==='unexpected_model'&&e.requestedModel===paid);
+await assert.rejects(()=>callAgentModel([],'analyze','test',paidFake),e=>e.reason==='paid_model','Free selection still rejects paid response');
+const credit=classifyAgentError(402,{error:{code:402,message:'Insufficient credits '+privateMarker}},paid);assert.match(credit.message,/Saldo/);assert.equal(credit.message.includes('gratuito'),false);assert.equal(credit.requestedModel,paid);assert.equal(JSON.stringify(credit.diagnostic()).includes(privateMarker),false);
+console.log('PASS: schemas, explicit model allowlist, free guard, Gemini routing, safe diagnostics, provider errors and synthetic tool test');

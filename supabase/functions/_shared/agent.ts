@@ -1,4 +1,6 @@
 export type AgentPatch=Record<string,unknown>;
+export type AgentModelId='openrouter/free'|'google/gemini-2.5-flash';
+export function agentModel(value:unknown):AgentModelId{if(value===undefined)return 'openrouter/free';if(value==='openrouter/free'||value==='google/gemini-2.5-flash')return value;throw new Error('Escolha OpenRouter gratuito ou Gemini 2.5 Flash pago.');}
 export type AgentOperation={entity:'task'|'label';id:string;before:Record<string,unknown>|null;patch:AgentPatch;title:string};
 const uuid=/^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i;
 export function agentId(value:unknown):value is string{return typeof value==='string'&&uuid.test(value);}
@@ -51,14 +53,14 @@ export const agentTools=[
  {type:'function',function:{name:'propose_changes',description:'Preparar um único lote atômico de tarefas e labels. Não executa SQL ou agenda.',parameters:{type:'object',properties:{response:{type:'string'},operations:{type:'array',minItems:1,maxItems:50,items:{type:'object',properties,required:['entity','id','patch'],additionalProperties:false}}},required:['response','operations'],additionalProperties:false}}}
 ];
 
-export type AgentErrorReason='key'|'policy'|'incompatible'|'unavailable'|'quota'|'capacity'|'request'|'timeout'|'network'|'invalid_response'|'paid_model'|'provider';
+export type AgentErrorReason='key'|'policy'|'incompatible'|'unavailable'|'quota'|'capacity'|'request'|'timeout'|'network'|'invalid_response'|'paid_model'|'unexpected_model'|'provider';
 export class AgentModelError extends Error{
- readonly requestedModel='openrouter/free';
+ readonly requestedModel:AgentModelId;
  readonly status:number|null;readonly code:number|null;readonly reason:AgentErrorReason;
- constructor(message:string,status:number|null,code:number|null,reason:AgentErrorReason){super(message);this.name='AgentModelError';this.status=status;this.code=code;this.reason=reason;}
+ constructor(message:string,status:number|null,code:number|null,reason:AgentErrorReason,requestedModel:AgentModelId='openrouter/free'){super(message);this.name='AgentModelError';this.status=status;this.code=code;this.reason=reason;this.requestedModel=requestedModel;}
  diagnostic(){return {event:'torre_agent_openrouter_error',model:this.requestedModel,status:this.status,code:this.code,reason:this.reason};}
 }
-export function classifyAgentError(status:number,payload:unknown){
+export function classifyAgentError(status:number,payload:unknown,requestedModel:AgentModelId='openrouter/free'){
  const error=(payload as any)?.error;
  // Provider text is used only to classify the error; never log or return the raw body.
  const text=typeof error?.message==='string'?error.message.slice(0,2000).toLowerCase():'';
@@ -78,17 +80,24 @@ export function classifyAgentError(status:number,payload:unknown){
  }
  else if(effective===400||effective===422){reason='request';message='OpenRouter recusou o formato da chamada ou das ferramentas. O diagnóstico foi registrado para corrigir a integração.';}
  else if(effective===408||effective===504){reason='timeout';message='O provedor gratuito demorou a responder. Tente novamente.';}
- return new AgentModelError(`${message} [OpenRouter HTTP ${status}${code&&code!==status?`; código ${code}`:''}] Nenhuma alteração foi realizada.`,status,code,reason);
+ if(requestedModel!=='openrouter/free'){
+  const paidMessages:Partial<Record<AgentErrorReason,string>>={policy:'Sua conta ou chave OpenRouter bloqueou o Gemini selecionado. Confira as permissões da chave e as restrições da conta.',quota:'Saldo ou limite de crédito insuficiente no OpenRouter. Confira seu saldo e o limite da chave para usar Gemini pago.',capacity:'O Gemini atingiu o limite de chamadas ou está sem capacidade. Aguarde e tente novamente.',incompatible:'Nenhum provedor disponível do Gemini aceita as ferramentas desta chamada. Tente novamente mais tarde.',unavailable:'OpenRouter não encontrou um endpoint disponível para o Gemini selecionado. Tente novamente mais tarde.',timeout:'O Gemini demorou a responder. Tente novamente.',provider:'O provedor do Gemini falhou. Tente novamente mais tarde.'};
+  message=paidMessages[reason]??message;
+ }
+ return new AgentModelError(`${message} [OpenRouter HTTP ${status}${code&&code!==status?`; código ${code}`:''}] Nenhuma alteração foi realizada.`,status,code,reason,requestedModel);
 }
 function modelFailure(error:AgentModelError):never{console.warn(JSON.stringify(error.diagnostic()));throw error;}
-export async function callAgentModel(messages:unknown[],mode:'analyze'|'execute',key:string,fetcher:typeof fetch=fetch){
+export async function callAgentModel(messages:unknown[],mode:'analyze'|'execute',key:string,fetcher:typeof fetch=fetch,selectedModel:AgentModelId='openrouter/free'){
+ const requestedModel=agentModel(selectedModel);
  let response:Response;
- try{response=await fetcher('https://openrouter.ai/api/v1/chat/completions',{method:'POST',headers:{Authorization:`Bearer ${key}`,'Content-Type':'application/json'},signal:AbortSignal.timeout(35000),body:JSON.stringify({model:'openrouter/free',messages,tools:agentTools.filter(t=>mode==='execute'||t.function.name!=='propose_changes'),max_tokens:3000,provider:{require_parameters:false}})});}
- catch(e){const timeout=['TimeoutError','AbortError'].includes((e as Error)?.name);return modelFailure(new AgentModelError(timeout?'OpenRouter demorou a responder. Nenhuma alteração foi realizada.':'Não foi possível conectar ao OpenRouter. Nenhuma alteração foi realizada.',null,null,timeout?'timeout':'network'));}
- let payload:any;try{payload=await response.json();}catch{return modelFailure(response.ok?new AgentModelError('OpenRouter retornou uma resposta inválida. Nenhuma alteração foi realizada.',response.status,null,'invalid_response'):classifyAgentError(response.status,null));}
- if(!response.ok||payload?.error)return modelFailure(classifyAgentError(response.status,payload));
- if(typeof payload?.model!=='string'||!(payload.model.endsWith(':free')||payload.model==='openrouter/free')||Number(payload.usage?.cost??0)>0)return modelFailure(new AgentModelError('Resposta recusada: o modo IA aceita apenas modelos gratuitos. Nenhuma alteração foi realizada.',response.status,null,'paid_model'));
- const message=payload.choices?.[0]?.message;if(!message||(typeof message.content!=='string'&&!Array.isArray(message.tool_calls))||(!message.content&&!message.tool_calls?.length))return modelFailure(new AgentModelError('O modelo gratuito retornou uma resposta vazia. Nenhuma alteração foi realizada.',response.status,null,'invalid_response'));
+ try{response=await fetcher('https://openrouter.ai/api/v1/chat/completions',{method:'POST',headers:{Authorization:`Bearer ${key}`,'Content-Type':'application/json'},signal:AbortSignal.timeout(35000),body:JSON.stringify({model:requestedModel,messages,tools:agentTools.filter(t=>mode==='execute'||t.function.name!=='propose_changes'),max_tokens:3000,provider:{require_parameters:false}})});}
+ catch(e){const timeout=['TimeoutError','AbortError'].includes((e as Error)?.name);return modelFailure(new AgentModelError(timeout?'OpenRouter demorou a responder. Nenhuma alteração foi realizada.':'Não foi possível conectar ao OpenRouter. Nenhuma alteração foi realizada.',null,null,timeout?'timeout':'network',requestedModel));}
+ let payload:any;try{payload=await response.json();}catch{return modelFailure(response.ok?new AgentModelError('OpenRouter retornou uma resposta inválida. Nenhuma alteração foi realizada.',response.status,null,'invalid_response',requestedModel):classifyAgentError(response.status,null,requestedModel));}
+ if(!response.ok||payload?.error)return modelFailure(classifyAgentError(response.status,payload,requestedModel));
+ if(requestedModel==='openrouter/free'){
+  if(typeof payload?.model!=='string'||!(payload.model.endsWith(':free')||payload.model==='openrouter/free')||Number(payload.usage?.cost??0)>0)return modelFailure(new AgentModelError('Resposta recusada: a opção gratuita aceita apenas modelos gratuitos. Nenhuma alteração foi realizada.',response.status,null,'paid_model',requestedModel));
+ }else if(payload?.model!==requestedModel)return modelFailure(new AgentModelError('OpenRouter retornou um modelo diferente do Gemini selecionado. Nenhuma alteração foi realizada.',response.status,null,'unexpected_model',requestedModel));
+ const message=payload.choices?.[0]?.message;if(!message||(typeof message.content!=='string'&&!Array.isArray(message.tool_calls))||(!message.content&&!message.tool_calls?.length))return modelFailure(new AgentModelError('O modelo retornou uma resposta vazia. Nenhuma alteração foi realizada.',response.status,null,'invalid_response',requestedModel));
  return {message,model:payload.model};
 }
 

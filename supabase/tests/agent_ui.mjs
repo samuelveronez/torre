@@ -15,8 +15,12 @@ await context.route('https://nvxwqrpztecrvrxoddxf.supabase.co/**',async route=>{
  if(url.pathname.includes('/functions/')){
   const input=request.postDataJSON();calls.push(input);let run=tables.torre_agent_runs.find(r=>r.id===input.runId);
   if(input.action==='agent-test')return route.fulfill({status:testFails?400:200,headers,body:JSON.stringify(testFails?{error:'A política de dados da conta bloqueou os provedores gratuitos. Nenhuma alteração foi realizada.'}:{ok:true,model:'test/model:free'})});
+  if(input.action==='agent-chat'&&input.message==='Pedido de teste Gemini'){
+   if(!run){run={id:input.runId,message:input.message,mode:input.mode,requested_model:input.model,state:'error',response:'',model:null,error:'Saldo insuficiente no OpenRouter.',operations:[],created_at:new Date().toISOString()};tables.torre_agent_runs.push(run);}else{run.state='answered';run.error=null;run.response='Gemini respondeu ao pedido.';run.model=input.model;}
+   return route.fulfill({status:200,headers,body:JSON.stringify({run})});
+  }
   if(input.action==='agent-chat'){
-   run={id:input.runId,message:input.message,mode:input.mode,state:input.mode==='analyze'?'answered':input.message.includes('Arquive')?'ready':'applied',response:input.mode==='analyze'?analysisResponse:'Pedido para alterar as tarefas.',model:'test/model:free',error:null,operations:input.mode==='analyze'?[]:[{entity:'task',id:task,title:'Pagar aluguel',before:{},patch:input.message.includes('Arquive')?{archived_at:'2026-10-06T12:00:00Z'}:{priority:'medium'}}],created_at:new Date().toISOString()};tables.torre_agent_runs.push(run);
+   run={id:input.runId,message:input.message,mode:input.mode,requested_model:input.model,state:input.mode==='analyze'?'answered':input.message.includes('Arquive')?'ready':'applied',response:input.mode==='analyze'?analysisResponse:'Pedido para alterar as tarefas.',model:'test/model:free',error:null,operations:input.mode==='analyze'?[]:[{entity:'task',id:task,title:'Pagar aluguel',before:{},patch:input.message.includes('Arquive')?{archived_at:'2026-10-06T12:00:00Z'}:{priority:'medium'}}],created_at:new Date().toISOString()};tables.torre_agent_runs.push(run);
   }else if(input.action==='agent-apply')run.state='applied';else if(input.action==='agent-undo')run.state='undone';else throw new Error('Unexpected action');
   return route.fulfill({status:200,headers,body:JSON.stringify({run})});
  }
@@ -30,8 +34,9 @@ const page=await context.newPage();page.on('pageerror',e=>errors.push(e.message)
 try{
  await page.goto(process.env.TORRE_TEST_URL??'http://127.0.0.1:5182/');
  await page.getByRole('heading',{name:'Suas tarefas, em conversa'}).waitFor();
+ assert.equal(await page.getByRole('combobox',{name:'Modelo da IA'}).inputValue(),'openrouter/free');
  await page.getByLabel('Seu pedido').fill('O que merece atenção hoje?');await page.getByRole('button',{name:'Enviar',exact:true}).click();
- await page.getByRole('button',{name:'Pagar aluguel',exact:true}).first().waitFor();assert.equal(calls[0].mode,'analyze');
+ await page.getByRole('button',{name:'Pagar aluguel',exact:true}).first().waitFor();assert.equal(calls[0].mode,'analyze');assert.equal(calls[0].model,'openrouter/free');
  await page.getByRole('heading',{name:'Avaliação de hoje'}).waitFor();assert.equal(await page.locator('.agent-response strong').first().textContent(),'Foco:');
  assert.deepEqual(await page.locator('.agent-response th').allTextContents(),['Tarefa','Prioridade','Situação']);assert.deepEqual(await page.locator('.agent-response td').allTextContents(),['Pagar aluguel','Alta','Aguardando']);
  const responseText=await page.locator('.agent-response').textContent();assert.equal(responseText.includes(task),false);assert.equal(responseText.includes('ID:'),false);assert.equal(responseText.includes('Prioridade: Alta'),true);assert.equal(responseText.includes('Situação: Aguardando'),true);assert.equal(responseText.includes('Projeto high fidelity permanece com seu nome.'),true);
@@ -46,6 +51,11 @@ try{
  await page.screenshot({path:'.db-validation/agent-desktop.png',fullPage:true});
  await page.getByRole('button',{name:'Aplicar pedido'}).click();await page.getByText('Pedido aplicado: 1 registro(s).',{exact:true}).waitFor();
  await page.reload();await page.getByText('Pedido desfeito.',{exact:true}).waitFor();assert.equal(calls.length,5);
+ await page.getByRole('combobox',{name:'Modelo da IA'}).selectOption('google/gemini-2.5-flash');await page.getByText(/Gemini usa a mesma chave OpenRouter e cobra por tokens/).waitFor();assert.equal(calls.length,5,'Selecting paid must not call provider');
+ await page.reload();await page.getByText('Pedido desfeito.',{exact:true}).waitFor();assert.equal(await page.getByRole('combobox',{name:'Modelo da IA'}).inputValue(),'google/gemini-2.5-flash');
+ await page.screenshot({path:'.db-validation/agent-model-paid.png',fullPage:true});
+ await page.getByRole('combobox',{name:'Modo da IA'}).selectOption('analyze');await page.getByLabel('Seu pedido').fill('Pedido de teste Gemini');await page.getByRole('button',{name:'Enviar',exact:true}).click();await page.getByRole('alert').filter({hasText:'Saldo insuficiente'}).waitFor();assert.equal(calls[5].model,'google/gemini-2.5-flash');
+ await page.getByRole('combobox',{name:'Modelo da IA'}).selectOption('openrouter/free');await page.getByRole('button',{name:'Tentar novamente este pedido'}).click();await page.getByText('Gemini respondeu ao pedido.',{exact:true}).waitFor();assert.equal(calls[6].model,'google/gemini-2.5-flash');assert.equal(calls[6].runId,calls[5].runId,'Retry uses original model and id');
  await page.setViewportSize({width:390,height:844});await page.screenshot({path:'.db-validation/agent-mobile.png',fullPage:true});
  assert.equal(await page.evaluate(()=>document.documentElement.scrollWidth>window.innerWidth),false,'Mobile horizontal overflow');
  await page.evaluate(()=>{document.documentElement.dataset.theme='dark';window.scrollTo(0,0);});await page.screenshot({path:'.db-validation/agent-dark.png',fullPage:true});
@@ -53,7 +63,7 @@ try{
  const runsBefore=tables.torre_agent_runs.length,tasksBefore=JSON.stringify(tables.torre_tasks);
  await page.getByRole('button',{name:'Testar agente gratuito'}).click();await page.getByText('Modelo gratuito validado: test/model:free. Nenhum registro foi criado.',{exact:true}).waitFor();
  testFails=true;await page.getByRole('button',{name:'Testar agente gratuito'}).click();await page.getByRole('alert').filter({hasText:'A política de dados da conta'}).waitFor();
- assert.equal(tables.torre_agent_runs.length,runsBefore);assert.equal(JSON.stringify(tables.torre_tasks),tasksBefore);assert.equal(tables.torre_labels.length,0);assert.equal(calls.length,7);
+ assert.equal(tables.torre_agent_runs.length,runsBefore);assert.equal(JSON.stringify(tables.torre_tasks),tasksBefore);assert.equal(tables.torre_labels.length,0);assert.equal(calls.length,9);
  await page.screenshot({path:'.db-validation/agent-settings-test.png',fullPage:true});
- assert.deepEqual(errors,[]);console.log('PASS: agent analysis, task reference, execute, undo, batch review, history, mobile and synthetic test success/error without writes');
+ assert.deepEqual(errors,[]);console.log('PASS: Markdown, analysis/CRUD/undo, free default, paid selector, persisted choice, original model on retry, mobile and synthetic test without writes');
 }finally{await browser.close();}
