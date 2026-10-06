@@ -1,6 +1,7 @@
 import {classifierModel,buildQuestions,parseDecision} from '../_shared/openrouter.ts';
 import {triageMany,extractionModel,request} from '../_shared/intelligence.ts';
 import {propose} from '../_shared/planning.ts';
+import {agentAction} from '../_shared/agentService.ts';
 import {db,checked,secret,googleToken,api,completeJobs,discover,syncTasks,syncCalendar,callback,site} from '../_shared/google.ts';
 const cors={'Access-Control-Allow-Origin':new URL(site).origin,'Access-Control-Allow-Headers':'authorization, apikey, content-type, x-client-info','Access-Control-Allow-Methods':'POST, OPTIONS'};
 Deno.serve(async(req)=>{
@@ -12,6 +13,7 @@ Deno.serve(async(req)=>{
   const bearer=req.headers.get('Authorization')?.replace(/^Bearer /,'');if(!bearer)return json({error:'Entre na Torre.'},401);
   const {data:{user},error}=await db.auth.getUser(bearer);if(error||!user)return json({error:'Sessão inválida.'},401);
   const input=await req.json();const uid=user.id;
+  if(['agent-chat','agent-apply','agent-undo'].includes(input.action))return json(await agentAction(uid,input));
   if(input.action==='ai-key'){
    if(input.remove){await secret(uid,'ai',undefined,true);await checked(db.from('torre_ai_settings').upsert({user_id:uid,has_key:false,enabled:false}));}
    else{if(typeof input.key!=='string'||!input.key.trim()||input.key.length>8192)throw new Error('Chave inválida');await secret(uid,'ai',input.key.trim());await checked(db.from('torre_ai_settings').upsert({user_id:uid,has_key:true,enabled:false}));}

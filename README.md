@@ -6,6 +6,8 @@ Validação navegável do MVP pessoal, inspirada no visual do GSA. React, TypeSc
 
 Veja [escopo](ESCOPO.md) e [design system](DESIGN_SYSTEM.md).
 
+O [Modo IA](MODO_IA.md) avalia tarefas em linguagem natural e gerencia tarefas e labels usando OpenRouter gratuito, com histórico e desfazer. Organização de agenda fica fora do agente nesta etapa.
+
 Esta versão usa Supabase Auth e PostgreSQL para tarefas, reservas, jornada e tema. O usuário entra com e-mail e senha; uma conta nova exige confirmação por e-mail. Google Tasks e calendário ainda não estão conectados. As demonstrações antigas do localStorage não são importadas para a conta.
 
 Projeto: [Torre de Controle](https://supabase.com/dashboard/project/nvxwqrpztecrvrxoddxf), na região São Paulo. As seis tabelas `torre_` têm RLS por usuário. O cliente usa apenas a chave pública publishable. Nunca adicionar chaves secretas ao frontend.
