@@ -37,5 +37,6 @@ export async function sendDigest(uid:string,date?:string,onSending?:()=>Promise<
  if(current?.chat_id!==cfg.chat_id||currentBot.token!==bot.token||date&&!current.enabled)throw new Error('A configuração mudou durante a geração. O envio foi cancelado.');
  if(onSending)await onSending();
  const msg=await telegramApi(bot.token,'sendMessage',{chat_id:cfg.chat_id,text:result.text,link_preview_options:{is_disabled:true}});
+ if(!Number.isSafeInteger(msg?.message_id))throw new Error('Telegram não confirmou a entrega. Confira o chat antes de tentar novamente.');
  return {...result,messageId:msg.message_id};
 }

@@ -15,7 +15,7 @@ Deno.serve(async req=>{
   if(input.action==='status'){
    const raw=await secret(uid,'telegram');const stored=raw?JSON.parse(raw):null;const cfg=await config(uid);
    const last=await checked(db.from('torre_telegram_deliveries').select('digest_date,state,sent_at,error').eq('user_id',uid).order('digest_date',{ascending:false}).limit(1));
-   return json({botName:stored?.botName||'',hasToken:!!stored?.token,linked:!!cfg?.chat_id,enabled:cfg?.enabled??false,weekdays:cfg?.weekdays??[0,1,2,3,4,5,6],sendTime:cfg?.send_time?.slice(0,5)||'21:00',last:last[0]||null});
+   return json({botName:stored?.botName||'',hasToken:!!stored?.token,linked:!!cfg?.chat_id,enabled:cfg?.enabled??false,weekdays:cfg?.weekdays??[0,1,2,3,4,5,6],sendTime:cfg?.send_time?.slice(0,5)||'21:00',testAfter:cfg?.test_after||null,last:last[0]||null});
   }
   if(input.action==='save'){
    const old=await secret(uid,'telegram');const stored=old?JSON.parse(old):null;
@@ -49,9 +49,14 @@ Deno.serve(async req=>{
    await credentials(uid);await checked(db.from('torre_telegram_settings').upsert({user_id:uid,...schedule,updated_at:new Date().toISOString()}));return json({ok:true});
   }
   if(input.action==='test'){
-   const claimed=await checked(db.from('torre_telegram_settings').update({test_after:new Date(Date.now()+60000).toISOString()}).eq('user_id',uid).not('chat_id','is',null).or(`test_after.is.null,test_after.lt.${new Date().toISOString()}`).select('user_id'));
-   if(!claimed.length)throw new Error('Vincule seu chat e aguarde um minuto entre testes.');
-   await sendDigest(uid);return json({ok:true});
+   const cfg=await config(uid);
+   if(!cfg?.chat_id)return json({error:'Vincule seu chat do Telegram antes de enviar o resumo.',code:'CHAT_NOT_LINKED'},409);
+   const after=new Date(Date.now()+60000).toISOString();
+   const claimed=await checked(db.from('torre_telegram_settings').update({test_after:after}).eq('user_id',uid).not('chat_id','is',null).or(`test_after.is.null,test_after.lte.${new Date().toISOString()}`).select('user_id'));
+   if(!claimed.length){const current=await config(uid);if(!current?.chat_id)return json({error:'Vincule seu chat do Telegram antes de enviar o resumo.',code:'CHAT_NOT_LINKED'},409);const seconds=Math.max(1,Math.ceil((Date.parse(current.test_after)-Date.now())/1000));return json({error:`Seu chat está vinculado. Aguarde ${seconds} segundos para enviar outro teste.`,code:'TEST_COOLDOWN',retryAfter:seconds,testAfter:current.test_after},429);}
+   let sending=false;
+   try{const result=await sendDigest(uid,undefined,async()=>{sending=true;});return json({ok:true,delivered:true,messageId:result.messageId,testAfter:after});}
+   catch(e){if(!sending)await checked(db.from('torre_telegram_settings').update({test_after:null}).eq('user_id',uid).eq('test_after',after));throw e;}
   }
   return json({error:'Ação inválida.'},400);
  }catch(e){return json({error:e instanceof Error?e.message:'Não foi possível configurar o Telegram.'},400);}

@@ -4,7 +4,7 @@ const {chromium}=await import(pathToFileURL(process.env.PLAYWRIGHT_MODULE||'C:/U
 const browser=await chromium.launch({channel:'msedge',headless:true});
 const uid='10000000-0000-4000-8000-000000000001';
 const user={id:uid,email:'test@example.com',aud:'authenticated',role:'authenticated',app_metadata:{},user_metadata:{},created_at:'2026-10-07T00:00:00Z'};
-let config={botName:'torre_veronez_bot',hasToken:true,linked:false,enabled:false,weekdays:[0,1,2,3,4,5,6],sendTime:'21:00',last:null};const calls=[];let fail=false;
+let config={botName:'torre_veronez_bot',hasToken:true,linked:false,enabled:false,weekdays:[0,1,2,3,4,5,6],sendTime:'21:00',last:null};const calls=[];let fail=false,statusFails=0;
 const context=await browser.newContext({viewport:{width:1440,height:1000}});
 await context.route('https://nvxwqrpztecrvrxoddxf.supabase.co/**',async route=>{
  const req=route.request(),url=new URL(req.url());const headers={'Content-Type':'application/json','Access-Control-Allow-Origin':'*','Access-Control-Allow-Headers':'*','Access-Control-Allow-Methods':'*'};
@@ -13,10 +13,10 @@ await context.route('https://nvxwqrpztecrvrxoddxf.supabase.co/**',async route=>{
  if(url.pathname.startsWith('/auth/'))return reply(user);
  if(url.pathname.includes('/functions/v1/torre-telegram-settings')){
   const input=req.postDataJSON();calls.push(input);
-  if(input.action==='status')return reply(config);
+  if(input.action==='status'){if(statusFails>0){statusFails--;return reply({error:'Falha simulada ao atualizar a tela.'},503);}return reply(config);}
   if(input.action==='link')return reply({url:'https://t.me/torre_veronez_bot?start=synthetic'});
   if(input.action==='schedule'){if(fail)return reply({error:'Falha simulada no agendamento.'},400);config={...config,enabled:input.enabled,weekdays:input.weekdays,sendTime:input.sendTime};return reply({ok:true});}
-  if(input.action==='test')return reply({ok:true});
+  if(input.action==='test'){config.testAfter=new Date(Date.now()+2000).toISOString();statusFails=1;return reply({ok:true,delivered:true,messageId:7,testAfter:config.testAfter});}
   throw new Error('Unexpected action '+input.action);
  }
  if(url.pathname.includes('/rpc/'))return reply(null);
@@ -36,7 +36,7 @@ try{
  config.linked=true;await page.getByText('Chat vinculado à sua conta.',{exact:true}).waitFor({timeout:12000});
  await page.getByLabel('Ativar envio automático').check();await page.getByLabel('Horário de envio').fill('22:15');await page.getByLabel('Domingo',{exact:true}).uncheck();await page.getByRole('button',{name:'Salvar lembrete',exact:true}).click();await page.getByText('Lembrete salvo.',{exact:true}).waitFor();
  const saved=calls.find(c=>c.action==='schedule');assert.equal(saved.enabled,true);assert.equal(saved.sendTime,'22:15');assert.equal(saved.weekdays.includes(0),false);
- await page.getByRole('button',{name:'Enviar resumo de teste'}).click();await page.getByText('Resumo de teste enviado ao seu Telegram.',{exact:true}).waitFor();
+ await page.getByRole('button',{name:'Enviar resumo de teste'}).click();await page.getByText('Resumo de teste enviado ao seu Telegram. Não foi possível atualizar o estado da tela; a entrega já foi confirmada.',{exact:true}).waitFor();assert.equal(await page.getByRole('button',{name:/Aguarde .*s/}).isDisabled(),true);await page.getByRole('button',{name:'Enviar resumo de teste',exact:true}).waitFor({timeout:5000});assert.equal(await page.getByRole('button',{name:'Enviar resumo de teste',exact:true}).isEnabled(),true);assert.equal(await page.getByText('Chat vinculado à sua conta.',{exact:true}).count(),1);
  fail=true;await page.getByRole('button',{name:'Salvar lembrete',exact:true}).click();await page.getByRole('alert').filter({hasText:'Falha simulada'}).waitFor();
  await page.setViewportSize({width:390,height:844});assert.ok(await page.evaluate(()=>document.documentElement.scrollWidth<=window.innerWidth));
  await page.screenshot({path:'visual-prep/telegram-digest-mobile.png',fullPage:true});
