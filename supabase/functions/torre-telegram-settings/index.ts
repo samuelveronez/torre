@@ -1,5 +1,5 @@
-import {createClient} from 'npm:@supabase/supabase-js@2.117.2';
-const db=createClient(Deno.env.get('SUPABASE_URL')!,Deno.env.get('SUPABASE_SERVICE_ROLE_KEY')!);
+import {db,checked,secret,config,credentials,telegramApi,sha,sendDigest} from '../_shared/telegram.ts';
+import {validateSchedule} from '../_shared/telegramDigest.ts';
 const origins=['https://torre.veronez.app','https://samuelveronez.github.io','http://127.0.0.1:5173','http://127.0.0.1:5174','http://127.0.0.1:5180','http://127.0.0.1:5181'];
 Deno.serve(async req=>{
  const origin=req.headers.get('Origin')||'';
@@ -9,17 +9,50 @@ Deno.serve(async req=>{
  if(req.method!=='POST')return json({error:'Método não permitido.'},405);
  const bearer=req.headers.get('Authorization')?.replace(/^Bearer /,'');if(!bearer)return json({error:'Entre na Torre.'},401);
  const {data:{user},error}=await db.auth.getUser(bearer);if(error||!user)return json({error:'Sessão inválida.'},401);
- async function secret(value:string|null=null,remove=false){const {data,error}=await db.rpc('torre_secret',{p_user:user!.id,p_kind:'telegram',p_value:value,p_delete:remove});if(error)throw new Error('Não foi possível acessar as configurações do Telegram.');return data as string|null;}
+ const uid=user.id;
  try{
   const input=await req.json();
-  if(input.action==='remove'){await secret(null,true);return json({hasToken:false});}
-  if(!['status','save'].includes(input.action))return json({error:'Ação inválida.'},400);
-  const raw=await secret();const stored=raw?JSON.parse(raw):null;
-  if(input.action==='status')return json({botName:stored?.botName||'',hasToken:!!stored?.token});
-  if(typeof input.botName!=='string'||typeof input.token!=='string')return json({error:'Informe nome e token do bot.'},400);
-  const botName=input.botName.trim().replace(/^@/,'');const token=input.token.trim()||stored?.token;
-  if(!/^[a-zA-Z][a-zA-Z0-9_]{4,31}$/.test(botName)||!botName.toLowerCase().endsWith('bot'))return json({error:'Informe o nome de usuário do bot, terminado em bot.'},400);
-  if(!token||!/^\d{5,20}:[A-Za-z0-9_-]{20,200}$/.test(token))return json({error:'Informe um token válido do BotFather.'},400);
-  await secret(JSON.stringify({botName,token}));return json({botName,hasToken:true});
- }catch{return json({error:'Não foi possível salvar ou carregar o Telegram. Tente novamente.'},400);}
+  if(input.action==='status'){
+   const raw=await secret(uid,'telegram');const stored=raw?JSON.parse(raw):null;const cfg=await config(uid);
+   const last=await checked(db.from('torre_telegram_deliveries').select('digest_date,state,sent_at,error').eq('user_id',uid).order('digest_date',{ascending:false}).limit(1));
+   return json({botName:stored?.botName||'',hasToken:!!stored?.token,linked:!!cfg?.chat_id,enabled:cfg?.enabled??false,weekdays:cfg?.weekdays??[0,1,2,3,4,5,6],sendTime:cfg?.send_time?.slice(0,5)||'21:00',last:last[0]||null});
+  }
+  if(input.action==='save'){
+   const old=await secret(uid,'telegram');const stored=old?JSON.parse(old):null;
+   if(typeof input.botName!=='string'||typeof input.token!=='string')throw new Error('Informe nome e token do bot.');
+   const botName=input.botName.trim().replace(/^@/,'');const token=input.token.trim()||stored?.token;
+   if(!/^[a-zA-Z][a-zA-Z0-9_]{4,31}$/.test(botName)||!botName.toLowerCase().endsWith('bot'))throw new Error('Informe o nome de usuário do bot, terminado em bot.');
+   if(!token||!/^\d{5,20}:[A-Za-z0-9_-]{20,200}$/.test(token))throw new Error('Informe um token válido do BotFather.');
+   const identity=await telegramApi(token,'getMe',{});if(identity.username?.toLowerCase()!==botName.toLowerCase())throw new Error('O token pertence a outro bot. Confira o nome.');
+   if(stored?.token!==token)await checked(db.from('torre_telegram_settings').upsert({user_id:uid,chat_id:null,enabled:false,link_hash:null,link_expires_at:null}));
+   await secret(uid,'telegram',JSON.stringify({botName:identity.username,token}));return json({botName:identity.username,hasToken:true});
+  }
+  if(input.action==='remove'){
+   await checked(db.from('torre_telegram_settings').delete().eq('user_id',uid));
+   await secret(uid,'telegram',null,true);await secret(uid,'telegram-hook',null,true);return json({hasToken:false});
+  }
+  if(input.action==='link'){
+   const bot=await credentials(uid);const identity=await telegramApi(bot.token,'getMe',{});
+   const url=`${Deno.env.get('SUPABASE_URL')}/functions/v1/torre-telegram-webhook?owner=${uid}`;
+   const current=await telegramApi(bot.token,'getWebhookInfo',{});
+   if(current.url&&current.url!==url)throw new Error('Este bot já tem outra integração. Use um bot dedicado à Torre.');
+   let hook=await secret(uid,'telegram-hook');if(!hook){hook=crypto.randomUUID().replaceAll('-','')+crypto.randomUUID().replaceAll('-','');await secret(uid,'telegram-hook',hook);}
+   const nonce=crypto.randomUUID().replaceAll('-','');
+   await checked(db.from('torre_telegram_settings').upsert({user_id:uid,link_hash:await sha(nonce),link_expires_at:new Date(Date.now()+10*60000).toISOString()}));
+   await telegramApi(bot.token,'setWebhook',{url,secret_token:hook,allowed_updates:['message']});
+   return json({url:`https://t.me/${identity.username}?start=${nonce}`});
+  }
+  if(input.action==='schedule'){
+   const schedule=validateSchedule(input);const cfg=await config(uid);
+   if(schedule.enabled&&!cfg?.chat_id)throw new Error('Vincule seu chat antes de ativar o lembrete.');
+   if(schedule.enabled&&!(await secret(uid,'ai')))throw new Error('Cadastre a chave OpenRouter em Configurações → IA.');
+   await credentials(uid);await checked(db.from('torre_telegram_settings').upsert({user_id:uid,...schedule,updated_at:new Date().toISOString()}));return json({ok:true});
+  }
+  if(input.action==='test'){
+   const claimed=await checked(db.from('torre_telegram_settings').update({test_after:new Date(Date.now()+60000).toISOString()}).eq('user_id',uid).not('chat_id','is',null).or(`test_after.is.null,test_after.lt.${new Date().toISOString()}`).select('user_id'));
+   if(!claimed.length)throw new Error('Vincule seu chat e aguarde um minuto entre testes.');
+   await sendDigest(uid);return json({ok:true});
+  }
+  return json({error:'Ação inválida.'},400);
+ }catch(e){return json({error:e instanceof Error?e.message:'Não foi possível configurar o Telegram.'},400);}
 });

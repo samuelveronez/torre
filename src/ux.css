@@ -145,3 +145,4 @@
 .inbox .inbox-card-actions{justify-content:flex-start}
 .inbox .label-picker input[type=checkbox]{width:16px;height:16px;min-height:16px;flex:0 0 16px}
 .telegram-fields{border:0;padding:0;margin:0;display:flex;flex-direction:column;gap:14px}.telegram-fields label{display:flex;flex-direction:column;gap:6px}.telegram-fields input{width:100%;max-width:520px}.telegram-fields small{color:var(--ux-muted)}
+.telegram-connection{margin:24px 0;padding:16px 0;border-top:1px solid var(--ux-border);border-bottom:1px solid var(--ux-border)}.telegram-weekdays{display:flex;flex-wrap:wrap;gap:12px}.telegram-weekdays label,.telegram-fields .telegram-toggle{display:flex;flex-direction:row;align-items:center;gap:6px}.telegram-weekdays input,.telegram-fields .telegram-toggle input{width:auto}.telegram-fields input[type=time]{max-width:180px}
