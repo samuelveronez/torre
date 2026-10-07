@@ -1,3 +1,4 @@
+import {selectedAiModel} from '../_shared/aiSettings.ts';
 import {db,checked,secret,site} from '../_shared/google.ts';
 import {extractConversation} from '../_shared/conversationExtraction.ts';
 import {validDate} from '../_shared/conversationModel.ts';
@@ -16,6 +17,7 @@ Deno.serve(async req=>{
   const {data:settings}=await checked(db.from('torre_ai_settings').select('enabled,provider').eq('user_id',user.id).maybeSingle());
   if(!settings?.enabled||settings.provider!=='openrouter')return json({error:'Ative a IA em Configurações. Você pode preencher o formulário manualmente.'},409);
   const key=await secret(user.id,'ai');if(!key)return json({error:'Cadastre sua chave OpenRouter.'},409);
-  return json(await extractConversation(input.text,input.date,person.name,key));
+  if(!person)throw new Error('Pessoa não encontrada nesta conta.');
+  return json(await extractConversation(input.text,input.date,person.name,key,await selectedAiModel(db,user.id)));
  }catch(e){return json({error:e instanceof Error?e.message:'Não foi possível organizar. Seu texto permanece salvo.'},400);}
 });

@@ -103,14 +103,14 @@ export async function callAgentModel(messages:unknown[],mode:'analyze'|'execute'
  return {message,model:payload.model};
 }
 
-export async function testAgentModel(key:string,fetcher:typeof fetch=fetch){
+export async function testAgentModel(key:string,fetcher:typeof fetch=fetch,selectedModel:AgentModelId='openrouter/free'){
  const result=await callAgentModel([
   {role:'system',content:'Teste sintético de compatibilidade. Não consulte dados reais. Responda apenas usando propose_changes para preparar a criação de uma label Teste sintético. Inclua response, entity label, id new:teste e patch name Teste sintético. Esta ferramenta não será executada.'},
   {role:'user',content:'Prepare uma label chamada Teste sintético usando propose_changes.'}
- ],'execute',key,fetcher);
- const calls=result.message.tool_calls;if(!Array.isArray(calls)||calls.length!==1||calls[0]?.function?.name!=='propose_changes')throw new Error('O modelo gratuito respondeu, mas não usou a ferramenta do teste. Nenhum registro foi criado. Tente novamente.');
- let args:any;try{args=JSON.parse(calls[0].function.arguments);}catch{throw new Error('O modelo gratuito retornou argumentos inválidos no teste. Nenhum registro foi criado.');}
- if(typeof args.response!=='string'||!Array.isArray(args.operations)||args.operations.length!==1||args.operations[0]?.entity!=='label'||args.operations[0]?.id!=='new:teste')throw new Error('O modelo gratuito não seguiu o formato do teste. Nenhum registro foi criado.');
- const patch=validateAgentPatch('label',args.operations[0].patch,true);if(patch.name!=='Teste sintético')throw new Error('O modelo gratuito não seguiu o nome sintético do teste. Nenhum registro foi criado.');
- return {ok:true,model:result.model,message:'Modelo gratuito respondeu e preparou uma operação válida. Nenhum registro foi criado.'};
+ ],'execute',key,fetcher,selectedModel);
+ const calls=result.message.tool_calls;if(!Array.isArray(calls)||calls.length!==1||calls[0]?.function?.name!=='propose_changes')throw new Error('O modelo selecionado respondeu, mas não usou a ferramenta do teste. Nenhum registro foi criado. Tente novamente.');
+ let args:any;try{args=JSON.parse(calls[0].function.arguments);}catch{throw new Error('O modelo selecionado retornou argumentos inválidos no teste. Nenhum registro foi criado.');}
+ if(typeof args.response!=='string'||!Array.isArray(args.operations)||args.operations.length!==1||args.operations[0]?.entity!=='label'||args.operations[0]?.id!=='new:teste')throw new Error('O modelo selecionado não seguiu o formato do teste. Nenhum registro foi criado.');
+ const patch=validateAgentPatch('label',args.operations[0].patch,true);if(patch.name!=='Teste sintético')throw new Error('O modelo selecionado não seguiu o nome sintético do teste. Nenhum registro foi criado.');
+ return {ok:true,model:result.model,message:'Modelo selecionado respondeu e preparou uma operação válida. Nenhum registro foi criado.'};
 }

@@ -1,17 +1,19 @@
+import {selectedAiModel} from './aiSettings.ts';
 import {db,checked,secret} from './google.ts';
 import {agentId,agentModel,validateAgentPatch,needsAgentReview,agentInstructions,callAgentModel,testAgentModel,type AgentOperation} from './agent.ts';
 
 export async function agentAction(uid:string,input:any){
  if(input.action==='agent-test'){
   const key=await secret(uid,'ai');if(!key)throw new Error('Cadastre sua chave OpenRouter em Configurações → IA.');
-  return await testAgentModel(key);
+  return await testAgentModel(key,fetch,await selectedAiModel(db,uid));
  }
  if(!agentId(input.runId))throw new Error('Pedido inválido.');
  if(input.action==='agent-apply'||input.action==='agent-undo'){
   const {data}=await checked(db.rpc('torre_agent_apply',{p_user:uid,p_run:input.runId,p_undo:input.action==='agent-undo'}));return {run:data};
  }
  if(typeof input.message!=='string'||!input.message.trim()||input.message.length>4000||!['analyze','execute'].includes(input.mode))throw new Error('Escreva um pedido de até 4 mil caracteres.');
- const requestedModel=agentModel(input.model);
+ const {data:previous}=await checked(db.from('torre_agent_runs').select('requested_model').eq('user_id',uid).eq('id',input.runId).maybeSingle());
+ const requestedModel=agentModel(previous?.requested_model??await selectedAiModel(db,uid));
  const conversation=input.conversationId??null;
  if(conversation!==null&&!agentId(conversation))throw new Error('Conversa inválida.');
  const {data:settings}=await checked(db.from('torre_ai_settings').select('enabled,has_key').eq('user_id',uid).maybeSingle());

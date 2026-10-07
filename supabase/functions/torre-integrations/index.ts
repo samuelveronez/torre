@@ -1,3 +1,4 @@
+import {aiModel,selectedAiModel} from '../_shared/aiSettings.ts';
 import {classifierModel,buildQuestions,parseDecision} from '../_shared/openrouter.ts';
 import {triageMany,extractionModel,request} from '../_shared/intelligence.ts';
 import {propose} from '../_shared/planning.ts';
@@ -14,6 +15,7 @@ Deno.serve(async(req)=>{
   const {data:{user},error}=await db.auth.getUser(bearer);if(error||!user)return json({error:'Sessão inválida.'},401);
   const input=await req.json();const uid=user.id;
   if(['agent-chat','agent-apply','agent-undo','agent-test'].includes(input.action))return json(await agentAction(uid,input));
+  if(input.action==='ai-default'){const model=aiModel(input.model);await checked(db.from('torre_ai_settings').upsert({user_id:uid,default_model:model}));return json({ok:true,model});}
   if(input.action==='ai-key'){
    if(input.remove){await secret(uid,'ai',undefined,true);await checked(db.from('torre_ai_settings').upsert({user_id:uid,has_key:false,enabled:false}));}
    else{if(typeof input.key!=='string'||!input.key.trim()||input.key.length>8192)throw new Error('Chave inválida');await secret(uid,'ai',input.key.trim());await checked(db.from('torre_ai_settings').upsert({user_id:uid,has_key:true,enabled:false}));}
@@ -22,8 +24,9 @@ Deno.serve(async(req)=>{
   if(input.action==='ai-config'){
    if(input.enabled===false){await checked(db.from('torre_ai_settings').update({enabled:false}).eq('user_id',uid));return json({ok:true});}
    const key=await secret(uid,'ai');if(!key)return json({error:'Guarde a chave OpenRouter antes de ativar.'},409);
+   const selectedModel=await selectedAiModel(db,uid);
    // Test uses synthetic text only; no capture data or files are sent during activation.
-   await triageMany({text:'Comprar frutas para minha casa',labels:[]},key,'free');
+   await triageMany({text:'Comprar frutas para minha casa',labels:[]},key,'free',selectedModel);
    await checked(db.from('torre_ai_settings').upsert({user_id:uid,has_key:true,provider:'openrouter',model:classifierModel,enabled:true}));return json({ok:true,model:classifierModel});
   }
   if(input.action==='classify-tasks'||input.action==='undo-completion'){
@@ -35,7 +38,7 @@ Deno.serve(async(req)=>{
    }
    if(ids.length>20)throw new Error('Classifique até 20 tarefas por vez.');
    const {data:settings}=await checked(db.from('torre_ai_settings').select('*').eq('user_id',uid).maybeSingle());if(!settings?.enabled||settings.provider!=='openrouter')throw new Error('Ative a IA nas configurações.');const key=await secret(uid,'ai');if(!key)throw new Error('Cadastre sua chave OpenRouter.');
-   const {data:labels}=await checked(db.from('torre_labels').select('id,name,description').eq('user_id',uid).eq('archived',false));const inputs=tasks.map((t:any)=>({text:[t.title,t.description].filter(Boolean).join('\n').slice(0,20000),labels:labels??[]}));const questions:Record<string,unknown>={};inputs.forEach((item:any,i:number)=>{for(const [name,q] of Object.entries(buildQuestions(item)))questions[`task_${i}_${name}`]={...(q as object),instructions:`Classifique somente tasks[${i}], independentemente das outras. ${(q as any).instructions.replaceAll('capture_text',`tasks[${i}].text`)}`};});const payload=await request('alpha/decisions',{model:classifierModel,state:{tasks:inputs.map((item:any)=>({text:item.text}))},questions},key);const results=inputs.map((item:any,i:number)=>{const answers:Record<string,unknown>={};for(const name of Object.keys(buildQuestions(item)))answers[name]=payload.answers?.[`task_${i}_${name}`];return {taskId:tasks[i].id,labelIds:parseDecision({answers},item).labelIds};});return json({results});
+   const {data:labels}=await checked(db.from('torre_labels').select('id,name,description').eq('user_id',uid).eq('archived',false));const inputs=tasks.map((t:any)=>({text:[t.title,t.description].filter(Boolean).join('\n').slice(0,20000),labels:labels??[]}));const questions:Record<string,unknown>={};inputs.forEach((item:any,i:number)=>{for(const [name,q] of Object.entries(buildQuestions(item)))questions[`task_${i}_${name}`]={...(q as object),instructions:`Classifique somente tasks[${i}], independentemente das outras. ${(q as any).instructions.replaceAll('capture_text',`tasks[${i}].text`)}`};});const payload=await request('alpha/decisions',{model:classifierModel,state:{tasks:inputs.map((item:any)=>({text:item.text}))},questions},key,await selectedAiModel(db,uid));const results=inputs.map((item:any,i:number)=>{const answers:Record<string,unknown>={};for(const name of Object.keys(buildQuestions(item)))answers[name]=payload.answers?.[`task_${i}_${name}`];return {taskId:tasks[i].id,labelIds:parseDecision({answers},item).labelIds};});return json({results});
   }
   if(input.action==='triage'){
    if(typeof input.captureId!=='string'||!/^[0-9a-f-]{36}$/i.test(input.captureId))return json({error:'Captura inválida.'},400);
@@ -46,7 +49,7 @@ Deno.serve(async(req)=>{
    if(claim.taskIds)return json({ok:true,taskIds:claim.taskIds});
    try{
     const {data:labels}=await checked(db.from('torre_labels').select('id,name,description').eq('user_id',uid).eq('archived',false));
-    const {results,audit}=await triageMany({text:claim.text,labels:labels??[]},key,claim.mode);
+    const {results,audit}=await triageMany({text:claim.text,labels:labels??[]},key,claim.mode,await selectedAiModel(db,uid));
     const {data:taskIds}=await checked(db.rpc('torre_finish_triage_many',{p_user:uid,p_capture:input.captureId,p_token:token,p_text:claim.text,p_results:results,p_audit:audit}));return json({ok:true,taskIds});
    }catch(e){await db.from('torre_captures').update({state:'error',error:(e as Error).message,triage_token:null,triage_until:null}).eq('id',input.captureId).eq('user_id',uid).eq('triage_token',token);throw e;}
   }
@@ -61,9 +64,9 @@ Deno.serve(async(req)=>{
    const {data:snapshot}=await checked(db.rpc('torre_plan_snapshot',{p_user:uid,p_tasks:ids}));
    if(snapshot.tasks.length!==ids.length||snapshot.tasks.some((t:any)=>t.archived_at||t.status!=='todo'||snapshot.blocks.some((b:any)=>b.task_id===t.id)))throw new Error('Selecione somente pendências sem reserva.');
    const g=snapshot.google;if(g?.connected&&(!g.calendar_synced_at||Date.parse(g.calendar_synced_at)<Date.now()-300000||g.error||!g.range_start||!g.range_end||Date.parse(g.range_start)>start||Date.parse(g.range_end)<end))throw new Error('Atualize a agenda antes de gerar a proposta.');
-   const proposal=await propose(snapshot,new Date(start).toISOString(),new Date(end).toISOString(),input.instruction,key);
+   const proposal=await propose(snapshot,new Date(start).toISOString(),new Date(end).toISOString(),input.instruction,key,await selectedAiModel(db,uid));
    const {data:saved}=await checked(db.from('torre_week_proposals').insert({user_id:uid,task_ids:ids,range_start:new Date(start).toISOString(),range_end:new Date(end).toISOString(),snapshot,placements:proposal.placements}).select('id,expires_at').single());
-   return json({...proposal,...saved,model:extractionModel});
+   return json({...proposal,...saved,model:await selectedAiModel(db,uid)});
   }
   if(input.action==='plan-apply'){
    const {data:taskIds}=await checked(db.rpc('torre_apply_week_proposal',{p_user:uid,p_proposal:input.proposalId,p_tasks:input.taskIds,p_placements:input.placements??null}));return json({ok:true,taskIds});

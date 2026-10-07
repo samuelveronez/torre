@@ -1,0 +1,7 @@
+import {useEffect,useState} from 'react';
+import {invoke,type Features} from './features';
+export function AiModelSettings({features}:{features:Features}){
+ const current=features.ai?.default_model||'openrouter/free';const [selected,setSelected]=useState(current),[feedback,setFeedback]=useState('');
+ useEffect(()=>{setSelected(current);},[current]);
+ return <form className="telegram-fields" onSubmit={e=>{e.preventDefault();setFeedback('');void features.run(()=>invoke('ai-default',{model:selected})).then(ok=>setFeedback(ok?'Modelo padrão salvo para toda a Torre.':'Não foi possível salvar o modelo padrão.'));}}><label>Modelo padrão de toda a aplicação<select aria-label="Modelo padrão de toda a aplicação" value={selected} disabled={features.working} onChange={e=>{setSelected(e.target.value as typeof selected);setFeedback('');}}><option value="openrouter/free">OpenRouter gratuito</option><option value="google/gemini-2.5-flash">Gemini 2.5 Flash — pago</option></select></label><small>Vale para Modo IA, capturas, classificação, conversas, planejamento e resumos do Telegram, em todos os seus dispositivos.</small>{selected==='google/gemini-2.5-flash'&&<small>Gemini usa a mesma chave OpenRouter e cobra por tokens. <a href="https://openrouter.ai/google/gemini-2.5-flash" target="_blank" rel="noreferrer">Consultar preços</a></small>}<div className="toolbar"><button disabled={features.working||selected===current}>Salvar modelo padrão</button></div><p role="status">{feedback}</p></form>;
+}
