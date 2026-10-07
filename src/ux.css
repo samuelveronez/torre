@@ -144,3 +144,4 @@
 .inbox .inbox-card-actions{padding:12px 0 0;text-align:left}
 .inbox .inbox-card-actions{justify-content:flex-start}
 .inbox .label-picker input[type=checkbox]{width:16px;height:16px;min-height:16px;flex:0 0 16px}
+.telegram-fields{border:0;padding:0;margin:0;display:flex;flex-direction:column;gap:14px}.telegram-fields label{display:flex;flex-direction:column;gap:6px}.telegram-fields input{width:100%;max-width:520px}.telegram-fields small{color:var(--ux-muted)}
