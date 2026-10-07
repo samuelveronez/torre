@@ -4,6 +4,7 @@ import type {Task} from './task';
 import type {Placement} from './WeekPlanner';
 import {intersects,layoutIntervals} from './agendaLayout';
 import {slotAt} from './scheduling';
+import {TriangleAlert} from 'lucide-react';
 
 export const responseLabel=(status:CalendarEvent['response_status'])=>status?({accepted:'Aceito',tentative:'Talvez',needsAction:'Sem resposta',declined:'Recusado'}[status]):'';
 const clock=(value:number)=>new Date(value).toLocaleTimeString('pt-BR',{hour:'2-digit',minute:'2-digit'});
@@ -19,10 +20,10 @@ export function agendaColumns(date:Date,events:CalendarEvent[],calendars:Calenda
  return Math.max(1,...layoutIntervals(intervals).map(x=>x.columns));
 }
 type Item={id:string;start:number;end:number;title:string;event?:CalendarEvent;task?:Task;proposal?:Placement};
-function EventDetails({event,calendar,onClose}:{event:CalendarEvent;calendar?:Calendar;onClose:()=>void}){
+function EventDetails({event,calendar,onClose,overlap}:{event:CalendarEvent;calendar?:Calendar;onClose:()=>void;overlap?:string}){
  const ref=useRef<HTMLDialogElement>(null);
  useEffect(()=>{ref.current?.showModal();},[]);
- return <dialog ref={ref} className="agenda-event-dialog" onCancel={onClose} onClose={onClose} aria-label="Compromisso Google"><div className="form-body"><h2>{event.title||'Ocupado'}</h2><p>{event.all_day?'Dia inteiro':`${clock(Date.parse(event.start_at))} – ${clock(Date.parse(event.end_at))}`}</p><p>{new Date(event.start_at).toLocaleDateString('pt-BR')} · {calendar?.name??'Google Agenda'}</p>{responseLabel(event.response_status)&&<p>Resposta: {responseLabel(event.response_status)}</p>}{event.location&&<p>{event.location}</p>}<p>{event.blocks_time?'Reserva tempo para as sugestões automáticas.':'Não bloqueia as sugestões automáticas.'}</p><p>Você pode reservar tarefas neste horário.</p><button autoFocus onClick={onClose}>Fechar</button></div></dialog>;
+ return <dialog ref={ref} className="agenda-event-dialog" onCancel={onClose} onClose={onClose} aria-label="Compromisso Google"><div className="form-body"><h2>{event.title||'Ocupado'}</h2><p>{event.all_day?'Dia inteiro':`${clock(Date.parse(event.start_at))} – ${clock(Date.parse(event.end_at))}`}</p><p>{new Date(event.start_at).toLocaleDateString('pt-BR')} · {calendar?.name??'Google Agenda'}</p>{responseLabel(event.response_status)&&<p>Resposta: {responseLabel(event.response_status)}</p>}{event.location&&<p>{event.location}</p>}{overlap&&<p className="reservation-warning">{overlap}</p>}<p>{event.blocks_time?'Reserva tempo para as sugestões automáticas.':'Não bloqueia as sugestões automáticas.'}</p><p>Você pode reservar tarefas neste horário.</p><button autoFocus onClick={onClose}>Fechar</button></div></dialog>;
 }
 export function AllDayAgenda(props:Props){
  const [selected,setSelected]=useState<CalendarEvent|null>(null);
@@ -31,7 +32,7 @@ export function AllDayAgenda(props:Props){
  return <div className="all-day-events">{rows.map(e=><button className={`response-${e.response_status??'unknown'}`} key={e.calendar_id+e.id} onClick={()=>setSelected(e)} style={{borderLeftColor:props.calendars.find(c=>c.id===e.calendar_id)?.color}}>{e.all_day?'Dia inteiro':`${clock(Date.parse(e.start_at))} – ${clock(Date.parse(e.end_at))}`} · {e.title}{responseLabel(e.response_status)&&<span> · {responseLabel(e.response_status)}</span>}</button>)}{selected&&<EventDetails key={selected.calendar_id+selected.id} event={selected} calendar={props.calendars.find(c=>c.id===selected.calendar_id)} onClose={()=>setSelected(null)}/>}</div>;
 }
 export function TimedAgenda(props:Props){
- const [selected,setSelected]=useState<CalendarEvent|null>(null);
+ const [selected,setSelected]=useState<CalendarEvent|null>(null),[selectedOverlap,setSelectedOverlap]=useState('');
  const {from,to,first,last}=dayBounds(props.date);
  const events=eventsForDay(props.date,props.events,props.calendars,props.showDeclined);
  const items:Item[]=[
@@ -49,7 +50,8 @@ export function TimedAgenda(props:Props){
   const originalEnd=event?Date.parse(event.end_at):item.task?originalStart+item.task.minutes*60000:Date.parse(item.proposal!.end);
   const label=`${item.title} · ${clock(originalStart)} – ${clock(originalEnd)}${status?' · '+status:''}${overlap?' · '+overlap:''}`;
   const style:CSSProperties={top:(item.start-first)/3600000*48,height:(item.end-item.start)/3600000*48,left:`calc(${item.column/item.columns*100}% + 2px)`,width:`calc(${100/item.columns}% - 4px)`,right:'auto',borderLeftColor:event?props.calendars.find(c=>c.id===event.calendar_id)?.color:undefined};
-  const content=<><strong>{item.title}</strong><small>{clock(originalStart)} – {clock(originalEnd)}</small>{status&&<small>{status}</small>}{overlap&&<small className="overlap-label">Sobreposição</small>}</>;
-  return item.proposal?<div key={item.id} className="timeline-event agenda-card proposed-event" style={style} title={label} aria-label={label}>{content}</div>:<button key={item.id} className={`timeline-event agenda-card ${event?'google-event response-'+(event.response_status??'unknown'):item.task?.area==='Pessoal'?'personal':'professional'}`} style={style} title={label} aria-label={props.onReserveAt?`Reservar sobre ${label}`:label} onClick={e=>{if(props.onReserveAt){const top=e.currentTarget.parentElement!.getBoundingClientRect().top;props.onReserveAt(e.detail?slotAt(e.clientY,top):420+Math.floor((item.start-first)/900000)*15);}else if(event)setSelected(event);else props.onOpen(item.task!.id);}}>{content}</button>;
- })}{selected&&<EventDetails key={selected.calendar_id+selected.id} event={selected} calendar={props.calendars.find(c=>c.id===selected.calendar_id)} onClose={()=>setSelected(null)}/>}</>;
+  const short=(item.end-item.start)/3600000*48<48;
+  const content=<div className={`agenda-block-content${overlap?' has-overlap':''}`}><div className="agenda-clock-row"><span className="agenda-clock"><span>{clock(originalStart)}</span><span className="agenda-clock-separator"> – </span><span>{clock(originalEnd)}</span></span>{overlap&&<TriangleAlert className="agenda-overlap-icon" size={12} aria-hidden="true"/>}</div>{!short&&<><strong>{item.title}</strong>{status&&<small>{status}</small>}</>}</div>;
+  return item.proposal?<div key={item.id} className={`timeline-event agenda-card proposed-event${short?' is-short':''}`} style={style} title={label} aria-label={label}>{content}</div>:<button key={item.id} className={`timeline-event agenda-card ${short?'is-short ':''}${event?'google-event response-'+(event.response_status??'unknown'):item.task?.area==='Pessoal'?'personal':'professional'}`} style={style} title={label} aria-label={props.onReserveAt?`Reservar sobre ${label}`:label} onClick={e=>{if(props.onReserveAt){const top=e.currentTarget.parentElement!.getBoundingClientRect().top;props.onReserveAt(e.detail?slotAt(e.clientY,top):420+Math.floor((item.start-first)/900000)*15);}else if(event){setSelectedOverlap(overlap);setSelected(event);}else props.onOpen(item.task!.id);}}>{content}</button>;
+ })}{selected&&<EventDetails overlap={selectedOverlap} key={selected.calendar_id+selected.id} event={selected} calendar={props.calendars.find(c=>c.id===selected.calendar_id)} onClose={()=>setSelected(null)}/>}</>;
 }

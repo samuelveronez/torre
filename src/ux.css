@@ -1,4 +1,32 @@
 :root{--ux-surface:#fff;--ux-border:#e2e7ee;--ux-muted:#657184;--ux-ink:#203149;--ux-blue:#1673d1;--ux-soft:#edf5ff}
+
+/* QuickCapture is mounted outside AppShell: style the dialog explicitly. */
+:root dialog.quick-capture-dialog{width:520px;max-width:calc(100% - 32px);max-height:calc(100dvh - 32px);padding:0;overflow:auto;border:1px solid var(--ux-border);border-radius:10px;background:var(--ux-surface);color:var(--ux-ink);font:14px/1.5 'Segoe UI',Arial,sans-serif;box-sizing:border-box}
+.quick-capture-dialog .card-head{padding:16px 20px;background:var(--ux-surface);gap:12px}
+.quick-capture-dialog .card-head h2{font-size:18px;margin:0;color:var(--ux-ink)}
+.quick-capture-dialog button,.quick-capture-dialog input,.quick-capture-dialog select,.quick-capture-dialog textarea{font:inherit;box-sizing:border-box;border-radius:6px}
+.quick-capture-dialog button,.quick-capture-dialog select{min-height:44px}
+.quick-capture-dialog .card-head button{min-width:44px;color:var(--ux-blue)}
+.quick-capture-dialog .capture-body{display:grid;gap:16px;padding:20px;border:0;margin:0}
+.quick-capture-dialog .capture-body>label{display:grid;gap:6px;font-size:14px;color:var(--ux-ink)}
+.quick-capture-dialog select,.quick-capture-dialog textarea{width:100%;padding:12px;border:1px solid var(--ux-border);background:var(--ux-surface);color:var(--ux-ink);font-size:16px}
+.quick-capture-dialog textarea{min-height:120px;resize:vertical}
+.quick-capture-dialog textarea::placeholder{color:var(--ux-muted);opacity:1}
+.quick-capture-dialog :is(button,select,textarea):focus-visible{outline:2px solid var(--ux-blue);outline-offset:2px}
+.quick-capture-dialog .dropzone{display:grid;justify-items:start;gap:8px;padding:16px;border:1px dashed var(--ux-border);border-radius:6px;background:var(--ux-surface);min-width:0}
+.quick-capture-dialog .dropzone p{margin:0;color:var(--ux-ink)}
+.quick-capture-dialog .capture-file-button{padding:8px 12px;border:1px solid var(--ux-border);background:var(--ux-soft);color:var(--ux-blue)}
+.quick-capture-dialog .capture-file-input{position:absolute;width:1px;height:1px;min-height:0;padding:0;border:0;overflow:hidden;clip-path:inset(50%)}
+.quick-capture-dialog .dropzone small,.quick-capture-dialog .capture-file-status{display:block;color:var(--ux-muted);font-size:13px}
+.quick-capture-dialog .attachment-row{display:flex;flex-wrap:nowrap;gap:12px;padding:0}
+.quick-capture-dialog .attachment-row>span{min-width:0;flex:1;overflow-wrap:anywhere}
+.quick-capture-dialog .attachment-row>button{flex-shrink:0}
+.quick-capture-dialog [role=alert]{margin:0;color:#a30515;overflow-wrap:anywhere}
+.quick-capture-dialog [role=alert]:empty{display:none}
+.quick-capture-dialog .capture-body>.primary{width:100%;padding:10px 12px;background:#0176d3;color:#fff;border-color:#0176d3}
+.quick-capture-dialog .capture-body>.primary:hover{background:#0b5cab}
+[data-theme=dark] .quick-capture-dialog [role=alert]{color:#ffb5bd}
+@media(max-width:600px){.quick-capture-dialog .capture-body{padding:16px}.quick-capture-dialog .card-head{padding:12px 16px}}
 .declined-control{display:flex;flex-direction:row;align-items:center;gap:6px;font-size:11px;padding:8px 12px;color:var(--ux-muted)}.declined-control input{width:16px;height:16px;min-height:16px}
 .timeline-event.agenda-card{min-width:0;min-height:0;box-sizing:border-box;overflow:hidden;padding:3px 5px;text-overflow:ellipsis;color:var(--ux-ink);border-radius:4px}.agenda-card strong{font-size:11px;line-height:1.2;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}.agenda-card small{font-size:10px;line-height:1.2;margin-top:2px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}.agenda-card:focus-visible{z-index:6;outline:2px solid var(--ux-blue);outline-offset:1px}.agenda-card.response-tentative{border:1px dashed var(--ux-muted);border-left-width:3px;background:var(--ux-surface)}.agenda-card.response-needsAction{background:var(--ux-soft);border:1px dotted var(--ux-muted);border-left-width:3px}.agenda-card.response-declined,.all-day-events .response-declined{opacity:.65;text-decoration:line-through}.overlap-label{font-weight:600;color:#955500}.reservation-warning{font-size:12px;padding:8px;background:var(--ux-soft);border:1px solid var(--ux-border);border-radius:5px}.agenda-event-dialog h2{margin:0;font-size:18px}.agenda-event-dialog p{margin:0}.all-day-axis{font-size:10px;color:var(--ux-muted);padding:6px}.grid>.all-day-events{min-width:0;padding:3px;border-left:1px solid var(--ux-border);margin:0;align-content:start}.grid>.all-day-events:empty{display:block}.daily-time-body .daily-drop-preview{height:auto;min-height:28px}.daily-drop-preview small{display:block}.all-day-events button{overflow-wrap:anywhere}
 [data-theme=dark] .timeline-event.google-event{background:#293342}[data-theme=dark] .timeline-event.personal{background:#3b2b52}[data-theme=dark] .agenda-card.response-tentative{background:var(--ux-surface)}[data-theme=dark] .agenda-card.response-needsAction{background:var(--ux-soft)}[data-theme=dark] .overlap-label{color:#ffd08c}
@@ -145,4 +173,35 @@
 .inbox .inbox-card-actions{justify-content:flex-start}
 .inbox .label-picker input[type=checkbox]{width:16px;height:16px;min-height:16px;flex:0 0 16px}
 .telegram-fields{border:0;padding:0;margin:0;display:flex;flex-direction:column;gap:14px}.telegram-fields label{display:flex;flex-direction:column;gap:6px}.telegram-fields input{width:100%;max-width:520px}.telegram-fields small{color:var(--ux-muted)}
+
+/* Agenda: retain the 48px/hour geometry and adaptive overlap columns. */
+.app-shell .week-page .heading{margin-bottom:12px}
+.app-shell .week-page>.summary{margin-bottom:12px;gap:12px}
+.app-shell .week-page>.toolbar{margin-bottom:12px}
+.app-shell .week-page .week-planner{margin-bottom:16px}
+.app-shell .week-page .week-planner>.card-head{padding:12px 16px}
+.app-shell .calendar .calendar-scroll{max-height:70dvh;overflow:auto;position:relative;scrollbar-width:thin;scroll-padding-top:48px}
+.app-shell .calendar-scroll:focus-visible{outline:2px solid var(--ux-blue);outline-offset:-2px}
+.app-shell .calendar-scroll .day-head,.app-shell .calendar-scroll .time-head{position:sticky;top:0;z-index:8;background:var(--ux-surface);border-bottom:1px solid var(--ux-border)}
+.app-shell .calendar-scroll .day-head.current{background:var(--ux-soft);color:var(--ux-blue)}
+.app-shell .calendar-overflow-hint{margin:0;padding:8px 12px;font-size:12px;color:var(--ux-muted);border-top:1px solid var(--ux-border)}
+.timeline-event.agenda-card{container-type:inline-size;container-name:agenda-block;overflow:hidden;padding:2px 4px;line-height:1.2}
+.agenda-card .agenda-block-content{min-width:0}
+.agenda-card .agenda-clock-row{display:flex;align-items:flex-start;gap:3px;min-width:0}
+.agenda-card .agenda-clock{display:block;min-width:0;font-size:10px;line-height:11px;font-weight:600;white-space:nowrap;font-variant-numeric:tabular-nums}
+.agenda-card .agenda-overlap-icon{flex:0 0 12px;color:#8a5700}
+.agenda-card .agenda-block-content strong{display:block;margin-top:3px;font-size:11px;line-height:13px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+.agenda-card.is-short{padding-top:0;padding-bottom:0}
+.agenda-card.is-short .agenda-clock-row{align-items:center}
+.agenda-card.is-short .agenda-clock{font-weight:400}
+[data-theme=dark] .agenda-card .agenda-overlap-icon{color:#ffd08c}
+@container agenda-block (max-width: 95px){.agenda-card:not(.is-short) .agenda-clock>span{display:block}.agenda-card:not(.is-short) .agenda-clock-separator{display:none!important}.agenda-card.is-short .agenda-overlap-icon{display:none}}
+
+.app-shell .calendar .calendar-scroll{isolation:isolate}
+@container agenda-block (max-width:95px){.is-short .agenda-clock{font-size:9px;letter-spacing:-.2px}}
+
+.timeline-event.agenda-card{display:block;text-align:left}.agenda-block-content{width:100%;height:100%}
+
+
+.agenda-card.is-short:has(.has-overlap){box-shadow:inset 2px 0 #b77800}
 .telegram-connection{margin:24px 0;padding:16px 0;border-top:1px solid var(--ux-border);border-bottom:1px solid var(--ux-border)}.telegram-weekdays{display:flex;flex-wrap:wrap;gap:12px}.telegram-weekdays label,.telegram-fields .telegram-toggle{display:flex;flex-direction:row;align-items:center;gap:6px}.telegram-weekdays input,.telegram-fields .telegram-toggle input{width:auto}.telegram-fields input[type=time]{max-width:180px}

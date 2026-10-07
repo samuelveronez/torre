@@ -54,3 +54,29 @@
 [data-theme=dark] .inline-priority [role=alert]{color:#ffb5bd}
 @media(max-width:760px){.app-shell .task-row{flex-wrap:wrap}.task-row .inline-priority{margin-left:30px;flex-basis:138px}.day-focus-heading{flex-wrap:wrap}.day-focus-heading .focus-order{width:100%}}
 @media(pointer:coarse){.inline-priority select{min-height:44px}}
+
+/* Meu dia: scoped refinements leave the general task list unchanged. */
+.app-shell .daily-actions .day-choose-primary{background:#0176d3;border-color:#0176d3;color:#fff}
+.app-shell .daily-actions .day-choose-primary:hover{background:#0b5cab;border-color:#0b5cab}
+.app-shell .daily-view .day-group.is-empty{display:flex;align-items:center;flex-wrap:wrap;gap:8px 16px;padding-top:10px;padding-bottom:10px}
+.app-shell .daily-view .day-group.is-empty h2,.app-shell .daily-view .day-group.is-empty p{margin:0;padding:0;font-size:14px}
+.app-shell .daily-view .task-row{align-items:center;gap:10px;padding:14px 0}
+.app-shell .daily-view .task-row .task-title{font-size:14px;font-weight:600;line-height:1.5}
+.app-shell .daily-view .task-meta{font-size:13px;gap:6px 8px;color:var(--ux-muted)}
+.app-shell .daily-view .task-created{font-size:12px;flex-basis:100%;color:var(--ux-muted)}
+.app-shell .daily-view .task-reserved{color:#0b5cab;font-weight:600}
+.app-shell .daily-view .task-due-overdue{background:#fcebed;color:#a30515;border-radius:4px;padding:2px 6px}
+.app-shell .daily-view .task-follow-due{background:#fff2d7;color:#805000;border-radius:4px;padding:2px 6px}
+.app-shell .daily-view .inline-priority{flex-basis:112px}
+.app-shell .daily-view .inline-priority select{font-size:12px}
+.app-shell .daily-view .row-plan{min-height:36px;white-space:nowrap}
+.app-shell .daily-view .details-arrow{flex-shrink:0}
+.app-shell .daily-agenda .today-commitments li,.app-shell .daily-agenda .today-commitments p,.app-shell .daily-agenda .today-commitments details{font-size:13px}
+.app-shell .daily-agenda .agenda-sync{gap:12px;align-items:center}
+.app-shell .daily-agenda .day-navigation{gap:8px}
+[data-density=comfortable] .app-shell .daily-view .task-row{padding:21px 0}
+[data-theme=dark] .app-shell .daily-view .task-reserved{color:#a5d1ff}
+[data-theme=dark] .app-shell .daily-view .task-due-overdue{background:#46252c;color:#ffb5bd}
+[data-theme=dark] .app-shell .daily-view .task-follow-due{background:#3d3020;color:#ffd08c}
+@media(max-width:760px){.app-shell .daily-view .task-row{flex-wrap:wrap}.app-shell .daily-view .inline-priority{margin-left:30px;flex-basis:112px}.app-shell .daily-view .task-row-content{flex-basis:calc(100% - 60px)}}
+@media(pointer:coarse){.app-shell .daily-view .row-plan,.app-shell .daily-view .details-arrow,.app-shell .daily-actions button{min-height:44px}.app-shell .daily-view .details-arrow{min-width:44px}}
