@@ -32,6 +32,8 @@ O contexto contém totais da conta inteira e um recorte paginado de tarefas e la
 
 O backend aceita somente `openrouter/free` ou `google/gemini-2.5-flash`, escolhidos explicitamente. Não há fallback entre as opções. No gratuito, a resposta precisa identificar um modelo gratuito e ter custo informado zero. No pago, a resposta deve identificar o Gemini escolhido. Ferramentas têm schemas explícitos. A chamada não exige suporte a parâmetros opcionais (`require_parameters=false`) e não envia temperatura nem chamadas paralelas. A disponibilidade, o saldo e as cotas dependem do OpenRouter.
 
+`query_tasks` aceita filtro por área (`personal` ou `professional`), independente da busca de palavras no título. Pedidos por área usam esse filtro; agrupamentos por label consultam os vínculos reais e ordenam prioridade e prazo conforme solicitado. Resultados atuais prevalecem sobre respostas antigas. Logs de consultas registram somente filtros estruturais, total e quantidade retornada, sem títulos, descrições, texto de busca ou conteúdo das respostas.
+
 Em **Configurações → IA → Testar agente gratuito**, o backend usa a chave cadastrada para pedir uma chamada de ferramenta com texto sintético. O teste não envia tarefas, não executa a ferramenta e não cria registros. A interface mostra o modelo servido ou o diagnóstico: chave, política de dados, compatibilidade, cota, capacidade ou timeout. Logs registram somente modelo solicitado, status, código e categoria; nunca chave, prompts ou corpo bruto do provedor. Testes locais usam respostas simuladas; o botão valida a disponibilidade real naquele momento.
 
 ## Publicação

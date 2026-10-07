@@ -11,6 +11,8 @@ assert.deepEqual(validateAgentPatch('task',{title:'Comprar leite',label_ids:['ne
 assert.equal(needsAgentReview([{patch:{archived:true}},{patch:{archived_at:'date'}}]),true);
 assert.equal(needsAgentReview([{patch:{status:'completed'}}]),false);
 assert.match(agentInstructions('analyze','2026-10-06'),/nenhuma alteração é permitida/);
+assert.deepEqual(agentTools.find(t=>t.function.name==='query_tasks').function.parameters.properties.area.enum,['personal','professional']);
+assert.match(agentInstructions('analyze','2026-10-06'),/nunca use professional, profissional, personal ou pessoal em query/);
 let sent;
 const fake=async(_url,options)=>{sent=JSON.parse(options.body);return new Response(JSON.stringify({model:'test/model:free',choices:[{message:{role:'assistant',content:'Há uma tarefa atrasada.'}}]}));};
 await callAgentModel([],'analyze','test',fake);

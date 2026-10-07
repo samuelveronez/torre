@@ -27,11 +27,13 @@ export async function agentAction(uid:string,input:any){
   q=args.archived?q.not('archived_at','is',null):q.is('archived_at',null);
   const status=args.status??'active';if(!['active','todo','waiting','completed','all'].includes(status))throw new Error('Situação inválida.');
   if(status==='active')q=q.neq('status','completed');else if(status!=='all')q=q.eq('status',status);
+  if(args.area!==undefined){if(!['personal','professional'].includes(args.area))throw new Error('Área inválida.');q=q.eq('area',args.area);}
   if(args.ids){if(!Array.isArray(args.ids)||args.ids.length<1||args.ids.length>50||args.ids.some((id:unknown)=>!agentId(id)))throw new Error('Seleção inválida.');q=q.in('id',args.ids);}
   if(args.query){if(typeof args.query!=='string'||args.query.length>180)throw new Error('Busca inválida.');q=q.ilike('title',`%${args.query.replace(/[\\%_]/g,'\\$&')}%`);}
   if(args.due_before){validateAgentPatch('task',{due_date:args.due_before});q=q.lte('due_date',args.due_before);}
   if(args.label_id){if(!agentId(args.label_id))throw new Error('Label inválida.');const {data:links}=await checked(db.from('torre_task_labels').select('task_id').eq('user_id',uid).eq('label_id',args.label_id).limit(10001));if((links?.length??0)>10000)throw new Error('Filtro muito amplo. Refine o pedido.');if(!links?.length)return {items:[],total:0};q=q.in('id',(links??[]).map((l:any)=>l.task_id));}
   const {data,count}=await checked(q.order('due_date',{ascending:true,nullsFirst:false}).order('id').range(offset,offset+49));
+  console.info(JSON.stringify({event:'torre_agent_task_query',runId:input.runId,area:args.area??'all',status,offset,total:count,returned:data?.length??0,titleFilter:!!args.query,labelFilter:!!args.label_id}));
   const items=(data??[]).map((t:any)=>{const {torre_task_labels,...row}=t;const snapshot={...row,label_ids:(torre_task_labels??[]).map((l:any)=>l.label_id).sort()};tasks.set(t.id,snapshot);return snapshot;});
   return {items:items.map((t:any)=>({id:t.id,title:t.title,description:t.description.slice(0,2000),descriptionTruncated:t.description.length>2000,area:t.area,duration_minutes:t.duration_minutes,due_date:t.due_date,status:t.status,waiting_for:t.waiting_for,follow_up_date:t.follow_up_date,priority:t.priority,source:t.source,archived_at:t.archived_at,label_ids:t.label_ids})),total:count,offset,hasMore:offset+items.length<(count??0)};
  }
