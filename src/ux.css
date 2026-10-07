@@ -76,3 +76,15 @@
 .app-shell .sidebar-label-row>button:first-child.sidebar-label-drag{flex:0 0 20px;width:20px;min-width:20px;padding:2px;justify-content:center;cursor:grab;color:var(--ux-muted)}
 .app-shell .sidebar-label-row>button:nth-child(2){flex:1;min-width:0}
 .sidebar-label-drag:active{cursor:grabbing}.sidebar-label-row.label-reordering{opacity:.45}.sidebar-label-row.label-insert-before{box-shadow:0 -2px 0 var(--ux-accent,#1673d1)}.sidebar-label-row.label-insert-after{box-shadow:0 2px 0 var(--ux-accent,#1673d1)}
+
+/* Keep label actions quiet on desktop; preserve their space and keyboard access. */
+@media(hover:hover) and (pointer:fine){
+ .app-shell .sidebar-label-row .sidebar-label-drag,
+ .app-shell .sidebar-label-row .sidebar-label-edit{opacity:0;pointer-events:none}
+ .app-shell .sidebar-label-row:hover .sidebar-label-drag,
+ .app-shell .sidebar-label-row:hover .sidebar-label-edit,
+ .app-shell .sidebar-label-row:focus-within .sidebar-label-drag,
+ .app-shell .sidebar-label-row:focus-within .sidebar-label-edit,
+ .app-shell .sidebar-label-row.label-reordering .sidebar-label-drag,
+ .app-shell .sidebar-label-row.label-reordering .sidebar-label-edit{opacity:1;pointer-events:auto}
+}
