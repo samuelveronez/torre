@@ -1,6 +1,10 @@
 # Conversas — MVP
 
-Selecione ou cadastre uma pessoa em **Conversas**. O registro abre com a data de hoje; ajuste para a data real antes de organizar notas antigas. Cada pessoa tem um histórico e no máximo um rascunho aberto. **Nova conversa** salva o registro atual antes de abrir outro.
+Selecione ou cadastre uma pessoa em **Conversas**. Selecionar a pessoa abre sua conversa mais recente por data, com desempate pela criação, sem criar um registro. **Nova conversa** abre um novo registro com a data de hoje; ajuste para a data real antes de organizar notas antigas. Cada pessoa tem um histórico e no máximo um rascunho aberto.
+
+Conversas salvas abrem em formato de **ata**, com check-in, decisões e combinados para leitura. Os **combinados anteriores pendentes** ficam no topo, visíveis sem expandir. **Editar conversa** abre os campos de edição, com a captura de IA recolhida. O texto original continua disponível para consulta; quando não há estrutura preenchida, aparece diretamente na ata.
+
+**Excluir rascunho** pede confirmação na própria tela e remove o registro e sua recuperação local. Depois, abre a conversa mais recente restante, sem criar outra. O banco permite excluir somente rascunhos do proprietário sem tarefas vinculadas; conversas salvas e tarefas são preservadas. Uma versão alterada em outra janela não é excluída silenciosamente.
 
 Digite as notas no campo **Texto livre** durante ou depois do encontro. **Organizar com IA** prepara check-in, decisões e combinados para revisão; não cria tarefas. **Usar interpretação** substitui campos estruturados e combinados ainda sem tarefa, preservando os já vinculados. Também é possível preencher o formulário manualmente, sem IA.
 

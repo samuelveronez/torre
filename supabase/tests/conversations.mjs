@@ -22,6 +22,7 @@ const a='00000000-0000-0000-0000-000000000001',b='00000000-0000-0000-0000-000000
 await db.exec(`create role anon;create role authenticated;create role service_role;create schema auth;create table auth.users(id uuid primary key);create function auth.uid() returns uuid language sql as $$select nullif(current_setting('request.jwt.claim.sub',true),'')::uuid$$;grant usage on schema auth,public to authenticated,anon,service_role;grant execute on function auth.uid() to authenticated,anon,service_role;insert into auth.users values('${a}'),('${b}');`);
 await db.exec(await readFile(new URL('../migrations/202610040001_torre.sql',import.meta.url),'utf8'));
 await db.exec(await readFile(new URL('../migrations/20261007025947_conversation_mvp.sql',import.meta.url),'utf8'));
+await db.exec(await readFile(new URL('../migrations/20261007035027_conversation_draft_delete.sql',import.meta.url),'utf8'));
 await db.exec(`set role authenticated;set request.jwt.claim.sub='${a}';insert into torre_people(id,name) values('${person}','Ana');`);
 const content={raw_text:text,check_in:result.check_in,decisions:result.decisions,agreements:result.agreements};
 const call=async(id,body,version,state,create,request=crypto.randomUUID())=>(await db.query('select torre_save_conversation($1,$2,$3,$4::jsonb,$5,$6,$7,$8) as r',[id,person,'2026-10-06',JSON.stringify(body),version,state,create,request])).rows[0].r;
@@ -34,6 +35,12 @@ const edit={...content,agreements:row.agreements.map(x=>({...x,title:'Não sobre
 const other='20000000-0000-0000-0000-000000000002';const invalid={...content,agreements:[{...result.agreements[1],id:crypto.randomUUID()},{...result.agreements[0],id:crypto.randomUUID(),followUp:''}]};
 await assert.rejects(call(other,invalid,0,'saved',true));assert.equal((await db.query('select count(*)::int n from torre_tasks')).rows[0].n,2);assert.equal((await db.query(`select count(*)::int n from torre_conversations where id='${other}'`)).rows[0].n,0);
 const empty={raw_text:'Check-in sem decisões.',check_in:'Tudo bem.',decisions:'',agreements:[]};await call(other,empty,0,'saved',false);
+assert.equal((await db.query(`delete from torre_conversations where id='${other}' returning id`)).rows.length,0);
+const draft='20000000-0000-0000-0000-000000000003';await call(draft,empty,0,'draft',false);
+await db.exec(`set request.jwt.claim.sub='${b}'`);assert.equal((await db.query(`delete from torre_conversations where id='${draft}' returning id`)).rows.length,0);
+await db.exec(`set request.jwt.claim.sub='${a}'`);assert.equal((await db.query(`delete from torre_conversations where id='${draft}' returning id`)).rows.length,1);
+const linkedDraft='20000000-0000-0000-0000-000000000004';await call(linkedDraft,{...empty,agreements:[{...result.agreements[1],id:crypto.randomUUID()}]},0,'draft',true);
+assert.equal((await db.query(`delete from torre_conversations where id='${linkedDraft}' returning id`)).rows.length,0);
 await db.exec(`set request.jwt.claim.sub='${b}'`);assert.equal((await db.query('select count(*)::int n from torre_conversations')).rows[0].n,0);assert.equal((await db.query('select count(*)::int n from torre_people')).rows[0].n,0);assert.equal((await db.query('select count(*)::int n from torre_conversation_tasks')).rows[0].n,0);await assert.rejects(call(other,empty,1,'saved',false));
 await db.exec('reset role;set role anon');await assert.rejects(db.query('select * from torre_conversations'));await assert.rejects(call(other,empty,1,'saved',false));
-await db.close();console.log('PASS: RLS, salvamento atômico, idempotência, concorrência, vínculo imutável e isolamento.');
+await db.close();console.log('PASS: RLS, transação, idempotência, concorrência e exclusão restrita a rascunhos sem tarefas.');
