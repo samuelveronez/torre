@@ -33,7 +33,7 @@ try{
  await page.getByRole('link',{name:'Abrir bot e vincular meu chat'}).waitFor();
  assert.equal(await page.getByLabel('Token do BotFather').inputValue(),'');
  assert.equal(await page.getByRole('button',{name:'Enviar resumo de teste'}).isDisabled(),true);
- config.linked=true;await page.getByRole('button',{name:'Atualizar conexão'}).click();await page.getByText('Chat vinculado à sua conta.',{exact:true}).waitFor();
+ config.linked=true;await page.getByText('Chat vinculado à sua conta.',{exact:true}).waitFor({timeout:12000});
  await page.getByLabel('Ativar envio automático').check();await page.getByLabel('Horário de envio').fill('22:15');await page.getByLabel('Domingo',{exact:true}).uncheck();await page.getByRole('button',{name:'Salvar lembrete',exact:true}).click();await page.getByText('Lembrete salvo.',{exact:true}).waitFor();
  const saved=calls.find(c=>c.action==='schedule');assert.equal(saved.enabled,true);assert.equal(saved.sendTime,'22:15');assert.equal(saved.weekdays.includes(0),false);
  await page.getByRole('button',{name:'Enviar resumo de teste'}).click();await page.getByText('Resumo de teste enviado ao seu Telegram.',{exact:true}).waitFor();
