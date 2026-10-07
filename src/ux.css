@@ -88,3 +88,5 @@
  .app-shell .sidebar-label-row.label-reordering .sidebar-label-drag,
  .app-shell .sidebar-label-row.label-reordering .sidebar-label-edit{opacity:1;pointer-events:auto}
 }
+
+.label-editor select{min-width:0;width:100%;grid-column:1/-1}.sidebar-label-form select{width:100%;min-width:0}.label-editor button{align-self:start}

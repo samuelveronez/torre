@@ -1,6 +1,6 @@
 import {useEffect,useRef,useState} from 'react';
 import {supabase} from './supabase';
-export type Label={id:string;name:string;description:string;color:string;archived:boolean};
+export type Label={id:string;name:string;description:string;color:string;area?:'personal'|'professional'|'both';archived:boolean};
 export type Capture={id:string;body:string;title:string;mode:'list'|'free';state:string;error:string|null;triage_until:string|null;created_at:string};
 export type Attachment={id:string;capture_id:string;name:string;path:string;size:number;state:string;error:string|null};
 export type Calendar={id:string;name:string;color:string;selected:boolean;mode:'busy'|'details';access_role:string;blocks_time:boolean};
@@ -22,8 +22,8 @@ export function useFeatures(userId:string,start:Date,onTasks:()=>void){
  setLabels(values[0].data??[]);setCaptures(values[1].data??[]);setAttachments(values[2].data??[]);setCalendars(values[3].data??[]);setEvents(values[4].data??[]);setLists(values[5].data??[]);const g=values[6].data?.[0]??null;setGoogle(g);googleRef.current=g;setAi(values[7].data?.[0]??null);}
  async function run(action:()=>Promise<unknown>){if(lock.current)return false;lock.current=true;setWorking(true);setError('');try{await action();await load();tasksRefresh.current();return true;}catch(e){setError((e as Error).message??'Não foi possível salvar.');await load().catch(()=>{});return false;}finally{lock.current=false;setWorking(false);if(syncQueued.current){syncQueued.current=false;void latestSync.current();}}}
  async function archiveLabel(id:string){return run(async()=>{await ensure(supabase.from('torre_labels').update({archived:true}).eq('user_id',userId).eq('id',id).select('id').single());});}
- async function saveLabel(value:Pick<Label,'name'|'description'|'color'>,id?:string){
- return run(async()=>{const row={name:value.name.trim(),description:value.description,color:value.color};if(!row.name||row.name.length>60)throw new Error('Digite um nome de até 60 caracteres.');
+ async function saveLabel(value:Pick<Label,'name'|'description'|'color'|'area'>,id?:string){
+ return run(async()=>{const row={name:value.name.trim(),description:value.description,color:value.color,area:value.area??'both'};if(!row.name||row.name.length>60)throw new Error('Digite um nome de até 60 caracteres.');
  const query=id?supabase.from('torre_labels').update(row).eq('user_id',userId).eq('id',id):supabase.from('torre_labels').insert({...row,user_id:userId});
  await ensure(query.select('id').single());});
  }
