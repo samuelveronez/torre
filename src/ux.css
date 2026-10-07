@@ -93,3 +93,54 @@
 /* Label settings: compact cards with explicit field groups. */
 .label-create{display:flex;flex-wrap:wrap;gap:10px;align-items:center;padding:16px;background:var(--ux-soft);border:1px solid var(--ux-border);border-radius:10px;margin:16px 0}.label-create input{flex:1;min-width:160px;max-width:360px}.label-create select{width:auto;min-width:160px}.label-create button{white-space:nowrap}.label-editor.label-settings-card{display:block;padding:18px;margin:14px 0;border:1px solid var(--ux-border);border-radius:10px;background:var(--ux-surface)}.label-settings-heading{display:flex;align-items:center;gap:12px;margin-bottom:16px}.label-settings-heading .label-chip{display:inline-flex;align-items:center;gap:7px;font-weight:600;max-width:100%;overflow-wrap:anywhere}.label-color-dot{width:9px;height:9px;border-radius:50%;flex-shrink:0}.label-settings-heading small{color:var(--ux-muted)}.label-settings-fields{display:grid;grid-template-columns:minmax(0,1fr) minmax(160px,.6fr) 56px;gap:12px}.label-settings-fields label{display:flex;flex-direction:column;gap:6px;font-size:12px;min-width:0}.label-settings-fields input,.label-settings-fields select,.label-settings-fields textarea{width:100%;min-width:0;max-width:none;font-size:16px}.label-settings-fields input[type=color]{width:100%;max-width:none;height:42px;padding:5px}.label-settings-description{grid-column:1/-1}.label-settings-description textarea{resize:vertical;min-height:64px}.label-settings-actions{display:flex;justify-content:flex-end;gap:8px;margin-top:14px}.label-editor.label-settings-card .label-settings-actions button{width:auto;grid-column:auto;min-height:40px}.label-settings-card.is-archived{border-style:dashed}
 @media(max-width:760px){.label-create{align-items:stretch}.label-create input{max-width:none;flex-basis:100%}.label-create select{flex:1;min-width:0}.label-editor.label-settings-card{padding:14px}.label-settings-fields{grid-template-columns:minmax(0,1fr) 56px}.label-settings-fields>label:first-child{grid-column:1/-1}.label-settings-fields>label:nth-child(2){grid-column:1}.label-settings-color{grid-column:2}.label-settings-actions{flex-wrap:wrap}.label-editor.label-settings-card .label-settings-actions button{flex:1;white-space:nowrap}}
+/* Caixa de entrada: compact cards aligned with the shared task hierarchy. */
+.inbox{min-width:0;color:var(--ux-ink);font-size:14px;line-height:1.5}
+.inbox .inbox-toolbar{display:flex;align-items:center;flex-wrap:wrap;gap:12px;margin-bottom:16px}
+.inbox .inbox-toolbar button,.inbox .inbox-card-actions button{font-size:12px;min-height:36px;padding:6px 12px}
+.inbox .inbox-toolbar>span,.inbox .inbox-capture-header,.inbox .inbox-result-count,.inbox .inbox-help{font-size:12px;color:var(--ux-muted)}
+.inbox .inbox-captures{display:grid;gap:16px}
+.inbox .capture-card{margin:0;padding:16px;display:grid;gap:12px;min-width:0;border-color:var(--ux-border);background:var(--ux-surface)}
+.inbox .capture-card p{margin:0;line-height:1.5;overflow-wrap:anywhere}
+.inbox .inbox-capture-header{display:flex;align-items:center;gap:8px 16px;flex-wrap:wrap}
+.inbox .inbox-capture-header small{font-size:12px}
+.inbox .inbox-original summary{cursor:pointer;font-size:12px;color:var(--ux-muted);width:fit-content}
+.inbox .inbox-original[open] .capture-text{margin-top:8px}
+.inbox .capture-card>label{gap:8px;font-size:12px;color:var(--ux-muted)}
+.inbox .capture-card input{font:inherit;font-size:14px;min-width:0;max-width:100%;box-sizing:border-box}
+.inbox .inbox-results{min-width:0}
+.inbox .capture-result{display:flex;align-items:center;gap:12px;padding:12px 0;min-width:0}
+.inbox .capture-result:first-child{padding-top:0}
+.inbox .capture-result:last-child{padding-bottom:0}
+.inbox .capture-result+.capture-result{border-top:1px solid var(--ux-border)}
+.inbox .inbox-task-content{flex:1;min-width:0}
+.inbox .inbox-task-title{display:block;background:transparent;border:0;border-radius:3px;padding:0;min-height:24px;max-width:100%;text-align:left;font:inherit;font-size:14px;font-weight:600;color:var(--ux-ink);overflow-wrap:anywhere}
+.inbox .inbox-task-title:hover{color:var(--ux-blue);text-decoration:underline;background:transparent}
+.inbox .inbox-task-meta{display:flex;align-items:center;flex-wrap:wrap;gap:8px;margin-top:8px;font-size:12px;color:var(--ux-muted)}
+.inbox .inbox-task-meta small{font-size:12px;overflow-wrap:anywhere}
+.inbox .inbox-task-meta .label-chip{margin:0;font-size:12px;padding:1px 7px}
+.inbox .capture-result .inline-priority{flex:0 0 138px;width:138px;max-width:100%}
+.inbox .inbox-card-actions{display:flex;align-items:center;flex-wrap:wrap;gap:8px;margin:0;padding-top:12px;border-top:1px solid var(--ux-border)}
+.inbox .inbox-help{line-height:1.5;overflow-wrap:anywhere}
+.inbox .inbox-error{font-size:12px;color:#ba0517}
+.inbox .inbox-empty{padding:24px;border-color:var(--ux-border);background:var(--ux-surface)}
+.inbox .inbox-empty h2{margin:0;font-size:16px;font-weight:600;line-height:1.5;color:var(--ux-ink)}
+.inbox .inbox-empty p{margin:8px 0 0;font-size:14px;color:var(--ux-muted);line-height:1.5}
+.inbox button:focus-visible,.inbox summary:focus-visible,.inbox input:focus-visible,.inbox select:focus-visible{outline:2px solid var(--ux-blue);outline-offset:3px}
+[data-theme=dark] .inbox .inbox-error{color:#ffb5bd}
+@media(max-width:760px){
+ .inbox .capture-result{flex-direction:column;align-items:stretch}
+ .inbox .capture-result .inline-priority{flex-basis:auto;align-self:flex-start;width:138px}
+ .inbox .inbox-toolbar button,.inbox .inbox-card-actions button,.inbox .inbox-task-title,.inbox .inbox-original summary,.inbox .inline-priority select,.inbox .attachment-row button,.inbox .capture-card input{min-height:44px}
+ .inbox .inbox-task-title{display:flex;align-items:center}
+ .inbox .inbox-original summary{line-height:44px}
+ .inbox .inbox-card-actions button{max-width:100%;white-space:normal;overflow-wrap:anywhere}
+ .inbox .capture-card input{font-size:16px;width:100%}
+ .inbox .label-picker label{min-height:44px}
+}
+@media(pointer:coarse){.inbox button,.inbox summary{min-height:44px}.inbox summary{line-height:44px}}
+.inbox .capture-result>.inbox-task-content{display:block;margin:0}
+.inbox .capture-result>.inline-priority{display:grid;margin:0;gap:4px}
+.inbox .inbox-capture-header{padding:0;border:0;background:transparent;box-shadow:none}
+.inbox .inbox-card-actions{padding:12px 0 0;text-align:left}
+.inbox .inbox-card-actions{justify-content:flex-start}
+.inbox .label-picker input[type=checkbox]{width:16px;height:16px;min-height:16px;flex:0 0 16px}
