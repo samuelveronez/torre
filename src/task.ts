@@ -1,3 +1,4 @@
 import type {Priority} from './priority';
-export type Task={priority?:Priority;id:string;createdAt?:string;capturePosition?:number;title:string;area:'Pessoal'|'Profissional';minutes:number;due:string;source:string;done:boolean;at?:string;description?:string;link?:string;situation?:'todo'|'waiting';waitingFor?:string;followUp?:string;labelIds?:string[];captureId?:string;googleTaskId?:string;completionPending?:boolean;syncError?:string};
+export type TaskPerson={name:string;personId:string|null;role:'involved'|'waiting_for'};
+export type Task={people?:TaskPerson[];priority?:Priority;id:string;createdAt?:string;capturePosition?:number;title:string;area:'Pessoal'|'Profissional';minutes:number;due:string;source:string;done:boolean;at?:string;description?:string;link?:string;situation?:'todo'|'waiting';waitingFor?:string;followUp?:string;labelIds?:string[];captureId?:string;googleTaskId?:string;completionPending?:boolean;syncError?:string};
 export function safeLink(value?:string){try{const url=new URL(value||'');return ['https:','http:'].includes(url.protocol)?url.href:undefined;}catch{return undefined;}}

@@ -1,5 +1,5 @@
 import {aiModel,assertModelResponse,decisionsAsChat,parseDecisions,type AiModel} from './aiSettings.ts';
-import {enrichWaiting,waitingDate} from './workflow.ts';
+import {enrichDeadlines,enrichWaiting,waitingDate} from './workflow.ts';
 import {classifierModel,buildQuestions,parseDecision} from './openrouter.ts';
 import {validateTriage,type TriageInput,type TriageResult} from './triage.ts';
 export const extractionModel='openrouter/free';
@@ -55,6 +55,7 @@ export async function triageMany(input:TriageInput,key:string,mode:string,select
  const output=await generate('Extraia apenas de cada sourceText a pessoa/equipe de quem o usuário já aguarda e a data explicitamente indicada para acompanhar/cobrar. Não invente responsável. waitingFor=null se não houver responsável. Não use prazo de entrega como data de acompanhamento. followUpDate=null quando não há data de acompanhamento. Resolva datas relativas usando today e timezone. Copie waitingFor e dateEvidence como trechos exatos de sourceText. Formato: {"items":[{"index":0,"waitingFor":"trecho exato ou null","followUpDate":"YYYY-MM-DD ou null","dateEvidence":"trecho exato ou null"}]}. Retorne um item por entrada, com o mesmo index.',{items:waitingItems,today,timezone:'America/Sao_Paulo'},key,selected);
  results=enrichWaiting(results,items,output.data,today);workflowAudit=output.audit;
  }
- results=results.map(result=>validateTriage(result,input));
- return {results,audit:{provider:'openrouter',model:selected==='openrouter/free'?classifierModel:selected,extraction:extractionAudit,workflow:workflowAudit,today,items,answers:payload.answers,cost:payload.usage?.cost??null}};
+ const deadlines=await generate('Extraia o prazo de conclusão/entrega de cada tarefa SOMENTE de seu sourceText. Não invente prazos. Datas de acompanhamento/cobrança, ações passadas ou datas de contexto não são prazo. dueDate=null e dueEvidence=null quando não houver prazo explícito ou a data for ambígua. Resolva datas relativas (hoje, amanhã, sexta-feira, em dois dias) com today e timezone. Datas sem ano usam a próxima ocorrência a partir de today. Preserve anos explícitos, inclusive prazos vencidos. Copie dueEvidence como trecho exato que indica o prazo. Formato: {"items":[{"index":0,"dueDate":"YYYY-MM-DD ou null","dueEvidence":"trecho exato ou null"}]}. Retorne um item por entrada com o mesmo index.',{items:items.map((item,index)=>({...item,index})),today,timezone:'America/Sao_Paulo'},key,selected);
+ results=enrichDeadlines(results,items,deadlines.data).map(result=>validateTriage(result,input));
+ return {results,audit:{provider:'openrouter',model:selected==='openrouter/free'?classifierModel:selected,extraction:extractionAudit,workflow:workflowAudit,deadlines:deadlines.audit,today,items,answers:payload.answers,cost:payload.usage?.cost??null}};
 }

@@ -1,7 +1,8 @@
 import {useEffect,useRef,useState} from 'react';
+import {captureDefault,type CaptureProfile} from './captureProfiles';
 import {supabase} from './supabase';
 export type Label={id:string;name:string;description:string;color:string;area?:'personal'|'professional'|'both';archived:boolean};
-export type Capture={id:string;body:string;title:string;mode:'list'|'free';state:string;error:string|null;triage_until:string|null;created_at:string};
+export type Capture={ai_profile?:CaptureProfile|null;triage_summary?:{dateReview?:{title:string;messages:string[]}[]}|null;id:string;body:string;title:string;mode:'list'|'free';state:string;error:string|null;triage_until:string|null;created_at:string};
 export type Attachment={id:string;capture_id:string;name:string;path:string;size:number;state:string;error:string|null};
 export type Calendar={id:string;name:string;color:string;selected:boolean;mode:'busy'|'details';access_role:string;blocks_time:boolean};
 export type CalendarEvent={id:string;calendar_id:string;title:string;location:string|null;start_at:string;end_at:string;all_day:boolean;blocks_time:boolean;response_status:'accepted'|'tentative'|'needsAction'|'declined'|null};
@@ -13,13 +14,14 @@ export async function invoke(action:string,fields:Record<string,unknown>={}){
 }
 export async function ensure<T extends {error:unknown}>(promise:PromiseLike<T>){const value=await promise;if(value.error)throw value.error;return value;}
 export function useFeatures(userId:string,start:Date,onTasks:()=>void){
+ const [people,setPeople]=useState<{id:string;name:string}[]>([]);const [taskPeople,setTaskPeople]=useState<{task_id:string;name:string;person_id:string|null;role:'involved'|'waiting_for'}[]>([]);
  const [triaging,setTriaging]=useState<string|null>(null);
- const [labels,setLabels]=useState<Label[]>([]),[captures,setCaptures]=useState<Capture[]>([]),[attachments,setAttachments]=useState<Attachment[]>([]),[calendars,setCalendars]=useState<Calendar[]>([]),[events,setEvents]=useState<CalendarEvent[]>([]),[lists,setLists]=useState<{id:string;name:string;selected:boolean;area:string}[]>([]),[google,setGoogle]=useState<GoogleStatus|null>(null),[ai,setAi]=useState<{has_key:boolean;default_model?:'openrouter/free'|'google/gemini-2.5-flash';provider:string|null;model:string|null;enabled:boolean}|null>(null),[error,setError]=useState(''),[working,setWorking]=useState(false);
+ const [labels,setLabels]=useState<Label[]>([]),[captures,setCaptures]=useState<Capture[]>([]),[attachments,setAttachments]=useState<Attachment[]>([]),[calendars,setCalendars]=useState<Calendar[]>([]),[events,setEvents]=useState<CalendarEvent[]>([]),[lists,setLists]=useState<{id:string;name:string;selected:boolean;area:string}[]>([]),[google,setGoogle]=useState<GoogleStatus|null>(null),[ai,setAi]=useState<{has_key:boolean;capture_profile?:CaptureProfile|null;default_model?:'openrouter/free'|'google/gemini-2.5-flash';provider:string|null;model:string|null;enabled:boolean}|null>(null),[error,setError]=useState(''),[working,setWorking]=useState(false);
  const syncQueued=useRef(false),latestSync=useRef<()=>Promise<unknown>>(async()=>{});
  const lock=useRef(false),googleRef=useRef<GoogleStatus|null>(null),tasksRefresh=useRef(onTasks);tasksRefresh.current=onTasks;
  const from=start.toISOString(),to=new Date(start.getTime()+7*86400000).toISOString();
- async function load(){const tables=['torre_labels','torre_captures','torre_attachments','torre_calendars','torre_calendar_events','torre_google_lists','torre_google_status','torre_ai_settings'];const values=await Promise.all(tables.map(table=>supabase.from(table).select('*').eq('user_id',userId)));for(const value of values)if(value.error)throw value.error;
- setLabels(values[0].data??[]);setCaptures(values[1].data??[]);setAttachments(values[2].data??[]);setCalendars(values[3].data??[]);setEvents(values[4].data??[]);setLists(values[5].data??[]);const g=values[6].data?.[0]??null;setGoogle(g);googleRef.current=g;setAi(values[7].data?.[0]??null);}
+ async function load(){const tables=['torre_labels','torre_captures','torre_attachments','torre_calendars','torre_calendar_events','torre_google_lists','torre_google_status','torre_ai_settings','torre_people','torre_task_people'];const values=await Promise.all(tables.map(table=>supabase.from(table).select('*').eq('user_id',userId)));for(const value of values)if(value.error)throw value.error;
+ setLabels(values[0].data??[]);setCaptures(values[1].data??[]);setAttachments(values[2].data??[]);setCalendars(values[3].data??[]);setEvents(values[4].data??[]);setLists(values[5].data??[]);const g=values[6].data?.[0]??null;setGoogle(g);googleRef.current=g;setAi(values[7].data?.[0]??null);setPeople(values[8].data??[]);setTaskPeople(values[9].data??[]);}
  async function run(action:()=>Promise<unknown>){if(lock.current)return false;lock.current=true;setWorking(true);setError('');try{await action();await load();tasksRefresh.current();return true;}catch(e){setError((e as Error).message??'Não foi possível salvar.');await load().catch(()=>{});return false;}finally{lock.current=false;setWorking(false);if(syncQueued.current){syncQueued.current=false;void latestSync.current();}}}
  async function archiveLabel(id:string){return run(async()=>{await ensure(supabase.from('torre_labels').update({archived:true}).eq('user_id',userId).eq('id',id).select('id').single());});}
  async function saveLabel(value:Pick<Label,'name'|'description'|'color'|'area'>,id?:string){
@@ -35,17 +37,19 @@ export function useFeatures(userId:string,start:Date,onTasks:()=>void){
  try{await ensure(supabase.from('torre_attachments').update({state:'uploading',error:null}).eq('id',a.id));const existing=await supabase.storage.from('torre-attachments').createSignedUrl(a.path,60);if(existing.error)await ensure(supabase.storage.from('torre-attachments').upload(a.path,file,{upsert:false,contentType:'application/octet-stream'}));await ensure(supabase.from('torre_attachments').update({state:'uploaded',error:null}).eq('id',a.id));}
  catch(e){await supabase.from('torre_attachments').update({state:'error',error:(e as Error).message}).eq('id',a.id);throw e;}
  }
- async function capture(id:string,text:string,files:File[],mode:'list'|'free'='list'){if(text.length>20000)throw new Error('Até 20 mil caracteres por captura.');if(files.length>10||files.some(f=>f.size>20*1024*1024))throw new Error('Até dez arquivos, com 20 MB cada.');if(!text.trim()&&!files.length)throw new Error('Digite um texto ou anexe um arquivo.');
- await ensure(supabase.from('torre_captures').upsert({id,user_id:userId,body:text,mode},{onConflict:'id',ignoreDuplicates:true}));
+ async function capture(id:string,text:string,files:File[],mode:'list'|'free'='list',profile:CaptureProfile=captureDefault(ai)){if(text.length>20000)throw new Error('Até 20 mil caracteres por captura.');if(files.length>10||files.some(f=>f.size>20*1024*1024))throw new Error('Até dez arquivos, com 20 MB cada.');if(!text.trim()&&!files.length)throw new Error('Digite um texto ou anexe um arquivo.');
+ await ensure(supabase.from('torre_captures').upsert({id,user_id:userId,body:text,mode,ai_profile:profile},{onConflict:'id',ignoreDuplicates:true}));
+ const saved=await ensure(supabase.from('torre_captures').select('ai_profile').eq('id',id).eq('user_id',userId).single());await invoke('capture-profile',{profile:saved.data?.ai_profile??profile});
  const existing=await ensure(supabase.from('torre_attachments').select('*').eq('capture_id',id));
  for(const [ordinal,file] of files.entries()){const old=existing.data?.find(a=>a.ordinal===ordinal);const attachmentId=old?.id??crypto.randomUUID();const a:Attachment=old??{id:attachmentId,capture_id:id,name:file.name,size:file.size,path:`${userId}/${id}/${attachmentId}`,state:'uploading',error:null};if(!old)await ensure(supabase.from('torre_attachments').insert({...a,user_id:userId,ordinal}));if(a.state!=='uploaded')try{await upload(a,file);}catch{/* Persisted error remains retryable in inbox. */}}
  await load();
  const settings=await ensure(supabase.from('torre_ai_settings').select('enabled').eq('user_id',userId).maybeSingle());
  if(settings.data?.enabled&&text.trim()&&!lock.current){void triageCapture(id);}
  }
- async function triageCapture(id:string){if(lock.current)return;setTriaging(id);try{await run(()=>invoke('triage',{captureId:id}));}finally{setTriaging(null);}}
+ async function triageCapture(id:string,profile?:CaptureProfile){if(lock.current)return;setTriaging(id);try{await run(()=>invoke('triage',{captureId:id,...(profile?{profile}:{})}));}finally{setTriaging(null);}}
+ useEffect(()=>{const refresh=()=>void load().catch(()=>{});window.addEventListener('focus',refresh);return()=>window.removeEventListener('focus',refresh);},[userId]);
  const fresh=!!google?.calendar_synced_at&&!google.error&&Date.now()-Date.parse(google.calendar_synced_at)<300000&&!!google.range_start&&!!google.range_end&&Date.parse(google.range_start)<=Date.parse(from)&&Date.parse(google.range_end)>=Date.parse(to);
- return {archiveLabel,saveLabel,labels,captures,attachments,calendars,events,lists,google,ai,error,working,triaging,run,load,sync,fresh,capture,upload,
+ return {people,taskPeople,archiveLabel,saveLabel,labels,captures,attachments,calendars,events,lists,google,ai,error,working,triaging,run,load,sync,fresh,capture,upload,
  triage:triageCapture,
  convert:(id:string,title:string,labelIds:string[])=>run(()=>ensure(supabase.rpc('torre_convert_capture',{p_capture:id,p_title:title,p_labels:labelIds}))),
  undo:(id:string)=>run(()=>ensure(supabase.rpc('torre_undo_capture',{p_capture:id}))),

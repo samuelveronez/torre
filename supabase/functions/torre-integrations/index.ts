@@ -1,4 +1,7 @@
 import {aiModel,selectedAiModel} from '../_shared/aiSettings.ts';
+import {captureProfile} from '../_shared/captureProfiles.ts';
+import {capturePipeline} from '../_shared/capturePipeline.ts';
+import {evaluateCaptureBatch} from '../_shared/captureEvaluation.ts';
 import {classifierModel,buildQuestions,parseDecision} from '../_shared/openrouter.ts';
 import {triageMany,extractionModel,request} from '../_shared/intelligence.ts';
 import {propose} from '../_shared/planning.ts';
@@ -16,6 +19,13 @@ Deno.serve(async(req)=>{
   const input=await req.json();const uid=user.id;
   if(['agent-chat','agent-apply','agent-undo','agent-test'].includes(input.action))return json(await agentAction(uid,input));
   if(input.action==='ai-default'){const model=aiModel(input.model);await checked(db.from('torre_ai_settings').upsert({user_id:uid,default_model:model}));return json({ok:true,model});}
+  if(input.action==='capture-profile'){const profile=captureProfile(input.profile);await checked(db.from('torre_ai_settings').upsert({user_id:uid,capture_profile:profile}));return json({ok:true,profile});}
+  if(input.action==='capture-evaluate'){
+   if(!['free','luna','gemini','legacy-free'].includes(input.profile)||!Array.isArray(input.ids)||input.ids.length<1||input.ids.length>10||input.ids.some((id:unknown)=>!Number.isInteger(id)||Number(id)<1||Number(id)>100))throw new Error('Avaliação inválida.');
+   const {data:settings}=await checked(db.from('torre_ai_settings').select('enabled').eq('user_id',uid).maybeSingle());if(!settings?.enabled)throw new Error('Ative a IA antes da avaliação.');
+   const key=await secret(uid,'ai');if(!key)throw new Error('Cadastre sua chave OpenRouter.');
+   return json(await evaluateCaptureBatch(key,input.profile,input.ids));
+  }
   if(input.action==='ai-key'){
    if(input.remove){await secret(uid,'ai',undefined,true);await checked(db.from('torre_ai_settings').upsert({user_id:uid,has_key:false,enabled:false}));}
    else{if(typeof input.key!=='string'||!input.key.trim()||input.key.length>8192)throw new Error('Chave inválida');await secret(uid,'ai',input.key.trim());await checked(db.from('torre_ai_settings').upsert({user_id:uid,has_key:true,enabled:false}));}
@@ -45,11 +55,13 @@ Deno.serve(async(req)=>{
    const {data:settings}=await checked(db.from('torre_ai_settings').select('*').eq('user_id',uid).maybeSingle());
    if(!settings?.enabled||settings.provider!=='openrouter'||settings.model!==classifierModel)return json({error:'Ative o classificador OpenRouter nas configurações.'},409);
    const key=await secret(uid,'ai');if(!key)return json({error:'Cadastre sua chave OpenRouter.'},409);
-   const token=crypto.randomUUID();const {data:claim}=await checked(db.rpc('torre_claim_triage',{p_user:uid,p_capture:input.captureId,p_token:token}));
+   const profile=input.profile===undefined?null:captureProfile(input.profile);
+   const token=crypto.randomUUID();const {data:claim}=await checked(db.rpc('torre_claim_capture',{p_user:uid,p_capture:input.captureId,p_token:token,p_profile:profile}));
    if(claim.taskIds)return json({ok:true,taskIds:claim.taskIds});
    try{
     const {data:labels}=await checked(db.from('torre_labels').select('id,name,description').eq('user_id',uid).eq('archived',false));
-    const {results,audit}=await triageMany({text:claim.text,labels:labels??[]},key,claim.mode,await selectedAiModel(db,uid));
+    const {data:people}=await checked(db.from('torre_people').select('id,name').eq('user_id',uid));
+    const {results,audit}=await capturePipeline({text:claim.text,labels:labels??[]},key,claim.mode,captureProfile(claim.profile),claim.referenceDate,people??[]);
     const {data:taskIds}=await checked(db.rpc('torre_finish_triage_many',{p_user:uid,p_capture:input.captureId,p_token:token,p_text:claim.text,p_results:results,p_audit:audit}));return json({ok:true,taskIds});
    }catch(e){await db.from('torre_captures').update({state:'error',error:(e as Error).message,triage_token:null,triage_until:null}).eq('id',input.captureId).eq('user_id',uid).eq('triage_token',token);throw e;}
   }
