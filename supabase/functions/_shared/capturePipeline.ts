@@ -1,4 +1,4 @@
-import {captureModels,type CaptureProfile} from './captureProfiles.ts';
+import {captureModels,matchesCaptureModel,type CaptureProfile} from './captureProfiles.ts';
 import {decisionsAsChat,parseDecisions} from './aiSettings.ts';
 import {buildQuestions,parseDecision} from './openrouter.ts';
 import {splitCandidates,validateExtraction} from './intelligence.ts';
@@ -21,7 +21,7 @@ export async function capturePipeline(input:TriageInput,key:string,mode:string,p
   const path=kind==='generation'||adapted?'v1/chat/completions':'alpha/decisions';const sent=adapted?decisionsAsChat(body,model as 'google/gemini-2.5-flash'):{...body,model};
   const start=Date.now();let response:Response;try{response=await fetcher(`https://openrouter.ai/api/${path}`,{method:'POST',headers:{Authorization:`Bearer ${key}`,'Content-Type':'application/json'},body:JSON.stringify(sent),signal:AbortSignal.timeout(40000)});}catch{throw new Error('OpenRouter indisponível. Sua captura permanece salva.');}
   if(!response.ok)throw new Error(({401:'Chave OpenRouter inválida.',402:'Saldo insuficiente no OpenRouter.',403:'Modelo não autorizado.',404:'Modelo selecionado indisponível.',429:'Limite de chamadas atingido. Tente novamente mais tarde.'} as Record<number,string>)[response.status]??`OpenRouter respondeu ${response.status}.`);
-  const payload=await response.json();if(profile==='free'){if(Number(payload.usage?.cost??0)>0||typeof payload.model!=='string'||!payload.model.endsWith(':free'))throw new Error('O perfil gratuito recusou uma resposta paga ou sem modelo identificado.');}else if(payload.model!==model)throw new Error('Modelo servido diferente do selecionado.');
+  const payload=await response.json();if(profile==='free'){if(Number(payload.usage?.cost??0)>0||typeof payload.model!=='string'||!payload.model.endsWith(':free'))throw new Error('O perfil gratuito recusou uma resposta paga ou sem modelo identificado.');}else if(!matchesCaptureModel(model,payload.model))throw new Error('Modelo servido diferente do selecionado em '+stage+': '+String(payload.model).slice(0,120)+'; solicitado '+model+'.');
   steps.push({stage,requestedModel:model,servedModel:payload.model,inputTokens:payload.usage?.input_tokens??payload.usage?.prompt_tokens??null,outputTokens:payload.usage?.output_tokens??payload.usage?.completion_tokens??null,cost:typeof payload.usage?.cost==='number'?payload.usage.cost:null,durationMs:Date.now()-start});
   return adapted?parseDecisions(payload,body.questions):payload;
  }

@@ -1,5 +1,5 @@
 import {capturePipeline,directPerson,chosenPerson} from '../functions/_shared/capturePipeline.ts';
-import {captureProfile,defaultCaptureProfile} from '../functions/_shared/captureProfiles.ts';
+import {captureProfile,defaultCaptureProfile,matchesCaptureModel} from '../functions/_shared/captureProfiles.ts';
 const assert=(v:unknown,message='Assertion failed')=>{if(!v)throw new Error(message);};
 const people=[{id:'ana',name:'Ana Costa'},{id:'other',name:'Ana Lima'}];
 const text='Enviei proposta e aguardo Ana Costa, acompanhar sexta; entregar até 12/10/2026';
@@ -14,3 +14,5 @@ Deno.test('rejects invented names, invalid dates, wrong served model and refusal
 Deno.test('splits classification into at most 200 questions',async()=>{const labels=Array.from({length:201},(_,i)=>({id:`label${i}`,name:`label${i}`,description:'test'}));const {calls,fetcher}=mock('luna');const r=await capturePipeline({text,labels},'synthetic','free','luna','2026-10-08',people,fetcher);assert(r.results[0].labelIds.length===201);assert(calls.length===3);assert(calls.filter(c=>c.body.questions).every(c=>Object.keys(c.body.questions).length<=200));});
 Deno.test('profile allowlist and legacy default',()=>{assert(defaultCaptureProfile({default_model:'google/gemini-2.5-flash'})==='gemini');assert(defaultCaptureProfile({capture_profile:'luna',default_model:'openrouter/free'})==='luna');let refused=false;try{captureProfile('random');}catch{refused=true;}assert(refused);});
 
+
+Deno.test('capture accepts observed Decisions snapshot and rejects other models',()=>{assert(matchesCaptureModel('openai/gpt-6-luna-decisions','openai/gpt-6-luna-decisions-20261006'));assert(!matchesCaptureModel('openai/gpt-6-luna-decisions','openai/gpt-6-sol-decisions'));assert(!matchesCaptureModel('openai/gpt-6-luna-decisions',undefined));});

@@ -1,6 +1,6 @@
 # Captura com seleção de modelo
 
-Implementação de 8 de outubro de 2026. A implantação remota ainda depende da restauração da sessão do Supabase. Não há resultados de avaliação paga em produção nesta entrega local.
+Implementação de 8 de outubro de 2026. Migração aplicada e função publicada no Supabase; interface publicada no GitHub Pages e seletor confirmado em https://torre.veronez.app/. A avaliação autenticada concluiu dez exemplos para Luna e Gemini; foi interrompida por tempo esgotado no perfil gratuito, antes dos demais lotes. Resultados em tests/capture_evaluation_20261008.json.
 
 ## Comportamento
 
@@ -15,7 +15,7 @@ Implementação de 8 de outubro de 2026. A implantação remota ainda depende da
 
 ## Limites e qualidade
 
-Os cortes iniciais são 0,80 para área e labels, 0,85 para espera e 0,95 com margem de 0,20 para associação de cadastro. Ainda precisam de calibração com respostas reais. Não foi demonstrado que Luna melhora a qualidade ou custa menos que Gemini nesta aplicação.
+Os cortes iniciais são 0,80 para área e labels, 0,85 para espera e 0,95 com margem de 0,20 para associação de cadastro. Ainda precisam de calibração com respostas reais. O primeiro lote real de dez exemplos teve 58/60 campos corretos com Luna (US$ 0,0019) e 57/60 com Gemini (US$ 0,0076). É uma amostra pequena de calibração; não demonstra superioridade de qualidade em dados reais.
 
 O comparador usa 100 exemplos fictícios, derivados de 20 famílias com cinco variações cada; portanto não são 100 observações independentes. Metade das famílias é reservada para validação. O comparador não cria tarefas e não envia capturas reais. A precisão por campo deve ser analisada junto com falhas e cobertura; acurácia agregada não substitui precisão das associações automáticas.
 
@@ -30,8 +30,10 @@ Ordem de publicação: aplicar `20261008010000_capture_profiles_people.sql`, pub
 ## Verificação local
 
 - Build TypeScript/Vite aprovado.
-- 40 testes Deno aprovados, incluindo oito novos testes do pipeline, e teste Node de configurações Telegram aprovado.
+- 41 testes Deno aprovados, incluindo nove novos testes do pipeline, e teste Node de configurações Telegram aprovado.
 - Oito conjuntos de cenários SQL aprovados em banco local de validação, incluindo RLS, isolamento entre contas, idempotência, associação de pessoas e desfazer.
 - Teste Playwright com backend simulado aprovado: seleção sem chamada paga, preferência salva, perfil da captura, datas, pessoas, edição livre e layout mobile sem transbordamento horizontal.
 
 Esses testes verificam implementação e invariantes. Não substituem avaliação dos modelos reais nem confirmação de implantação remota.
+
+O assessor de segurança sinalizou a RPC SECURITY DEFINER de edição de pessoas. A exposição é intencional: exige auth.uid(), verifica a propriedade da tarefa e das pessoas e não permite chamar a função interna nem inserir diretamente na tabela. Permissões remotas verificadas. Referência: https://supabase.com/docs/guides/database/database-linter?lint=0029_authenticated_security_definer_function_executable.
