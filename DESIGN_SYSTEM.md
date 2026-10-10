@@ -1,55 +1,37 @@
 # Torre de Controle — Design System
 
-## Referência e direção
-Referência: app GSA em Salesforce Gamificacao/app, interface inspirada no Salesforce Lightning. Reutilizar a linguagem visual, com estrutura simplificada para planejamento pessoal. Não copiar regras de gamificação, missões ou treinamento.
+Atualizado em 10/10/2026. Direção aprovada: aparência discreta inspirada em shadcn/ui, listas compactas no computador e captura simples no celular. O ESCOPO.md define as regras de negócio; este documento define sua apresentação.
 
-## Tokens
-| Token | Valor | Uso |
-|---|---|---|
-| primary | #0176D3 | Botão principal e seleção |
-| primary-strong | #0B5CAB | Texto azul e hover |
-| heading | #032D60 | Títulos |
-| canvas | #EEF1F6 | Fundo da aplicação |
-| surface | #FFFFFF | Cartões e navegação |
-| border | #D8DDE6 | Divisórias |
-| text | #181818 | Texto principal |
-| muted | #526174 | Texto secundário |
-| personal | #6B3FA0 | Identificação pessoal |
-| professional | #0B5CAB | Identificação profissional |
-| success | #2E7045 | Conclusão |
-| warning | #8A5700 | Prazo próximo |
-| danger | #BA0517 | Erros e atraso |
+## Base e identidade
 
-Tipografia: Segoe UI, Arial, sans-serif. Base 14px; metadados 12px; títulos de seção 16px; título principal 26px. Pesos 400, 600 e 700.
-Espaçamento: 4, 8, 12, 16, 24 e 32px. Cantos: 6px em controles, 10px em cartões. Sombras discretas apenas em elementos elevados. Bordas de 1px.
+React/Vite com Tailwind CSS 4 e componentes oficiais shadcn/ui baseados em Radix. Componentes ficam em `src/components/ui`, com personalizações locais. Não adicionar outra biblioteca para a mesma responsabilidade. A grade e o posicionamento da agenda permanecem próprios.
 
-## Estrutura
-Estrutura de app web tradicional: menu lateral branco de 248px com marca, seletor de área, captura e navegação; configurações e perfil no rodapé do menu. Barra superior fixa com busca de tarefas sempre disponível e captura rápida. A busca leva à lista de tarefas e mantém seu texto ao navegar. Conteúdo à direita com margens de 36px; manter azul, cinza claro e cartões brancos do GSA. Referência estrutural: imagem enviada em 04/10/2026, sem reproduzir tema escuro, IA ou funções fora do escopo. No celular, menu lateral abre por botão e a busca permanece no topo.
+Zinc neutro nas superfícies e bordas; azul #0176D3 nas ações principais. Tema claro: fundo #FAFAFA, superfície #FFFFFF, texto #18181B, secundário #71717A, borda #E4E4E7. Tema escuro: fundo #09090B, superfície #18181B, texto #F4F4F5, secundário #A1A1AA, borda #3F3F46, azul #79B8FF. Pessoal e profissional usam indicadores pequenos; a cor vem acompanhada de texto.
 
-## Componentes
-- Abas Tudo / Pessoal / Profissional com indicação textual e sublinhado azul.
-- Agenda: sete colunas, horários e blocos com início/fim explícitos. Ocupado em cinza, tarefas pessoais em violeta claro, profissionais em azul claro. Não depender apenas da cor.
-- Cartão de tarefa: descrição, área, duração, origem e prazo, com ação Planejar e Concluir.
-- Linha de tarefa na lista independente: checkbox de conclusão, descrição, área, duração, origem e prazo. Concluir é a ação principal; reservar horário é opcional. Mostrar reserva existente sem ocultar a tarefa. Concluídas permitem reabrir. No celular, ações ficam abaixo do conteúdo.
-- Captura: diálogo com rótulos persistentes; descrição, área e duração obrigatórias; prazo opcional.
-- Planejamento: diálogo de dia e horário como alternativa ao arraste; validação de colisão e jornada.
-- Jornada: linhas por dia da semana, ativação e início/fim.
-- Botão primário azul; secundário branco com borda; destrutivo apenas onde necessário.
-- Avisos: mensagens curtas de resultado ou erro em região de status.
-- Lista compacta com título acionável, checkbox, área, duração, situação, prazo e acompanhamento; detalhes secundários no painel lateral de 350px. Linha selecionada recebe fundo azul discreto. Painel móvel ocupa a largura completa e permite fechar.
-- Painel de detalhes: edição explícita com Salvar alterações, descrição, link, área, duração, prazo e situação. Aguardando resposta revela responsável e data de acompanhamento. Conclusão e reserva opcionais ficam no rodapé.
-- Temas em Configurações: Claro preserva GSA; Escuro usa canvas #141A23, superfícies #1D2531, bordas #354152, texto #E6EBF2 e secundário #AEBDCE. Estados azuis e violetas ganham fundos escuros com textos claros. A escolha vale para listas, agenda, configurações e diálogos.
+Segoe UI, Arial, sans-serif; corpo 14 px, metadados 12 px, seções 16 px e título de página 26 px (22 px no celular). Campos de texto no celular usam 16 px. Espaçamento baseado em 4/8/12/16/24/32 px, controles com cantos de 6 px e painéis com 10 px. Tokens em `src/design-system.css`, compatíveis com tokens antigos durante a migração. Tailwind não injeta Preflight global neste projeto para preservar controles e grade existentes.
 
-## Estados
-Estado vazio convida a capturar a primeira tarefa. Filtro sem resultados oferece limpar filtros. Integração futura deve distinguir carregando, desconectado, erro e atualizado; nunca apresentar dados fictícios como conexão ativa.
-Na validação inicial, “Google Tasks · demonstração” e “Agenda · demonstração” são rótulos explícitos. Dados criados pelo usuário permanecem no navegador utilizado.
+## Componentes e relações
 
-## Responsividade e acessibilidade
-Desktop: agenda e pendências lado a lado. Abaixo de 1000px: empilhar painéis e permitir rolagem horizontal dentro da agenda, sem expandir a página. No celular, oferecer foco no dia e planejamento por botão.
-Alvos de toque de pelo menos 44px, foco visível, contraste legível, rótulos em inputs, botões com nomes claros. Diálogos fecham por Escape, retêm o foco e o devolvem ao acionador. Suportar prefers-reduced-motion. Cor sempre acompanhada de texto.
+- Cabeçalho, campos, estado vazio e aviso de reservas ocultas compartilhados em Experience. Botões, entradas, diálogos, painéis e menus usam componentes shadcn.
+- Linhas de tarefas compartilhadas entre Tarefas, Meu dia e seleções: título e conclusão primeiro, metadados claros e labels em faixa secundária; prioridade acessível e ações adicionais em menu. Reservar/Reagendar continua disponível sem arraste.
+- Adicionar tarefa cria diretamente. Captura rápida salva na caixa de entrada. Exibir destinos e processamento sem exigir decisões de IA antes do texto.
+- Captura começa pelo texto, anexos e ditado; opções de processamento ficam recolhidas. Preservar texto e arquivos quando houver falha. Ditado depende do suporte/permissão do navegador.
+- Editor em Sheet lateral, com salvar explícito e confirmação de descarte; corpo rolável e ações no rodapé. Manter todas as restrições de negócio atuais até a etapa funcional.
+- Data e navegação de Meu dia ficam acima das abas. Agenda com filtros avisa quando reservas foram ocultadas e oferece limpar filtros. A contagem considera reservas que atravessam meia-noite.
+- Agenda semanal mantém eventos reais e sobreposições. Alternância Dia/Semana e navegação explícita. No celular, iniciar no dia atual da semana exibida ou segunda-feira. Seleção e prévia em painel; no desktop ele permite consultar a agenda, no celular é modal. Nada é aplicado automaticamente.
+- Pessoas e conversas preserva vínculo com tarefas e contexto de retorno. No celular, separar lista de pessoas/histórico e conversa. Modo IA usa o nome Histórico do agente.
+- Configurações apresenta controles antes de ajuda longa. Estado de integração, carregamento, falha e recuperação deve refletir as respostas existentes; não criar estados fictícios.
 
-## Conteúdo
-Português brasileiro, direto e sem jargão técnico. Exemplos: Nova tarefa, Planejar, Voltar às pendências, Ocupado, Cabe em até 30 min. Sem mensagens de IA, ranking ou recompensas.
+## Responsividade
 
-## Definição de pronto visual
-Validar tela inicial, semana, foco no dia, captura, planejamento, vazio e jornada em desktop e celular. Conferir ausência de sobreposição, navegação por teclado e legibilidade de horários e ações.
+Abaixo de 1024 px, navegação em Sheet, sem alterar a preferência de menu salva. Linhas se reorganizam quando o contêiner tem menos de 720 px, preservando largura do título. Editor ocupa toda a largura abaixo de 768 px. Meu dia usa abas abaixo de 1200 px e duas colunas acima desse limite. Rolagem horizontal fica restrita à grade semanal.
+
+Preservar densidades Compacta e Confortável. Não persistir escolhas automáticas de breakpoint como preferência do usuário.
+
+## Acessibilidade e aceite
+
+Rótulos em português, foco visível, nomes acessíveis em ícones, contraste legível e alternativas ao arraste. Dialog/Sheet/Menu Radix gerenciam foco; Escape devolve foco ao acionador. Proteger operações em andamento e alterações não salvas. Alvos de toque de pelo menos 44 px, movimento reduzido e reflow com zoom.
+
+Validar 320, 390, 768, 820, 1024 e 1440 px, ambos os temas/densidades, dados longos, espera, reservas, vazio, erro e teclado. Evidências e limitações ficam na pasta revisao-de-arquitetura. A validação sintética não substitui testes autenticados de integrações nem comprova entrega das funcionalidades pendentes do ESCOPO.md.
+
+Densidade padrão: Confortável, conforme preferência confirmada. A opção Compacta continua disponível; preferências já salvas são preservadas.

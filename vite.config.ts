@@ -1,2 +1,4 @@
 import { defineConfig } from 'vite';
-export default defineConfig({base:'./'});
+import tailwindcss from '@tailwindcss/vite';
+import {fileURLToPath,URL} from 'node:url';
+export default defineConfig({base:'./',plugins:[tailwindcss()],resolve:{alias:{'@':fileURLToPath(new URL('./src',import.meta.url))}}});

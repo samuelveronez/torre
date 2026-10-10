@@ -1,0 +1,124 @@
+@import "tailwindcss/theme.css" layer(theme);
+@import "tailwindcss/utilities.css" layer(utilities);
+@custom-variant dark (&:where([data-theme=dark], [data-theme=dark] *));
+@theme inline {--color-background:var(--background);--color-foreground:var(--foreground);--color-primary:var(--primary);--color-primary-foreground:var(--primary-foreground);--color-muted:var(--muted);--color-muted-foreground:var(--muted-foreground);--color-accent:var(--accent);--color-accent-foreground:var(--foreground);--color-border:var(--border);--color-input:var(--border);--color-ring:var(--primary);--color-popover:var(--background);--color-popover-foreground:var(--foreground);--color-destructive:#b91c1c;--radius-md:6px;--radius-lg:10px}
+:root{--background:#fff;--foreground:#18181b;--primary:#0176d3;--primary-foreground:#fff;--muted:#f4f4f5;--muted-foreground:#71717a;--accent:#eaf3fc;--border:#e4e4e7;--ux-surface:var(--background);--ux-border:var(--border);--ux-muted:var(--muted-foreground);--ux-ink:var(--foreground);--ux-blue:var(--primary);--ux-soft:var(--muted);font-family:'Segoe UI',Arial,sans-serif;background:#fafafa;color:var(--foreground)}
+[data-theme=dark]{--background:#18181b;--foreground:#f4f4f5;--primary:#79b8ff;--primary-foreground:#10263e;--muted:#27272a;--muted-foreground:#a1a1aa;--accent:#20344a;--border:#3f3f46;--ux-surface:var(--background);--ux-border:var(--border);--ux-muted:var(--muted-foreground);--ux-ink:var(--foreground);--ux-blue:var(--primary);--ux-soft:var(--muted);background:#09090b;color:var(--foreground)}
+body{background:inherit;color:inherit}.app-shell :is(h1,h2,h3,strong){color:var(--foreground)}
+.app-shell :is(.card,.sidebar,.app-topbar,.home-tasks,.home-agenda,.settings-body,.list-toolbar){background:var(--background);border-color:var(--border);box-shadow:none}.app-shell .app-topbar{border-top:0;gap:12px}
+.app-shell :is(.pill,.label-chip,.nav-count,.count){background:var(--muted);color:var(--foreground);border-color:var(--border)}.app-shell .pill{border-left:3px solid #0176d3;border-radius:4px}.app-shell .pill.purple{border-left-color:#8755ad;color:var(--foreground)!important}
+[data-slot=button],[data-ui=button]{font-family:inherit;border-radius:6px;min-height:36px;white-space:nowrap;display:inline-flex;align-items:center;justify-content:center;gap:8px;font-weight:500;padding:8px 12px}
+[data-slot=button][data-variant=default],[data-ui=button].bg-primary{background:var(--primary);color:var(--primary-foreground);border-color:var(--primary)}
+[data-slot=input],[data-slot=textarea],[data-ui=input],[data-ui=textarea]{background:var(--background);color:var(--foreground);border:1px solid var(--border);width:100%;font:inherit;border-radius:6px;padding:9px 12px}
+[data-slot=dialog-overlay],[data-slot=sheet-overlay],.ui-overlay{position:fixed;inset:0;background:#0007;z-index:100}
+[data-slot=dialog-content],.ui-dialog{position:fixed;left:50%;top:50%;transform:translate(-50%,-50%);width:min(560px,calc(100vw - 32px));max-height:calc(100dvh - 32px);overflow:auto;z-index:101;background:var(--background);color:var(--foreground);border:1px solid var(--border);border-radius:10px;padding:20px;box-shadow:0 16px 50px #0003;font:14px/1.5 'Segoe UI',Arial,sans-serif}
+[data-slot=sheet-content],.ui-sheet{position:fixed;inset:0 0 0 auto;z-index:101;width:min(480px,100vw);height:100dvh;overflow:auto;background:var(--background);color:var(--foreground);border:1px solid var(--border);padding:24px;font:14px/1.5 'Segoe UI',Arial,sans-serif}
+[data-slot=sheet-content][data-side=left],.ui-sheet-left{inset:0 auto 0 0;width:min(300px,100vw)}
+[data-slot=dropdown-menu-content],.ui-menu{z-index:120;background:var(--background);color:var(--foreground);border:1px solid var(--border);border-radius:6px;padding:4px;min-width:180px;box-shadow:0 4px 16px #0002}
+[data-slot=dropdown-menu-item],.ui-menu-item{padding:10px 12px;cursor:pointer;border-radius:4px;outline:none;min-height:36px;font:14px 'Segoe UI',Arial,sans-serif}
+[data-slot=dropdown-menu-item][data-highlighted],.ui-menu-item[data-highlighted]{background:var(--accent)}
+.ui-alert,[data-slot=alert]{padding:12px 16px;border:1px solid var(--border);border-radius:6px;background:var(--muted);color:var(--foreground);margin-bottom:16px}.hidden-reservations{display:flex;align-items:center;gap:16px;justify-content:space-between;flex-wrap:wrap}
+.ui-field{display:grid;gap:6px}.capture-processing{margin:10px 0;font-size:12px;color:var(--muted-foreground)}
+.quick-capture-dialog .capture-body{display:grid;gap:14px;padding:0;border:0}.quick-capture-dialog .card-head{padding:0 0 14px;border:0;background:none}.quick-capture-dialog .dropzone{border:1px dashed var(--border);padding:12px;background:var(--muted)}
+.capture-options{border-top:1px solid var(--border);padding-top:12px}.capture-options>button{width:100%;justify-content:space-between}.capture-options-content{padding-top:12px;display:grid;gap:12px}
+.task-list,.home-tasks,.day-choice-rows,.pending-body{container-type:inline-size}
+:root .task-row{display:grid;grid-template-columns:auto auto minmax(0,1fr) 132px auto;gap:10px;padding:10px 0;align-items:start}.task-row:not(:has(.task-select)){grid-template-columns:auto minmax(0,1fr) 132px auto}
+.task-row .task-row-content{min-width:0}.task-row .task-title{display:block;text-align:left;width:100%;font-size:14px;line-height:1.5;overflow-wrap:anywhere;padding:0;min-height:24px}.task-row .task-grip{display:none}
+.task-row .task-meta{display:flex;flex-wrap:wrap;gap:4px 10px;font-size:12px}.task-row .task-created{display:none}.task-row .task-labels{width:100%;display:flex;gap:6px;flex-wrap:wrap;margin-top:4px}.task-row .inline-priority{width:132px}.task-row .row-actions{display:flex;gap:6px;align-items:center}.task-row .task-check,.task-row .task-select{margin-top:4px}[data-density=comfortable] .task-row{padding:18px 0}
+@container (max-width:719px){:root .task-row,:root .task-row:not(:has(.task-select)){grid-template-columns:auto minmax(0,1fr) auto;gap:8px}.task-row .task-select{grid-column:1;grid-row:2}.task-row .task-row-content{grid-column:2;grid-row:1/span 2}.task-row .inline-priority{grid-column:2;grid-row:3}.task-row .row-actions{grid-column:3;grid-row:1}.task-row .task-check{grid-column:1;grid-row:1}}
+.day-heading{display:flex;align-items:center;justify-content:space-between;gap:12px;flex-wrap:wrap;margin-bottom:16px}.day-heading .day-navigation{display:flex;flex-wrap:wrap;gap:6px}.day-heading h2{font-size:16px}
+.app-shell .week-planner{margin-bottom:16px}.planner-sheet .settings-body{padding:0}.planner-sheet .planner-selection{max-height:40dvh;overflow:auto}.planner-sheet textarea{width:100%}.conversation-mobile-back{display:none}.conversation-main,.conversation-people{min-width:0}
+.app-shell .calendar .day-head,.app-shell .calendar .time-head{position:sticky;top:0;z-index:3}.calendar-scroll{max-width:100%;overscroll-behavior:contain}
+@media(max-width:1199px){.app-shell .daily-tabs{display:flex;gap:6px;margin-bottom:16px}.app-shell .home-layout.daily-view{display:block}.app-shell .daily-view.show-tasks .home-agenda{display:none}.app-shell .daily-view.show-agenda .home-tasks{display:none}}
+@media(max-width:1023px){.app-shell,.app-shell.menu-compact{grid-template-columns:minmax(0,1fr)}.app-shell>.sidebar{display:none}.app-shell .mobile-menu{display:inline-flex}.app-shell .app-content{width:100%;min-width:0}.app-shell .app-topbar{padding:10px 14px;flex-wrap:wrap}.app-shell .top-search{flex:1;min-width:0}.app-shell .top-area{order:4;width:100%}.navigation-sheet .sidebar{position:static;display:flex;flex-direction:column;width:100%;height:auto;min-height:100%;padding:0;border:0;background:var(--background)}.navigation-sheet .sidebar-collapse,.navigation-sheet .close-menu{display:none}.navigation-sheet nav{padding:0;display:grid;background:var(--background);border:0}.navigation-sheet .sidebar-nav button{display:flex;gap:10px;align-items:center;width:100%;text-align:left}.navigation-sheet .sidebar-label-row{display:flex}.navigation-sheet .sidebar-bottom{margin-top:24px}}
+@media(max-width:767px){.app-shell .app-content main{padding:16px 12px}.app-shell .heading{gap:10px;flex-wrap:wrap}.app-shell .heading h1{font-size:22px}.app-shell .summary{grid-template-columns:repeat(2,minmax(0,1fr))}.day-heading{align-items:flex-start}.conversations{display:block}.conversations.people-view .conversation-main{display:none}.conversations.detail-view .conversation-people{display:none}.conversation-mobile-back{display:inline-flex;margin-bottom:12px}.ui-dialog,[data-slot=dialog-content]{width:calc(100vw - 16px);max-height:calc(100dvh - 16px);padding:16px}.task-details{width:100%!important;max-width:100vw!important}.app-shell .daily-actions button{flex:1}.app-shell .top-area button{flex:1}.app-shell .top-search input{width:100%;min-width:0}.app-shell .day-focus-heading{padding:16px;flex-wrap:wrap}.app-shell .day-group{padding:0 16px}.planner-sheet{width:100vw}.capture-body textarea{font-size:16px}}
+@media(pointer:coarse){button,[role=button],[role=menuitem],summary,[data-slot=button]{min-height:44px}input,select,[data-slot=input]{font-size:16px}.task-check,.task-select{min-height:20px}.task-title{min-height:44px!important}}
+:where(button,input,select,textarea,[role=menuitem],[role=tab]):focus-visible{outline:2px solid var(--primary);outline-offset:3px}
+@media(prefers-reduced-motion:reduce){*,*::before,*::after{animation:none!important;transition:none!important}}
+:root [data-slot=dialog-content]{translate:none;transform:translate(-50%,-50%);width:min(560px,calc(100vw - 32px));min-width:0;max-width:calc(100vw - 32px);margin:0;inset:50% auto auto 50%}
+:root [data-slot=dialog-content].quick-capture-dialog{width:min(560px,calc(100vw - 24px));max-width:calc(100vw - 24px);padding:20px;min-width:0}
+:root [data-slot=dialog-content] form{width:100%;min-width:0}
+:root [data-slot=sheet-content].task-details{z-index:101;padding:0;gap:0;background:var(--background);color:var(--foreground);border-color:var(--border);box-shadow:-8px 0 35px #0002}
+:root [data-slot=sheet-content].navigation-sheet{width:min(300px,100vw);max-width:100vw}
+:root .app-shell .app-topbar{border-top:0}
+:root .app-shell main{background:transparent}
+:root .app-shell{background:#fafafa}[data-theme=dark] .app-shell{background:#09090b}
+@media(max-width:767px){:root [data-slot=dialog-content].quick-capture-dialog{padding:16px}:root [data-slot=sheet-content].task-details{width:100vw}}
+
+:root .app-shell .card-head{background:var(--background);border-color:var(--border)}
+:root .app-shell .sidebar-nav button,:root .app-shell .sidebar-bottom>button{background:transparent;color:var(--foreground);border:0}
+:root .app-shell .sidebar-nav button:hover,:root .app-shell .sidebar-bottom>button:hover{background:var(--muted)}
+:root .app-shell .sidebar-nav button.active,:root .app-shell .sidebar-bottom>button.active{background:var(--accent);color:var(--primary)}
+:root [data-slot=button]{background:var(--background);color:var(--foreground);border:1px solid var(--border)}
+:root [data-slot=button][data-variant=default]{background:var(--primary);color:var(--primary-foreground);border-color:var(--primary)}
+:root [data-slot=button][data-variant=ghost]{background:transparent;border-color:transparent}
+:root [data-slot=button]:hover{filter:brightness(.96)}
+:root .app-shell .top-search{background:var(--muted);border-color:var(--border)}
+:root .app-shell .top-search input{background:none;border:0}
+:root .app-shell .top-area button{background:transparent;border:1px solid transparent;color:var(--foreground)}
+:root .app-shell .top-area button[aria-pressed=true]{background:var(--accent);color:var(--primary);border-color:var(--border)}
+:root .app-shell .sidebar-collapse{background:var(--background);color:var(--foreground);border-color:var(--border)}
+.fixture-controls{display:flex;gap:6px;flex-wrap:wrap;padding-top:16px}.fixture-controls p{width:100%}
+
+@media(max-width:767px){:root button,:root [role=button],:root [role=menuitem],:root summary,:root select{min-height:44px}.task-row .task-title{min-height:44px}.task-row .task-check,.task-row .task-select{width:44px;height:44px;margin-top:0}.task-row .row-actions [data-slot=button]{min-width:44px}}
+
+:root .app-shell .task-row .row-actions{position:static;inset:auto;margin:0}:root .app-shell .task-row .task-title{white-space:normal;text-overflow:clip;overflow:visible}
+@media(max-width:767px){:root .app-shell .task-row .task-check,:root .app-shell .task-row .task-select{width:44px!important;height:44px!important;min-width:44px;min-height:44px}}
+
+/* Refinamento: linhas densas e controles com papéis visualmente distintos. */
+:root .app-shell .task-row{padding:6px 0;gap:8px}
+:root [data-density=comfortable] .task-row,[data-density=comfortable] .app-shell .task-row{padding:12px 0}
+:root .app-shell .task-row .task-title{line-height:1.35;min-height:21px}
+:root .app-shell .task-row .task-meta{align-items:center;gap:3px 8px;margin-top:2px}
+:root .app-shell .task-row .task-labels{display:inline-flex;width:auto;gap:4px;margin:0}
+:root .app-shell .task-row .label-chip{padding:1px 7px;line-height:1.35}
+:root .app-shell .task-row .task-check{appearance:none;border:1.5px solid var(--muted-foreground);border-radius:50%;background:var(--background);width:18px;height:18px;min-width:18px;position:relative;cursor:pointer}
+:root .app-shell .task-row .task-check:checked{background:var(--primary);border-color:var(--primary)}
+:root .app-shell .task-row .task-check:checked::after{content:'';position:absolute;left:5px;top:2px;width:5px;height:9px;border:solid var(--primary-foreground);border-width:0 2px 2px 0;transform:rotate(45deg)}
+:root .app-shell .task-row .task-check:disabled{opacity:.45;cursor:default}
+:root .app-shell .task-row .task-select,:root .app-shell .select-all input{accent-color:var(--primary);outline:2px solid var(--accent);outline-offset:3px;border-radius:3px}
+:root .app-shell .task-row.is-selecting{border-left:3px solid var(--border);padding-left:8px}
+:root .app-shell .task-row.is-selected{background:var(--accent);border-left-color:var(--primary)}
+:root .app-shell .sidebar-collapse{align-self:flex-end;width:32px;min-width:32px;min-height:32px;padding:6px;border:0;background:transparent;box-shadow:none;color:var(--muted-foreground)}
+:root .app-shell .sidebar-collapse:hover{background:var(--muted);color:var(--foreground)}
+:root [data-slot=sheet-content].task-details{font-size:15px;line-height:1.5}
+:root .task-details :is(input,textarea,select,label,button){font-size:15px}
+:root .task-details :is(small,.help,.field-help){font-size:13px}
+:root .task-details h2{font-size:19px}
+@media(max-width:767px){:root .app-shell .task-row .task-title{min-height:44px}:root .app-shell .task-row .task-check{border-radius:50%;width:44px!important;height:44px!important}:root .app-shell .task-row .task-check:checked::after{left:17px;top:12px;width:8px;height:14px}:root .task-details :is(input,textarea,select){font-size:16px}}
+
+/* O alvo de toque é maior que o símbolo; regras legadas não definem a grade. */
+:root .app-shell .task-row .task-select,:root .app-shell .task-row .task-complete-target{display:grid;place-items:center;width:24px;height:24px;min-width:24px;min-height:24px;margin:0;outline:0;position:static}
+:root .app-shell .task-row .task-select-input{width:18px;height:18px;min-width:18px;min-height:18px;margin:0;accent-color:var(--primary)}
+:root .app-shell .task-row .task-check{width:18px!important;height:18px!important;min-width:18px;min-height:18px;margin:0}
+:root .app-shell .task-row .task-check:checked::after{left:5px;top:2px;width:5px;height:9px}
+@container(max-width:719px){
+ :root .app-shell .task-row,:root .app-shell .task-row:has(.task-select),:root .app-shell .task-row:not(:has(.task-select)){grid-template-columns:44px minmax(0,1fr);gap:4px 8px;align-items:start}
+ :root .app-shell .task-row .task-select{grid-column:1;grid-row:1;width:44px!important;height:44px!important;min-width:44px;min-height:44px}
+ :root .app-shell .task-row .task-complete-target{grid-column:1;grid-row:1;width:44px;height:44px}
+ :root .app-shell .task-row:has(.task-select) .task-complete-target{grid-row:2}
+ :root .app-shell .task-row .task-row-content,:root .app-shell .task-row:has(.task-select) .task-row-content{grid-column:2;grid-row:1/span 2}
+ :root .app-shell .task-row .inline-priority,:root .app-shell .task-row:has(.task-select) .inline-priority{grid-column:2;grid-row:3;width:calc(100% - 52px);max-width:180px}
+ :root .app-shell .task-row .row-actions{grid-column:2;grid-row:3;justify-content:flex-end;justify-self:end}
+ :root .app-shell .task-row .task-check{grid-column:auto;grid-row:auto}
+}
+
+:root .app-shell .task-row{grid-template-columns:24px minmax(0,1fr) auto}
+:root .app-shell .task-row:has(.task-select){grid-template-columns:24px 24px minmax(0,1fr) auto}
+.task-priority-indicator{display:inline-flex;align-items:center;gap:4px;font-weight:600}
+.task-priority-indicator::before{content:'';width:5px;height:5px;border-radius:50%;background:currentColor}
+.task-priority-indicator.priority-high{color:#b91c1c}.task-priority-indicator.priority-medium{color:#8a5b00}.task-priority-indicator.priority-low{color:#526174}
+[data-theme=dark] .task-priority-indicator.priority-high{color:#fca5a5}[data-theme=dark] .task-priority-indicator.priority-medium{color:#fcd34d}[data-theme=dark] .task-priority-indicator.priority-low{color:#a1a1aa}
+@media(hover:hover) and (pointer:fine){:root .app-shell .task-row .task-complete-target{opacity:0;transition:opacity .12s}:root .app-shell .task-row:hover .task-complete-target,:root .app-shell .task-row:focus-within .task-complete-target{opacity:1}}
+@container(max-width:719px){:root .app-shell .task-row,:root .app-shell .task-row:has(.task-select),:root .app-shell .task-row:not(:has(.task-select)){grid-template-columns:44px minmax(0,1fr)}:root .app-shell .task-row .row-actions{grid-column:2;grid-row:3}}
+
+.task-priority-error{grid-column:1/-1;color:var(--foreground)}
+
+/* Trilho recolhido: todos os controles compartilham o mesmo eixo. */
+@media(min-width:1024px){
+ :root .app-shell.menu-compact>.sidebar{padding-inline:8px;box-sizing:border-box}
+ :root .app-shell.menu-compact .sidebar-brand{width:100%;padding-inline:0;justify-content:center}
+ :root .app-shell.menu-compact .sidebar-nav,:root .app-shell.menu-compact .sidebar-bottom{padding-inline:0;width:100%;box-sizing:border-box}
+ :root .app-shell.menu-compact :is(.sidebar-collapse,.sidebar-capture,.sidebar-nav>button,.sidebar-bottom>button){display:flex;align-items:center;justify-content:center;align-self:center;width:44px;min-width:44px;height:44px;min-height:44px;margin-inline:auto;padding:0;gap:0;box-sizing:border-box}
+ :root .app-shell.menu-compact :is(.sidebar-collapse,.sidebar-capture,.sidebar-nav>button,.sidebar-bottom>button)>svg{display:block;flex-shrink:0;margin:0}
+}
