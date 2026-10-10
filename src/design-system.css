@@ -135,7 +135,7 @@ body{background:inherit;color:inherit}.app-shell :is(h1,h2,h3,strong){color:var(
  :root .app-shell.menu-compact .navigation-sheet :is(.sidebar-capture,.sidebar-nav button,.sidebar-bottom>button){justify-content:flex-start;width:100%;gap:10px}
 }
 
-:root .agent-chat{--muted:var(--muted-foreground);--accent:var(--primary);--accent-soft:var(--accent)}
+:root .agent-chat{--muted:var(--muted-foreground);--accent:var(--primary);--accent-soft:var(--ux-soft)}
 :root .agent-chat .agent-intro-icon{color:var(--primary);background:var(--background);border:1px solid var(--border)}
 @media(max-width:767px){:root .app-shell .task-row .task-complete-target{opacity:1}}
 
