@@ -31,4 +31,4 @@ Os advisors continuam indicando achados anteriores: [função privilegiada de pe
 
 ## Publicação
 
-Backend implantado: integrações v27; callback Google v5; worker Google v5. Três migrações aplicadas. Interface em preparação para publicação; confirmação do build remoto será registrada após o deploy.
+Backend implantado: integrações v27; callback Google v5; worker Google v5. Três migrações aplicadas. Interface publicada em https://torre.veronez.app/. Commit de integração `202c9695bbb762e7bedf55e26bcb18daa6620776`; GitHub Pages run `38096525361` concluído com success. O domínio entregou `index-D7zYaUoA.js` e `index-b0vdnem1.css`, os mesmos arquivos do build local validado. A correção remota de centralização da captura foi preservada. POST sem autenticação à integração retornou 401. Confirmação do domínio por leitura do HTML, sem executar fluxos autenticados com dados reais.
