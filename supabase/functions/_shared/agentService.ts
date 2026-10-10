@@ -1,3 +1,4 @@
+import {preparePlan} from './planService.ts';
 import {selectedAiModel} from './aiSettings.ts';
 import {db,checked,secret} from './google.ts';
 import {agentId,agentModel,validateAgentPatch,needsAgentReview,agentInstructions,callAgentModel,testAgentModel,type AgentOperation} from './agent.ts';
@@ -36,8 +37,9 @@ export async function agentAction(uid:string,input:any){
   if(args.label_id){if(!agentId(args.label_id))throw new Error('Label inválida.');const {data:links}=await checked(db.from('torre_task_labels').select('task_id').eq('user_id',uid).eq('label_id',args.label_id).limit(10001));if((links?.length??0)>10000)throw new Error('Filtro muito amplo. Refine o pedido.');if(!links?.length)return {items:[],total:0};q=q.in('id',(links??[]).map((l:any)=>l.task_id));}
   const {data,count}=await checked(q.order('due_date',{ascending:true,nullsFirst:false}).order('id').range(offset,offset+49));
   console.info(JSON.stringify({event:'torre_agent_task_query',runId:input.runId,area:args.area??'all',status,offset,total:count,returned:data?.length??0,titleFilter:!!args.query,labelFilter:!!args.label_id}));
+  const {data:reservations}=await checked(db.from('torre_scheduled_blocks').select('task_id,start_at,kind').eq('user_id',uid));
   const items=(data??[]).map((t:any)=>{const {torre_task_labels,...row}=t;const snapshot={...row,label_ids:(torre_task_labels??[]).map((l:any)=>l.label_id).sort()};tasks.set(t.id,snapshot);return snapshot;});
-  return {items:items.map((t:any)=>({id:t.id,title:t.title,description:t.description.slice(0,2000),descriptionTruncated:t.description.length>2000,area:t.area,duration_minutes:t.duration_minutes,due_date:t.due_date,status:t.status,waiting_for:t.waiting_for,follow_up_date:t.follow_up_date,priority:t.priority,source:t.source,archived_at:t.archived_at,label_ids:t.label_ids})),total:count,offset,hasMore:offset+items.length<(count??0)};
+  return {items:items.map((t:any)=>({id:t.id,reservation:reservations?.find((b:any)=>b.task_id===t.id)??null,title:t.title,description:t.description.slice(0,2000),descriptionTruncated:t.description.length>2000,area:t.area,duration_minutes:t.duration_minutes,due_date:t.due_date,status:t.status,waiting_for:t.waiting_for,follow_up_date:t.follow_up_date,priority:t.priority,source:t.source,archived_at:t.archived_at,label_ids:t.label_ids})),total:count,offset,hasMore:offset+items.length<(count??0)};
  }
  async function queryLabels(args:any={}){
   const offset=args.offset??0;if(!Number.isInteger(offset)||offset<0||offset>10000)throw new Error('Página inválida.');
@@ -60,6 +62,11 @@ export async function agentAction(uid:string,input:any){
    if(m.tool_calls.length>3)throw new Error('O modelo solicitou ferramentas demais. Refine o pedido.');
    for(const call of m.tool_calls){
     let args:any;try{args=JSON.parse(call.function.arguments);}catch{throw new Error('O modelo retornou uma operação inválida. Nenhuma alteração foi realizada.');}
+    if(call.function.name==='propose_schedule'){
+     if(m.tool_calls.length!==1||!Array.isArray(args.taskIds)||args.taskIds.some((id:string)=>!tasks.has(id)))throw new Error('Consulte as tarefas antes de propor horários.');
+     const proposal=await preparePlan(uid,args);
+     answer=`Preparei uma proposta de horários. Nenhuma reserva foi aplicada. [Revisar horários](schedule:${proposal.id})`;break;
+    }
     if(call.function.name==='propose_changes'){
      if(input.mode!=='execute'||m.tool_calls.length!==1||typeof args.response!=='string'||!Array.isArray(args.operations)||args.operations.length<1||args.operations.length>50)throw new Error('Proposta inválida.');
      const refs=new Map<string,string>(),seen=new Set<string>();
@@ -72,7 +79,6 @@ export async function agentAction(uid:string,input:any){
       const patch=validateAgentPatch(raw.entity,raw.patch,create);
       if(patch.archived_at===true)patch.archived_at=new Date().toISOString();
       if(patch.label_ids){patch.label_ids=(patch.label_ids as string[]).map(l=>refs.get(l)??l);for(const l of patch.label_ids as string[]){if(!agentId(l)||(!labels.has(l)&&![...refs.values()].includes(l)))throw new Error('O modelo usou uma label não consultada.');}}
-      if(raw.entity==='task'&&before?.source==='google_tasks'&&(['title','description','due_date'].some(k=>k in patch)||(before.status==='completed'&&patch.status&&patch.status!=='completed')))throw new Error('Edite título, notas, prazo e reabertura desta tarefa no Google Tasks.');
       if(raw.entity==='label'&&create){if([...labels.values()].some(l=>l.name.toLocaleLowerCase('pt-BR')===String(patch.name).toLocaleLowerCase('pt-BR')))throw new Error('Essa label já existe. Peça para usar ou restaurar a label existente.');refs.set(raw.id,id);}
       operations.push({entity:raw.entity,id,before,patch,title:String(patch.title??patch.name??before?.title??before?.name)});
      }
@@ -82,7 +88,7 @@ export async function agentAction(uid:string,input:any){
     if(!result)throw new Error('Ferramenta indisponível no modo IA.');
     messages.push({role:'tool',tool_call_id:call.id,content:JSON.stringify(result)});
    }
-   if(operations.length)break;
+   if(operations.length||answer)break;
   }
   if(!answer)throw new Error('O pedido precisa de consultas demais. Refine por prazo, label ou situação. Nenhuma alteração foi realizada.');
   const {data:run}=await checked(db.from('torre_agent_runs').update({state:operations.length?'ready':'answered',response:answer,model,operations,error:null}).eq('id',input.runId).eq('user_id',uid).eq('token',token).eq('state','processing').select('*').single());

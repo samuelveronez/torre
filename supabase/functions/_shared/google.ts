@@ -1,5 +1,6 @@
 import {createClient} from 'npm:@supabase/supabase-js@2.117.2';
 import {invitationResponse,blocksPlanning} from './calendar.ts';
+import {importedTask} from './googleImport.ts';
 export const site='https://torre.veronez.app/';
 export const callback=`${Deno.env.get('SUPABASE_URL')}/functions/v1/torre-google-callback`;
 export const db=createClient(Deno.env.get('SUPABASE_URL')!,Deno.env.get('SUPABASE_SERVICE_ROLE_KEY')!);
@@ -13,6 +14,7 @@ export async function googleToken(user:string){
  const data=await res.json();await secret(user,'google',JSON.stringify({...tokens,...data,expires_at:Date.now()+data.expires_in*1000}));return data.access_token;
 }
 export async function api(token:string,path:string,options:RequestInit={}){
+ if(path.startsWith('tasks/')&&(options.method??'GET').toUpperCase()!=='GET')throw new Error('Google Tasks está disponível somente para importação.');
  const response=await fetch(`https://www.googleapis.com/${path}`,{...options,headers:{Authorization:`Bearer ${token}`,'Content-Type':'application/json',...options.headers}});
  if(!response.ok)throw Object.assign(new Error(`Google respondeu ${response.status}. Tente sincronizar novamente.`),{status:response.status});
  return response.status===204?{}:await response.json();
@@ -25,20 +27,17 @@ export async function discover(user:string,token:string){
  if(calendars.length)await checked(db.from('torre_calendars').upsert(calendars.map(x=>{const old=c.data?.find(y=>y.id===x.id);return {user_id:user,id:x.id,name:x.summary,access_role:x.accessRole,color:x.backgroundColor??'#64748b',timezone:x.timeZone??'America/Sao_Paulo',selected:old?.selected??false,blocks_time:old?.blocks_time??true,mode:x.accessRole==='freeBusyReader'?'busy':old?.mode??'busy'};})));
 }
 export async function completeJobs(user:string,token:string){
- const jobs=await checked(db.from('torre_sync_jobs').select('*').eq('user_id',user).lte('next_attempt_at',new Date().toISOString()));
- for(const job of jobs.data??[]){try{const {data:task}=await checked(db.from('torre_tasks').select('*').eq('id',job.task_id).single());
-  if(task.status!=='completed'||!task.google_completion_pending){await checked(db.from('torre_sync_jobs').delete().eq('id',job.id));continue;}
-  await api(token,`tasks/v1/lists/${encodeURIComponent(task.google_list_id)}/tasks/${encodeURIComponent(task.google_task_id)}`,{method:'PATCH',body:JSON.stringify({status:'completed'})});
-  await checked(db.from('torre_tasks').update({google_completion_pending:false,sync_error:null}).eq('id',task.id));await checked(db.from('torre_sync_jobs').delete().eq('id',job.id));
- }catch(e){const error=String((e as Error).message??e);await db.from('torre_sync_jobs').update({attempts:job.attempts+1,next_attempt_at:new Date(Date.now()+Math.min(3600000,60000*2**Math.min(job.attempts,6))).toISOString(),error}).eq('id',job.id);await db.from('torre_tasks').update({sync_error:error}).eq('id',job.task_id);}}
+ // Outbound delivery is retired. Preserve historical jobs without contacting Google.
+ return;
 }
 export async function syncTasks(user:string,token:string){
  await completeJobs(user,token);const {data:lists}=await checked(db.from('torre_google_lists').select('*').eq('user_id',user).eq('selected',true));
  for(const list of lists??[]){const items=await pages(token,`tasks/v1/lists/${encodeURIComponent(list.id)}/tasks?showCompleted=true&showHidden=true&showDeleted=true`);
   for(const item of items){const {data:old}=await checked(db.from('torre_tasks').select('*').eq('user_id',user).eq('google_list_id',list.id).eq('google_task_id',item.id).maybeSingle());
-   if(item.deleted){if(old)await checked(db.from('torre_tasks').update({archived_at:new Date().toISOString(),google_completion_pending:false}).eq('id',old.id));continue;}
-   const fields={title:(item.title?.trim()||'Tarefa sem título').slice(0,180),description:item.notes??'',due_date:item.due?.slice(0,10)??null,google_updated_at:item.updated,status:old?.google_completion_pending?'completed':item.status==='completed'?'completed':old?.status==='waiting'?'waiting':'todo',archived_at:null};
-   if(old)await checked(db.from('torre_tasks').update(fields).eq('id',old.id));else {const inserted=await checked(db.from('torre_tasks').insert({...fields,user_id:user,source:'google_tasks',google_list_id:list.id,google_task_id:item.id,area:list.area}).select('id').single());await checked(db.from('torre_tasks').update({google_completion_pending:false}).eq('id',inserted.data!.id));}
+   const fields=importedTask(item,!!old);if(!fields)continue;
+   const inserted=await db.from('torre_tasks').insert({...fields,user_id:user,source:'google_tasks',google_list_id:list.id,google_task_id:item.id,area:list.area});
+   // Concurrent imports share the existing unique origin index. Never update on conflict.
+   if(inserted.error&&inserted.error.code!=='23505')throw inserted.error;
   }
  }
  await checked(db.from('torre_google_status').update({tasks_synced_at:new Date().toISOString()}).eq('user_id',user));

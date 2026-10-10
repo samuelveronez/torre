@@ -1,3 +1,4 @@
+import {preparePlan} from '../_shared/planService.ts';
 import {aiModel,selectedAiModel} from '../_shared/aiSettings.ts';
 import {captureProfile} from '../_shared/captureProfiles.ts';
 import {capturePipeline} from '../_shared/capturePipeline.ts';
@@ -43,8 +44,8 @@ Deno.serve(async(req)=>{
    const ids=input.taskIds;if(!Array.isArray(ids)||ids.length<1||ids.length>200||new Set(ids).size!==ids.length||ids.some(x=>typeof x!=='string'||!/^[0-9a-f-]{36}$/i.test(x)))throw new Error('Seleção de tarefas inválida.');
    const {data:tasks}=await checked(db.from('torre_tasks').select('*').eq('user_id',uid).is('archived_at',null).in('id',ids));if(tasks?.length!==ids.length)throw new Error('Tarefa indisponível nesta conta.');
    if(input.action==='undo-completion'){
-    if(tasks.some((t:any)=>t.source!=='google_tasks'||t.status!=='completed'||!t.completed_at||Date.parse(t.completed_at)<Date.now()-60000))throw new Error('O período de desfazer terminou. Reabra esta tarefa no Google Tasks.');
-    const token=await googleToken(uid);for(const task of tasks){await api(token,`tasks/v1/lists/${encodeURIComponent(task.google_list_id)}/tasks/${encodeURIComponent(task.google_task_id)}`,{method:'PATCH',body:JSON.stringify({status:'needsAction',completed:null})});await checked(db.from('torre_sync_jobs').delete().eq('task_id',task.id).eq('user_id',uid));await checked(db.from('torre_tasks').update({status:'todo',google_completion_pending:false,sync_error:null}).eq('id',task.id).eq('user_id',uid));}return json({ok:true});
+    if(tasks.some((t:any)=>t.status!=='completed'))throw new Error('Selecione tarefas concluídas.');
+    await checked(db.from('torre_tasks').update({status:'todo'}).eq('user_id',uid).in('id',ids));return json({ok:true});
    }
    if(ids.length>20)throw new Error('Classifique até 20 tarefas por vez.');
    const {data:settings}=await checked(db.from('torre_ai_settings').select('*').eq('user_id',uid).maybeSingle());if(!settings?.enabled||settings.provider!=='openrouter')throw new Error('Ative a IA nas configurações.');const key=await secret(uid,'ai');if(!key)throw new Error('Cadastre sua chave OpenRouter.');
@@ -66,19 +67,8 @@ Deno.serve(async(req)=>{
    }catch(e){await db.from('torre_captures').update({state:'error',error:(e as Error).message,triage_token:null,triage_until:null}).eq('id',input.captureId).eq('user_id',uid).eq('triage_token',token);throw e;}
   }
   if(input.action==='plan-propose'){
-   const ids=input.taskIds;
-   if(!Array.isArray(ids)||ids.length<1||ids.length>20||new Set(ids).size!==ids.length||ids.some(x=>typeof x!=='string'||!/^[0-9a-f-]{36}$/i.test(x)))throw new Error('Selecione de 1 a 20 tarefas.');
-   const start=Date.parse(input.start),end=Date.parse(input.end);
-   if(!Number.isFinite(start)||!Number.isFinite(end)||end-start<6*86400000||end-start>8*86400000||end<=Date.now())throw new Error('Semana inválida.');
-   if(typeof input.instruction!=='string'||input.instruction.length>1000)throw new Error('Orientação de até mil caracteres.');
    const {data:settings}=await checked(db.from('torre_ai_settings').select('enabled').eq('user_id',uid).maybeSingle());if(!settings?.enabled)throw new Error('Ative a IA nas configurações.');
-   const key=await secret(uid,'ai');if(!key)throw new Error('Cadastre sua chave OpenRouter.');
-   const {data:snapshot}=await checked(db.rpc('torre_plan_snapshot',{p_user:uid,p_tasks:ids}));
-   if(snapshot.tasks.length!==ids.length||snapshot.tasks.some((t:any)=>t.archived_at||t.status!=='todo'||snapshot.blocks.some((b:any)=>b.task_id===t.id)))throw new Error('Selecione somente pendências sem reserva.');
-   const g=snapshot.google;if(g?.connected&&(!g.calendar_synced_at||Date.parse(g.calendar_synced_at)<Date.now()-300000||g.error||!g.range_start||!g.range_end||Date.parse(g.range_start)>start||Date.parse(g.range_end)<end))throw new Error('Atualize a agenda antes de gerar a proposta.');
-   const proposal=await propose(snapshot,new Date(start).toISOString(),new Date(end).toISOString(),input.instruction,key,await selectedAiModel(db,uid));
-   const {data:saved}=await checked(db.from('torre_week_proposals').insert({user_id:uid,task_ids:ids,range_start:new Date(start).toISOString(),range_end:new Date(end).toISOString(),snapshot,placements:proposal.placements}).select('id,expires_at').single());
-   return json({...proposal,...saved,model:await selectedAiModel(db,uid)});
+   return json(await preparePlan(uid,input));
   }
   if(input.action==='plan-apply'){
    const {data:taskIds}=await checked(db.rpc('torre_apply_week_proposal',{p_user:uid,p_proposal:input.proposalId,p_tasks:input.taskIds,p_placements:input.placements??null}));return json({ok:true,taskIds});
@@ -86,7 +76,7 @@ Deno.serve(async(req)=>{
   if(input.action==='connect'){
    if(!Deno.env.get('GOOGLE_CLIENT_ID')||!Deno.env.get('GOOGLE_CLIENT_SECRET'))return json({error:'Configure GOOGLE_CLIENT_ID e GOOGLE_CLIENT_SECRET nos segredos do Supabase.'},503);
    const state=crypto.randomUUID();await checked(db.rpc('torre_oauth_state',{p_state:state,p_user:uid}));
-   const params=new URLSearchParams({client_id:Deno.env.get('GOOGLE_CLIENT_ID')!,redirect_uri:callback,response_type:'code',access_type:'offline',prompt:'consent',state,scope:'openid email https://www.googleapis.com/auth/tasks https://www.googleapis.com/auth/calendar.readonly'});
+   const params=new URLSearchParams({client_id:Deno.env.get('GOOGLE_CLIENT_ID')!,redirect_uri:callback,response_type:'code',access_type:'offline',prompt:'consent',state,scope:'openid email https://www.googleapis.com/auth/tasks.readonly https://www.googleapis.com/auth/calendar.readonly'});
    return json({url:'https://accounts.google.com/o/oauth2/v2/auth?'+params});
   }
   if(input.action==='disconnect'){

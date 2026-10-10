@@ -1,3 +1,4 @@
+import {useAgendaRange,type AgendaRange} from './AgendaRange';
 import {useEffect,useRef,useState,type CSSProperties} from 'react';
 import type {Calendar,CalendarEvent} from './features';
 import type {Task} from './task';
@@ -8,14 +9,14 @@ import {TriangleAlert} from 'lucide-react';
 
 export const responseLabel=(status:CalendarEvent['response_status'])=>status?({accepted:'Aceito',tentative:'Talvez',needsAction:'Sem resposta',declined:'Recusado'}[status]):'';
 const clock=(value:number)=>new Date(value).toLocaleTimeString('pt-BR',{hour:'2-digit',minute:'2-digit'});
-export function dayBounds(date:Date){const from=new Date(date);from.setHours(0,0,0,0);const to=new Date(from);to.setDate(to.getDate()+1);const first=new Date(from);first.setHours(7);const last=new Date(from);last.setHours(22);return {from:from.getTime(),to:to.getTime(),first:first.getTime(),last:last.getTime()};}
+export function dayBounds(date:Date,range:AgendaRange={start:7,end:22}){const from=new Date(date);from.setHours(0,0,0,0);const to=new Date(from);to.setDate(to.getDate()+1);const first=new Date(from);first.setHours(range.start);const last=new Date(from);last.setHours(range.end);return {from:from.getTime(),to:to.getTime(),first:first.getTime(),last:last.getTime()};}
 export function eventsForDay(date:Date,events:CalendarEvent[],calendars:Calendar[],showDeclined=false){
  const {from,to}=dayBounds(date);
  return events.filter(e=>calendars.some(c=>c.id===e.calendar_id&&c.selected)&&(showDeclined||e.response_status!=='declined')&&Date.parse(e.start_at)<to&&Date.parse(e.end_at)>from);
 }
 type Props={date:Date;events:CalendarEvent[];calendars:Calendar[];tasks:Task[];showDeclined:boolean;onOpen:(id:string)=>void;preview?:Placement[];onReserveAt?:(minute:number)=>void};
-export function agendaColumns(date:Date,events:CalendarEvent[],calendars:Calendar[],tasks:Task[],showDeclined:boolean,preview:Placement[]=[]){
- const {first,last}=dayBounds(date);
+export function agendaColumns(date:Date,events:CalendarEvent[],calendars:Calendar[],tasks:Task[],showDeclined:boolean,preview:Placement[]=[],range:AgendaRange={start:7,end:22}){
+ const {first,last}=dayBounds(date,range);
  const intervals=[...eventsForDay(date,events,calendars,showDeclined).filter(e=>!e.all_day).map(e=>({id:JSON.stringify(['google',e.calendar_id,e.id]),start:Date.parse(e.start_at),end:Date.parse(e.end_at)})),...tasks.filter(t=>!t.done&&t.at).map(t=>({id:'task:'+t.id,start:Date.parse(t.at!),end:Date.parse(t.at!)+t.minutes*60000})),...preview.map(p=>({id:'proposal:'+p.taskId,start:Date.parse(p.start),end:Date.parse(p.end)}))].filter(x=>x.start<last&&x.end>first).map(x=>({...x,start:Math.max(first,x.start),end:Math.min(last,x.end)}));
  return Math.max(1,...layoutIntervals(intervals).map(x=>x.columns));
 }
@@ -27,17 +28,17 @@ function EventDetails({event,calendar,onClose,overlap}:{event:CalendarEvent;cale
 }
 export function AllDayAgenda(props:Props){
  const [selected,setSelected]=useState<CalendarEvent|null>(null);
- const {first,last}=dayBounds(props.date);
+ const range=useAgendaRange();const {first,last}=dayBounds(props.date,range);
  const rows=eventsForDay(props.date,props.events,props.calendars,props.showDeclined).filter(e=>e.all_day||Date.parse(e.end_at)<=first||Date.parse(e.start_at)>=last);
- return <div className="all-day-events">{rows.map(e=><button className={`response-${e.response_status??'unknown'}`} key={e.calendar_id+e.id} onClick={()=>setSelected(e)} style={{borderLeftColor:props.calendars.find(c=>c.id===e.calendar_id)?.color}}>{e.all_day?'Dia inteiro':`${clock(Date.parse(e.start_at))} – ${clock(Date.parse(e.end_at))}`} · {e.title}{responseLabel(e.response_status)&&<span> · {responseLabel(e.response_status)}</span>}</button>)}{selected&&<EventDetails key={selected.calendar_id+selected.id} event={selected} calendar={props.calendars.find(c=>c.id===selected.calendar_id)} onClose={()=>setSelected(null)}/>}</div>;
+ return <div className="all-day-events">{rows.map(e=><button className={`response-${e.response_status??'unknown'}`} key={e.calendar_id+e.id} onClick={()=>setSelected(e)} style={{borderLeftColor:props.calendars.find(c=>c.id===e.calendar_id)?.color}}>{e.all_day?'Dia inteiro':`${clock(Date.parse(e.start_at))} – ${clock(Date.parse(e.end_at))}`} · {e.title}{responseLabel(e.response_status)&&<span> · {responseLabel(e.response_status)}</span>}</button>)}{props.tasks.filter(t=>!t.done&&t.at&&new Date(t.at).toDateString()===props.date.toDateString()&&(Date.parse(t.at)>=last||Date.parse(t.at)+t.minutes*60000<=first)).map(t=><button key={t.id} onClick={()=>props.onOpen(t.id)}>{t.reservationKind==='reminder'?'Lembrete':'Reserva'} fora da faixa · {clock(Date.parse(t.at!))} · {t.title}</button>)}{selected&&<EventDetails key={selected.calendar_id+selected.id} event={selected} calendar={props.calendars.find(c=>c.id===selected.calendar_id)} onClose={()=>setSelected(null)}/>}</div>;
 }
 export function TimedAgenda(props:Props){
  const [selected,setSelected]=useState<CalendarEvent|null>(null),[selectedOverlap,setSelectedOverlap]=useState('');
- const {from,to,first,last}=dayBounds(props.date);
+ const range=useAgendaRange();const {from,to,first,last}=dayBounds(props.date,range);
  const events=eventsForDay(props.date,props.events,props.calendars,props.showDeclined);
  const items:Item[]=[
   ...events.filter(e=>!e.all_day).map(e=>({id:JSON.stringify(['google',e.calendar_id,e.id]),start:Date.parse(e.start_at),end:Date.parse(e.end_at),title:e.title,event:e})),
-  ...props.tasks.filter(t=>!t.done&&t.at&&Date.parse(t.at)<to&&Date.parse(t.at)+t.minutes*60000>from).map(t=>({id:'task:'+t.id,start:Date.parse(t.at!),end:Date.parse(t.at!)+t.minutes*60000,title:t.title,task:t})),
+  ...props.tasks.filter(t=>!t.done&&t.at&&Date.parse(t.at)<to&&Date.parse(t.at)+t.minutes*60000>from).map(t=>({id:'task:'+t.id,start:Date.parse(t.at!),end:Date.parse(t.at!)+t.minutes*60000,title:(t.reservationKind==='reminder'?'Lembrete · ':'')+t.title,task:t})),
   ...(props.preview??[]).filter(p=>Date.parse(p.start)<to&&Date.parse(p.end)>from).map(p=>({id:'proposal:'+p.taskId,start:Date.parse(p.start),end:Date.parse(p.end),title:`Proposta · ${props.tasks.find(t=>t.id===p.taskId)?.title??'Tarefa'}`,proposal:p}))
  ];
  const visible=items.filter(x=>x.start<last&&x.end>first).map(x=>({...x,start:Math.max(first,x.start),end:Math.min(last,x.end)}));
@@ -52,6 +53,6 @@ export function TimedAgenda(props:Props){
   const style:CSSProperties={top:(item.start-first)/3600000*48,height:(item.end-item.start)/3600000*48,left:`calc(${item.column/item.columns*100}% + 2px)`,width:`calc(${100/item.columns}% - 4px)`,right:'auto',borderLeftColor:event?props.calendars.find(c=>c.id===event.calendar_id)?.color:undefined};
   const short=(item.end-item.start)/3600000*48<48;
   const content=<div className={`agenda-block-content${overlap?' has-overlap':''}`}><div className="agenda-clock-row"><span className="agenda-clock"><span>{clock(originalStart)}</span><span className="agenda-clock-separator"> – </span><span>{clock(originalEnd)}</span></span>{overlap&&<TriangleAlert className="agenda-overlap-icon" size={12} aria-hidden="true"/>}</div>{!short&&<><strong>{item.title}</strong>{status&&<small>{status}</small>}</>}</div>;
-  return item.proposal?<div key={item.id} className={`timeline-event agenda-card proposed-event${short?' is-short':''}`} style={style} title={label} aria-label={label}>{content}</div>:<button key={item.id} className={`timeline-event agenda-card ${short?'is-short ':''}${event?'google-event response-'+(event.response_status??'unknown'):item.task?.area==='Pessoal'?'personal':'professional'}`} style={style} title={label} aria-label={props.onReserveAt?`Reservar sobre ${label}`:label} onClick={e=>{if(props.onReserveAt){const top=e.currentTarget.parentElement!.getBoundingClientRect().top;props.onReserveAt(e.detail?slotAt(e.clientY,top):420+Math.floor((item.start-first)/900000)*15);}else if(event){setSelectedOverlap(overlap);setSelected(event);}else props.onOpen(item.task!.id);}}>{content}</button>;
+  return item.proposal?<div key={item.id} className={`timeline-event agenda-card proposed-event${short?' is-short':''}`} style={style} title={label} aria-label={label}>{content}</div>:<button key={item.id} className={`timeline-event agenda-card ${short?'is-short ':''}${event?'google-event response-'+(event.response_status??'unknown'):item.task?.reservationKind==='reminder'?'reminder-event':item.task?.area==='Pessoal'?'personal':'professional'}`} style={style} title={label} aria-label={props.onReserveAt?`Reservar sobre ${label}`:label} onClick={e=>{if(props.onReserveAt){const top=e.currentTarget.parentElement!.getBoundingClientRect().top;props.onReserveAt(e.detail?slotAt(e.clientY,top,range):range.start*60+Math.floor((item.start-first)/900000)*15);}else if(event){setSelectedOverlap(overlap);setSelected(event);}else props.onOpen(item.task!.id);}}>{content}</button>;
  })}{selected&&<EventDetails overlap={selectedOverlap} key={selected.calendar_id+selected.id} event={selected} calendar={props.calendars.find(c=>c.id===selected.calendar_id)} onClose={()=>setSelected(null)}/>}</>;
 }

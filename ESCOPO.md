@@ -113,20 +113,20 @@ Estado baseado nas revisões de 10/10/2026. Existente significa capacidade encon
 | Capacidade ou regra aprovada | Estado conhecido |
 | --- | --- |
 | Tarefas, áreas, prioridade, labels, pessoas, espera e acompanhamento | Existentes; manter |
-| Criação direta e captura com caixa de entrada/triagem | Existentes; esclarecer destinos |
+| Criação direta e captura com caixa de entrada/triagem | Existentes; destinos explicitados na interface |
 | IA, anexos, conversas e Telegram | Existentes; incorporados ao escopo |
 | Reserva manual com aviso de sobreposição | Existente; manter |
 | Sugestões na agenda com prévia | Existentes; manter |
-| Ocultar reservas fora do filtro com aviso | Ocultação observada; aviso específico pendente |
-| Foco sem horário e decisão de pendências no dia seguinte | Pendente |
-| Jornada como aviso, permitindo exceções | Pendente; código revisado rejeita desvios |
-| Escolher manter/retirar reserva ao alterar área, duração ou situação | Pendente; retirada automática encontrada |
-| Horário em espera como lembrança sem bloquear disponibilidade | Pendente |
-| Faixa horária configurável | Pendente; limite fixo encontrado |
-| Agente propondo reservas com prévia | Pendente; agente revisado atua em tarefas/labels |
-| Google Tasks só importação, sem devolver conclusão/edições | Mudança pendente; devolução de conclusão existe |
-| Edição/reabertura locais de tarefas importadas | Mudança pendente; restrições encontradas |
-| Layout do tablet e data comum em Meu dia | Melhorias pendentes da revisão visual |
+| Ocultar reservas fora do filtro com aviso | Implementado; contagem por período e ação para limpar filtros |
+| Foco sem horário e decisão de pendências no dia seguinte | Implementado; trazer para hoje, retirar ou decidir depois |
+| Jornada como aviso, permitindo exceções | Implementado; exceções manuais permitidas com aviso |
+| Escolher manter/retirar reserva ao alterar área, duração ou situação | Implementado; escolha compartilhada no editor e ações em lote |
+| Horário em espera como lembrança sem bloquear disponibilidade | Implementado; lembrete visual e conversão explícita ao voltar a A fazer |
+| Faixa horária configurável | Implementado; Configurações → Preferências, compartilhado pelas agendas e sugestões |
+| Agente propondo reservas com prévia | Implementado; proposta abre a prévia semanal, sem aplicação automática; chamada real ao modelo não testada nesta entrega |
+| Google Tasks só importação, sem devolver conclusão/edições | Implementado; importação inicial, sem sobrescrever registros já importados ou enviar alterações |
+| Edição/reabertura locais de tarefas importadas | Implementado; edição, conclusão e reabertura locais |
+| Layout do tablet e data comum em Meu dia | Implementado e publicado na etapa visual |
 
 ## Critérios de aceite
 
@@ -156,7 +156,7 @@ Exportação de tarefas, devolução de conclusão/edições e sincronização b
 ## Validações ainda necessárias
 
 - Implementar e testar pendências com dados de teste; decisão de escopo não equivale a mudança entregue.
-- Definir preservação local em reimportações e transição das conclusões antes tratadas como pendentes de envio.
+- Reimportações criam somente tarefas novas; registros já importados, inclusive arquivados ou concluídos localmente, são preservados. Exclusão no Google não exclui na Torre. A fila e os campos históricos de envio permanecem guardados, mas não são processados nem apresentados como envios pendentes. Novas autorizações Google Tasks usam escopo de leitura.
 - Validar foco entre dias, lembranças sem bloqueio, mudança de duração e avisos nos caminhos de reserva.
 - Completar testes de erro, tema escuro, densidades, zoom, teclado virtual e acessibilidade.
 - O documento original preserva registros de entrega e validações de 04/10/2026; eles não comprovam o comportamento deste novo escopo.

@@ -1,3 +1,4 @@
+import {supabase} from './supabase';
 import {Sheet,SheetContent,SheetTitle,SheetDescription} from './components/ui/sheet';
 import {useEffect,useRef,useState} from 'react';
 import type {Task} from './task';
@@ -5,7 +6,7 @@ import {invoke,type Features} from './features';
 export type Placement={taskId:string;start:string;end:string;reason:string};
 type Proposal={id:string;placements:Placement[];unplaced:string[];expires_at:string};
 const localInput=(value:string)=>{const d=new Date(value);return `${d.getFullYear()}-${String(d.getMonth()+1).padStart(2,'0')}-${String(d.getDate()).padStart(2,'0')}T${String(d.getHours()).padStart(2,'0')}:${String(d.getMinutes()).padStart(2,'0')}`;};
-export function WeekPlanner({tasks,week,features,onPreview,onApplied,autoOpenKey=0}:{autoOpenKey?:number;tasks:Task[];week:Date;features:Features;onPreview:(rows:Placement[])=>void;onApplied:()=>void}){
+export function WeekPlanner({tasks,week,features,onPreview,onApplied,autoOpenKey=0,proposalId}:{autoOpenKey?:number;proposalId?:string;tasks:Task[];week:Date;features:Features;onPreview:(rows:Placement[])=>void;onApplied:()=>void}){
  const [mobile,setMobile]=useState(()=>window.matchMedia('(max-width:767px)').matches);
  useEffect(()=>{const media=window.matchMedia('(max-width:767px)');const update=()=>setMobile(media.matches);media.addEventListener('change',update);return()=>media.removeEventListener('change',update);},[]);
  const [open,setOpen]=useState(false),[selected,setSelected]=useState<string[]>([]),[accepted,setAccepted]=useState<string[]>([]),[instruction,setInstruction]=useState(''),[proposal,setProposal]=useState<Proposal|null>(null),[busy,setBusy]=useState(false),[error,setError]=useState('');const revision=useRef(0);
@@ -13,6 +14,7 @@ export function WeekPlanner({tasks,week,features,onPreview,onApplied,autoOpenKey
  const key=week.toISOString();
  useEffect(()=>{revision.current++;setProposal(null);setSelected([]);setAccepted([]);onPreview([]);setBusy(false);},[key]);
  useEffect(()=>()=>{revision.current++;},[]);
+ useEffect(()=>{if(!proposalId)return;let cancelled=false;setError('');void supabase.from('torre_week_proposals').select('id,placements,task_ids,expires_at,applied_at').eq('id',proposalId).single().then(({data,error})=>{if(cancelled)return;if(error||!data){setError('Não foi possível carregar a proposta.');setOpen(true);return;}if(data.applied_at){setError('Esta proposta já foi aplicada.');setOpen(true);return;}const p:Proposal={...data,unplaced:data.task_ids.filter((id:string)=>!data.placements.some((row:Placement)=>row.taskId===id))};setProposal(p);setAccepted(p.placements.map(row=>row.taskId));setSelected(data.task_ids);onPreview(p.placements);setOpen(true);});return()=>{cancelled=true;};},[proposalId,key]);
  const eligible=tasks.filter(t=>!t.done&&!t.at&&t.situation!=='waiting');
  const eligibleKey=eligible.map(t=>t.id).sort().join(',');
  useEffect(()=>{const ids=new Set(eligibleKey.split(','));setSelected(current=>current.filter(id=>ids.has(id)));},[eligibleKey]);
