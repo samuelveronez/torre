@@ -122,3 +122,21 @@ body{background:inherit;color:inherit}.app-shell :is(h1,h2,h3,strong){color:var(
  :root .app-shell.menu-compact :is(.sidebar-collapse,.sidebar-capture,.sidebar-nav>button,.sidebar-bottom>button){display:flex;align-items:center;justify-content:center;align-self:center;width:44px;min-width:44px;height:44px;min-height:44px;margin-inline:auto;padding:0;gap:0;box-sizing:border-box}
  :root .app-shell.menu-compact :is(.sidebar-collapse,.sidebar-capture,.sidebar-nav>button,.sidebar-bottom>button)>svg{display:block;flex-shrink:0;margin:0}
 }
+
+:root [data-slot=dialog-content].discard-confirmation{z-index:121}.discard-actions{display:flex;gap:8px;flex-wrap:wrap;justify-content:flex-end}
+
+@media(max-width:1023px){
+ :root .app-shell.agent-focus .app-topbar{display:flex;flex-shrink:0}
+ :root .app-shell.menu-compact .navigation-sheet .sidebar{width:100%;padding:0}
+ :root .app-shell.menu-compact .navigation-sheet .sidebar-brand>div{display:block}
+ :root .app-shell.menu-compact .navigation-sheet :is(.sidebar-capture,.sidebar-nav button,.sidebar-bottom>button) span{display:inline}
+ :root .app-shell.menu-compact .navigation-sheet :is(.sidebar-section,.sidebar-label-heading,.sidebar-account){display:flex}
+ :root .app-shell.menu-compact .navigation-sheet #sidebar-labels:not([hidden]){display:grid}
+ :root .app-shell.menu-compact .navigation-sheet :is(.sidebar-capture,.sidebar-nav button,.sidebar-bottom>button){justify-content:flex-start;width:100%;gap:10px}
+}
+
+:root .agent-chat{--muted:var(--muted-foreground);--accent:var(--primary);--accent-soft:var(--accent)}
+:root .agent-chat .agent-intro-icon{color:var(--primary);background:var(--background);border:1px solid var(--border)}
+@media(max-width:767px){:root .app-shell .task-row .task-complete-target{opacity:1}}
+
+:root .calendar .time-axis,:root .calendar .time-head,:root .calendar .all-day-axis{position:sticky;left:0;background:var(--background);z-index:4}:root .calendar .time-head{top:0;z-index:5}

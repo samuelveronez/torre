@@ -35,3 +35,5 @@ Rótulos em português, foco visível, nomes acessíveis em ícones, contraste l
 Validar 320, 390, 768, 820, 1024 e 1440 px, ambos os temas/densidades, dados longos, espera, reservas, vazio, erro e teclado. Evidências e limitações ficam na pasta revisao-de-arquitetura. A validação sintética não substitui testes autenticados de integrações nem comprova entrega das funcionalidades pendentes do ESCOPO.md.
 
 Densidade padrão: Confortável, conforme preferência confirmada. A opção Compacta continua disponível; preferências já salvas são preservadas.
+
+Confirmação de descarte do editor usa Dialog, com foco inicial em Continuar editando e retorno à tarefa. O Modo IA preserva acesso ao menu abaixo de 1024 px. Coluna de horários permanece fixa na grade semanal. Captura usa o nome acessível gerado por DialogTitle; campos de credenciais têm rótulo visível.
