@@ -47,3 +47,5 @@ Menus de tarefa compartilham TaskActionMenu: mouse abre o menu e o submenu de pr
 Em Meu dia, foco sem horário, reservas, lembretes e prazos compartilham uma lista sem duplicatas. A linha preserva motivos simultâneos: Target + Foco sem repetir a data selecionada; Clock + Reserva e Bell + Lembrete com horário. Prazo permanece no metadado existente. Atrasadas e acompanhamentos ficam separados, sem repetir itens já presentes na lista do dia.
 
 Cabeçalho de Meu dia alinhado à esquerda acima das ações: dia anterior, data por extenso, próximo dia, calendário e Hoje.
+
+Prévia do planejamento semanal: painel de até 440 px no computador; seleção e título em uma linha ampla, data/hora e justificativa abaixo alinhadas ao título. Título e horário em 14 px; controles de toque de 44 px no celular.
