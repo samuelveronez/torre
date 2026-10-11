@@ -45,3 +45,5 @@ Caixa de entrada: cards compactos, texto em 14 px e metadados discretos. Anexos 
 Menus de tarefa compartilham TaskActionMenu: mouse abre o menu e o submenu de prioridade por hover, com pequeno atraso para evitar abertura acidental. A escolha exige clique ou teclado; toque continua disponível. Meu dia mostra uma única data por extenso, com controles discretos e seletor de data por ícone.
 
 Em Meu dia, foco sem horário, reservas, lembretes e prazos compartilham uma lista sem duplicatas. A linha preserva motivos simultâneos: Target + Foco sem repetir a data selecionada; Clock + Reserva e Bell + Lembrete com horário. Prazo permanece no metadado existente. Atrasadas e acompanhamentos ficam separados, sem repetir itens já presentes na lista do dia.
+
+Cabeçalho de Meu dia alinhado à esquerda acima das ações: dia anterior, data por extenso, próximo dia, calendário e Hoje.
