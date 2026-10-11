@@ -1,0 +1,4 @@
+/* Focus is an aligned secondary action, shared with the task row. */
+:root .app-shell .task-row .row-actions .row-focus{display:inline-flex;align-items:center;gap:6px;min-height:44px;padding:0 8px;border:0;background:transparent;box-shadow:none;color:var(--muted-foreground);font-size:12px;font-weight:400;white-space:nowrap}
+:root .app-shell .task-row .row-actions .row-focus:hover{background:var(--accent);color:var(--foreground)}
+:root .app-shell .task-row .row-actions .row-focus[aria-pressed=true]{color:var(--primary)}
