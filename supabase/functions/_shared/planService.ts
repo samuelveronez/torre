@@ -9,8 +9,6 @@ export async function preparePlan(uid:string,input:any){
  const key=await secret(uid,'ai');if(!key)throw new Error('Cadastre sua chave OpenRouter.');
  const {data:snapshot}=await checked(db.rpc('torre_plan_snapshot',{p_user:uid,p_tasks:ids}));
  if(snapshot.tasks.length!==ids.length||snapshot.tasks.some((t:any)=>t.archived_at||t.status!=='todo'||snapshot.blocks.some((b:any)=>b.task_id===t.id)))throw new Error('Selecione somente pendências sem reserva.');
- const g=snapshot.google;
- if(g?.connected&&(!g.calendar_synced_at||Date.parse(g.calendar_synced_at)<Date.now()-300000||g.error||!g.range_start||!g.range_end||Date.parse(g.range_start)>start||Date.parse(g.range_end)<end))throw new Error('Atualize a agenda antes de gerar a proposta.');
  const model=await selectedAiModel(db,uid),proposal=await propose(snapshot,new Date(start).toISOString(),new Date(end).toISOString(),input.instruction,key,model);
  const {data:saved}=await checked(db.from('torre_week_proposals').insert({user_id:uid,task_ids:ids,range_start:new Date(start).toISOString(),range_end:new Date(end).toISOString(),snapshot,placements:proposal.placements}).select('id,expires_at').single());
  return {...proposal,...saved,model};

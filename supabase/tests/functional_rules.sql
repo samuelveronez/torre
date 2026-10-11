@@ -44,11 +44,13 @@ begin
  insert into public.torre_tasks(id,user_id,title,area,status,waiting_for,follow_up_date,duration_minutes) values(reminder,i.owner,'Synthetic reminder','personal','waiting','Synthetic person',current_date+3,30);
  insert into public.torre_scheduled_blocks(user_id,task_id,start_at,end_at,kind) values(i.owner,reminder,i.at,i.at+interval '30 minutes','reminder');
  placements:=jsonb_build_array(jsonb_build_object('taskId',i.task,'start',i.at,'end',i.at+interval '30 minutes','reason','Synthetic test'));
+ insert into public.torre_google_status(user_id,connected,calendar_synced_at,error) values(i.owner,true,now()-interval '1 day','Synthetic offline calendar');
  insert into public.torre_week_proposals(id,user_id,task_ids,range_start,range_end,snapshot,placements) values(proposal,i.owner,array[i.task],i.at-interval '5 hours',i.at+interval '7 days'-interval '5 hours',public.torre_plan_snapshot(i.owner,array[i.task]),placements);
  begin
   perform public.torre_apply_week_proposal(i.owner,proposal,array[i.task],jsonb_build_array(jsonb_build_object('taskId',i.task,'start',i.at+interval '4 hours','end',i.at+interval '4 hours 30 minutes')));
  exception when check_violation then failed:=true; when raise_exception then failed:=true; end;
  if not failed then raise exception 'Automatic planning ignored work hours'; end if;
+ update public.torre_google_status set calendar_synced_at=now()-interval '2 days' where user_id=i.owner;
  perform public.torre_apply_week_proposal(i.owner,proposal,array[i.task],null);
  if not exists(select 1 from public.torre_scheduled_blocks where task_id=i.task and kind='execution' and start_at=i.at) then raise exception 'Reminder blocked automatic placement'; end if;
 end $$;

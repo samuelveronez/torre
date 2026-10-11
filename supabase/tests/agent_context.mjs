@@ -25,6 +25,7 @@ class Query{
 }
 globalThis.__agentServiceTest={db:{from:table=>new Query(table),rpc:async(name,args)=>{if(name==='torre_agent_claim'){claimArgs=args;return {data:{state:'processing'}};}return {data:{active:0}};}},checked:async value=>await value,secret:async()=> 'synthetic-key'};
 const source=(await readFile(new URL('../functions/_shared/agentService.ts',import.meta.url),'utf8'))
+ .replace("import {preparePlan} from './planService.ts';","const preparePlan=async()=>{throw new Error('Planning is outside this context test');};")
  .replace("import {db,checked,secret} from './google.ts';","const {db,checked,secret}=globalThis.__agentServiceTest;")
  .replace("from './aiSettings.ts'",`from '${new URL('../functions/_shared/aiSettings.ts',import.meta.url).href}'`)
  .replace("from './agent.ts'",`from '${new URL('../functions/_shared/agent.ts',import.meta.url).href}'`);

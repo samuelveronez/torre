@@ -41,8 +41,10 @@ export function useFeatures(userId:string,start:Date,onTasks:()=>void){
  await ensure(supabase.from('torre_captures').upsert({id,user_id:userId,body:text,mode,ai_profile:profile},{onConflict:'id',ignoreDuplicates:true}));
  const saved=await ensure(supabase.from('torre_captures').select('ai_profile').eq('id',id).eq('user_id',userId).single());await invoke('capture-profile',{profile:saved.data?.ai_profile??profile});
  const existing=await ensure(supabase.from('torre_attachments').select('*').eq('capture_id',id));
- for(const [ordinal,file] of files.entries()){const old=existing.data?.find(a=>a.ordinal===ordinal);const attachmentId=old?.id??crypto.randomUUID();const a:Attachment=old??{id:attachmentId,capture_id:id,name:file.name,size:file.size,path:`${userId}/${id}/${attachmentId}`,state:'uploading',error:null};if(!old)await ensure(supabase.from('torre_attachments').insert({...a,user_id:userId,ordinal}));if(a.state!=='uploaded')try{await upload(a,file);}catch{/* Persisted error remains retryable in inbox. */}}
+ let uploadFailed=false;
+ for(const [ordinal,file] of files.entries()){const old=existing.data?.find(a=>a.ordinal===ordinal);const attachmentId=old?.id??crypto.randomUUID();const a:Attachment=old??{id:attachmentId,capture_id:id,name:file.name,size:file.size,path:`${userId}/${id}/${attachmentId}`,state:'uploading',error:null};if(!old)await ensure(supabase.from('torre_attachments').insert({...a,user_id:userId,ordinal}));if(a.state!=='uploaded')try{await upload(a,file);}catch{uploadFailed=true;}}
  await load();
+ if(uploadFailed)throw new Error('Falha ao anexar. Seu texto e arquivos foram mantidos para tentar novamente; a captura também está na caixa de entrada.');
  const settings=await ensure(supabase.from('torre_ai_settings').select('enabled').eq('user_id',userId).maybeSingle());
  if(settings.data?.enabled&&text.trim()&&!lock.current){void triageCapture(id);}
  }

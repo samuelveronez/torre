@@ -66,6 +66,7 @@ Os dois caminhos permanecem, com destinos claros:
 - Sugestões procuram encaixes conforme duração, jornada e disponibilidade; a escolha manual continua flexível e informa desvios.
 - Propostas não criam reservas antes da revisão e aplicação. Mostrar também tarefas que não couberam.
 - O Modo IA pode propor reservas com prévia obrigatória antes de aplicar, além das sugestões da agenda semanal.
+- A idade da sincronização da agenda não bloqueia o agente, as sugestões ou sua aplicação. Usar os dados disponíveis, mantendo a atualização opcional e as validações de conflitos conhecidos.
 
 ## Google Tasks — somente importação
 
@@ -77,7 +78,7 @@ Decisão final de 10/10/2026: “Vamos centralizar na Torre sem devolver ao Goog
 - Não implementar mapeamento de labels para listas, seleção de destino de exportação ou conflitos de escrita entre os sistemas.
 - Reimportações devem respeitar a centralização: não duplicar tarefas nem apagar alterações/conclusões locais. Definir e documentar a política técnica de atualização dos dados de origem na implementação, preservando o controle local.
 - Mostrar origem, estado da importação, falhas e nova tentativa. Não apresentar conclusão local como pendente de envio ao Google.
-- A mudança de escopo ainda exige implementação e transição do comportamento atual. A atualização deste documento não altera integrações, filas ou dados existentes.
+- Transição implementada em 10/10/2026: Google Tasks somente importa; filas históricas de envio permanecem preservadas e inativas.
 
 ## Calendários
 
