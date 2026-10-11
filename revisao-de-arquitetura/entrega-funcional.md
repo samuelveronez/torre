@@ -32,3 +32,8 @@ Os advisors continuam indicando achados anteriores: [função privilegiada de pe
 ## Publicação
 
 Backend implantado: integrações v27; callback Google v5; worker Google v5. Três migrações aplicadas. Interface publicada em https://torre.veronez.app/. Commit de integração `202c9695bbb762e7bedf55e26bcb18daa6620776`; GitHub Pages run `38096525361` concluído com success. O domínio entregou `index-D7zYaUoA.js` e `index-b0vdnem1.css`, os mesmos arquivos do build local validado. A correção remota de centralização da captura foi preservada. POST sem autenticação à integração retornou 401. Confirmação do domínio por leitura do HTML, sem executar fluxos autenticados com dados reais.
+
+
+### Ajuste visual do foco (10/10/2026)
+
+A escolha de foco agora integra as acoes da linha, com icone Lucide Target e rotulo discreto Foco / Em foco. O controle separado acima da tarefa foi removido. Clique e Enter alternam escolher e retirar; aria-pressed informa o estado. Verificado em 1440 e 390 px, sem rolagem horizontal, com alvo de 44 px. Build TypeScript/Vite aprovado. Nenhuma regra funcional mudou; o escopo permanece valido. Evidencias: evidencias-funcionais/foco-discreto-desktop.png e foco-discreto-mobile.png.
