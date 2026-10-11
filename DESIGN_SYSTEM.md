@@ -39,3 +39,5 @@ Densidade padrão: Confortável, conforme preferência confirmada. A opção Com
 Confirmação de descarte do editor usa Dialog, com foco inicial em Continuar editando e retorno à tarefa. O Modo IA preserva acesso ao menu abaixo de 1024 px. Coluna de horários permanece fixa na grade semanal. Captura usa o nome acessível gerado por DialogTitle; campos de credenciais têm rótulo visível.
 
 Interações funcionais: foco do dia sem horário é separado de prazo e reserva. Mudanças de área, duração ou situação em tarefas reservadas usam ReservationDecision; manter em espera cria lembrete tracejado, sem bloquear disponibilidade. FocusReview pede uma decisão sobre focos anteriores. AgendaRange centraliza a faixa horária das grades; horários existentes fora da faixa permanecem acessíveis acima da grade. Propostas do agente abrem a mesma prévia semanal e exigem Aplicar proposta.
+
+Caixa de entrada: cards compactos, texto em 14 px e metadados discretos. Anexos compartilham uma linha com ícone, nome, estado e ação Baixar/Reenviar; o seletor nativo fica oculto. Falhas permanecem visíveis e detalhes técnicos são expansíveis. Evitar dicas explicativas permanentes no fluxo pessoal.
