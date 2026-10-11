@@ -37,3 +37,8 @@ Backend implantado: integrações v27; callback Google v5; worker Google v5. Tr�
 ### Ajuste visual do foco (10/10/2026)
 
 A escolha de foco agora integra as acoes da linha, com icone Lucide Target e rotulo discreto Foco / Em foco. O controle separado acima da tarefa foi removido. Clique e Enter alternam escolher e retirar; aria-pressed informa o estado. Verificado em 1440 e 390 px, sem rolagem horizontal, com alvo de 44 px. Build TypeScript/Vite aprovado. Nenhuma regra funcional mudou; o escopo permanece valido. Evidencias: evidencias-funcionais/foco-discreto-desktop.png e foco-discreto-mobile.png.
+
+
+### Notificacoes sem bloqueio (10/10/2026)
+
+Toast e aviso de salvamento compartilham Notification: painel pequeno fixo, sem backdrop, sem deslocar o conteudo e sem interceptar cliques fora do painel. Preservados Desfazer, fechar, prazo de exibicao e anuncio acessivel. Validacao local com dados sinteticos: layout manteve posicao e altura ao fechar; botao Hoje funcionou com aviso aberto; 390 px sem overflow e controles de 44 px. Build aprovado. Evidencia: evidencias-funcionais/toast-nao-bloqueante-desktop.png.

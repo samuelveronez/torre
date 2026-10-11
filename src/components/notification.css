@@ -1,0 +1,9 @@
+.torre-notification-region{position:fixed;inset:auto 16px 16px auto;width:min(380px,calc(100% - 32px));height:auto;z-index:90;pointer-events:none;transform:none;translate:none}
+.torre-notification-region.notification-top{inset:80px 16px auto auto}
+.torre-notification-region:empty{display:none}
+.torre-notification{display:flex;align-items:center;gap:12px;padding:10px 12px;border:1px solid var(--border);border-radius:8px;background:var(--background);color:var(--foreground);box-shadow:0 4px 16px #0002;pointer-events:auto;font-size:13px;line-height:1.45}
+.torre-notification>span{flex:1;min-width:0;overflow-wrap:anywhere;max-height:25dvh;overflow:auto}
+.notification-actions{display:flex;align-items:center;gap:4px;flex-shrink:0}
+.notification-actions button{display:inline-flex;align-items:center;justify-content:center;min-height:44px;min-width:44px;padding:6px;border:0;background:transparent;color:var(--primary);font-size:12px}
+.notification-actions button:hover{background:var(--accent)}
+@media(max-width:767px){.torre-notification-region.notification-top{top:120px}}
