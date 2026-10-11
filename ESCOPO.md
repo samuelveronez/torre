@@ -18,7 +18,7 @@ Reunir pendências e planejar um dia que caiba na agenda em 5 a 15 minutos. Redu
 - Webapp pessoal responsivo: planejar no computador, consultar e capturar no celular, com layout adequado também ao tablet.
 - Menu lateral, busca e seletor de área; menu recolhível no celular. Adaptar menu e controles para preservar legibilidade no tablet.
 - Tarefas é uma visão independente: consultar, editar e concluir sem exigir reserva de horário.
-- Meu dia reúne foco, reservas, prazos do dia, atrasadas e acompanhamentos. Tarefas e agenda diária representam o mesmo dia selecionado.
+- Meu dia reúne foco, reservas, lembretes e prazos em uma lista única, sem duplicar tarefas; os motivos aparecem na linha. Atrasadas e acompanhamentos permanecem em grupos separados. Tarefas e agenda diária representam o mesmo dia selecionado.
 - Agenda semanal com foco opcional em um dia e sugestões de horários com prévia.
 - Filtros por área, situação, prioridade e labels; busca e ordenação por prazo, acompanhamento, duração, nome, prioridade ou inclusão.
 - Filtros de área, label e busca podem ocultar reservas de tarefas fora do filtro, mas a agenda deve avisar claramente que existem reservas ocultas e que a visão não representa toda a ocupação. Oferecer caminho para revelar ou limpar filtros.

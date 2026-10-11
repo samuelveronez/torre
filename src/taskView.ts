@@ -9,5 +9,8 @@ export function dayGroups(tasks:Task[],date:Date){
  const ids=new Set(reserved.map(t=>t.id));const due=open.filter(t=>!ids.has(t.id)&&t.situation!=='waiting'&&t.due===day).sort(newest);due.forEach(t=>ids.add(t.id));
  const late=open.filter(t=>!ids.has(t.id)&&t.situation!=='waiting'&&t.due&&t.due<day).sort((a,b)=>a.due.localeCompare(b.due)||newest(a,b));
  const follow=open.filter(t=>!ids.has(t.id)&&t.situation==='waiting'&&t.followUp&&t.followUp<=day).sort((a,b)=>a.followUp!.localeCompare(b.followUp!)||newest(a,b));
- return {reserved,due,late,follow};
+ const focus=open.filter(t=>t.focusDate===day).sort(newest);
+ const today=Array.from(new Map([...focus,...reserved,...due].map(t=>[t.id,t])).values());
+ const todayIds=new Set(today.map(t=>t.id));
+ return {reserved,due,today,late:late.filter(t=>!todayIds.has(t.id)),follow:follow.filter(t=>!todayIds.has(t.id))};
 }

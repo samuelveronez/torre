@@ -13,3 +13,13 @@ Deno.test('Newest uses creation time and preserves capture order for simultaneou
 Deno.test('Shared area and search combine for every task view',()=>{
  const t=task('one',{area:'Profissional',title:'Revisar relatório',waitingFor:'Equipe'});equal(matchesTask(t,'Pessoal','relatório'),false);equal(matchesTask(t,'Profissional',' RELATÓRIO '),true);equal(matchesTask(t,'Tudo','equipe'),true);equal(matchesTask(t,'Tudo','carro'),false);
 });
+
+Deno.test('Unified day list retains multiple reasons once and separates overdue and follow-ups',()=>{
+ const date=new Date('2026-10-05T12:00:00'),day=dateKey(date);
+ const rows=[task('focus',{focusDate:day,due:'2026-10-04'}),task('many',{focusDate:day,at:'2026-10-05T10:00:00',due:day}),task('reminder',{at:'2026-10-05T11:00:00',reservationKind:'reminder',situation:'waiting',followUp:day}),task('due',{due:day}),task('late',{due:'2026-10-04'}),task('follow',{situation:'waiting',followUp:day}),task('future',{focusDate:'2026-10-06'}),task('done',{done:true,focusDate:day})];
+ const groups=dayGroups(rows,date);
+ equal(groups.today.map(t=>t.id),['focus','many','reminder','due']);
+ equal(groups.late.map(t=>t.id),['late']);equal(groups.follow.map(t=>t.id),['follow']);
+ equal(groups.today.find(t=>t.id==='many')?.due,day);
+ equal(dayGroups(rows,new Date('2026-10-06T12:00:00')).today.map(t=>t.id),['future']);
+});
