@@ -3,3 +3,15 @@ dist/
 .env*
 *.local
 .db-validation/
+*.zip
+/*.png
+/*.jpg
+supabase/.temp/
+visual-prep/
+Centro de Treinamento Executivo IA/
+.claude/settings.local.json
+docs-internas/evidencias/
+docs-internas/toast-publish-*/
+docs-internas/revisao-de-arquitetura/evidencias-*/
+docs-internas/revisao-de-arquitetura/exemplos-design-system/
+docs-internas/revisao-de-arquitetura/validacao-visual/
