@@ -2,8 +2,8 @@
 @import "tailwindcss/utilities.css" layer(utilities);
 @custom-variant dark (&:where([data-theme=dark], [data-theme=dark] *));
 @theme inline {--color-background:var(--background);--color-foreground:var(--foreground);--color-primary:var(--primary);--color-primary-foreground:var(--primary-foreground);--color-muted:var(--muted);--color-muted-foreground:var(--muted-foreground);--color-accent:var(--accent);--color-accent-foreground:var(--foreground);--color-border:var(--border);--color-input:var(--border);--color-ring:var(--primary);--color-popover:var(--background);--color-popover-foreground:var(--foreground);--color-destructive:#b91c1c;--radius-md:6px;--radius-lg:10px}
-:root{--background:#fff;--foreground:#18181b;--primary:#0176d3;--primary-foreground:#fff;--muted:#f4f4f5;--muted-foreground:#71717a;--accent:#eaf3fc;--border:#e4e4e7;--ux-surface:var(--background);--ux-border:var(--border);--ux-muted:var(--muted-foreground);--ux-ink:var(--foreground);--ux-blue:var(--primary);--ux-soft:var(--muted);font-family:'Segoe UI',Arial,sans-serif;background:#fafafa;color:var(--foreground)}
-[data-theme=dark]{--background:#18181b;--foreground:#f4f4f5;--primary:#79b8ff;--primary-foreground:#10263e;--muted:#27272a;--muted-foreground:#a1a1aa;--accent:#20344a;--border:#3f3f46;--ux-surface:var(--background);--ux-border:var(--border);--ux-muted:var(--muted-foreground);--ux-ink:var(--foreground);--ux-blue:var(--primary);--ux-soft:var(--muted);background:#09090b;color:var(--foreground)}
+:root{--background:#fff;--foreground:#18181b;--primary:#0176d3;--primary-foreground:#fff;--muted:#f4f4f5;--muted-foreground:#71717a;--accent:#eaf3fc;--border:#e4e4e7;font-family:'Segoe UI',Arial,sans-serif;background:#fafafa;color:var(--foreground)}
+[data-theme=dark]{--background:#18181b;--foreground:#f4f4f5;--primary:#79b8ff;--primary-foreground:#10263e;--muted:#27272a;--muted-foreground:#a1a1aa;--accent:#20344a;--border:#3f3f46;background:#09090b;color:var(--foreground)}
 body{background:inherit;color:inherit}.app-shell :is(h1,h2,h3,strong){color:var(--foreground)}
 .app-shell :is(.card,.sidebar,.app-topbar,.home-tasks,.home-agenda,.settings-body,.list-toolbar){background:var(--background);border-color:var(--border);box-shadow:none}.app-shell .app-topbar{border-top:0;gap:12px}
 .app-shell :is(.pill,.label-chip,.nav-count,.count){background:var(--muted);color:var(--foreground);border-color:var(--border)}.app-shell .pill{border-left:3px solid #0176d3;border-radius:4px}.app-shell .pill.purple{border-left-color:#8755ad;color:var(--foreground)!important}
@@ -142,7 +142,7 @@ body{background:inherit;color:inherit}.app-shell :is(h1,h2,h3,strong){color:var(
  :root .app-shell.menu-compact .navigation-sheet :is(.sidebar-capture,.sidebar-nav button,.sidebar-bottom>button){justify-content:flex-start;width:100%;gap:10px}
 }
 
-:root .agent-chat{--muted:var(--muted-foreground);--accent:var(--primary);--accent-soft:var(--ux-soft)}
+:root .agent-chat{--agent-muted:var(--muted-foreground);--agent-accent:var(--primary);--agent-accent-soft:var(--muted)}
 :root .agent-chat .agent-intro-icon{color:var(--primary);background:var(--background);border:1px solid var(--border)}
 @media(max-width:767px){:root .app-shell .task-row .task-complete-target{opacity:1}}
 
