@@ -36,6 +36,7 @@ Stack: React 19 + Vite + Tailwind 4 + shadcn/ui no frontend; Supabase (Postgres 
 - **Área de rascunho fora do repositório**: clones, builds de publicação, `*.tar`, testes descartáveis e capturas de tela temporárias vão em `%TEMP%\torre-scratch\` (ou `.scratch/`, ignorada pelo git). **Nunca** criar clones, `node_modules` ou outro `.git` dentro do projeto nem dentro de `docs-internas/`.
 - **`docs-internas/`** guarda só texto versionável (`.md`). Relatórios novos só sob pedido, em `docs-internas/` (revisões em `docs-internas/revisao-de-arquitetura/`). Imagens e evidências ficam fora do git (`docs-internas/evidencias/` é ignorada); o repositório é **público**, então nunca commitar capturas de login, e-mails, IDs ou tokens.
 - **`docs/`** é só o build publicado. Publicar: `npm run build` e `npm run publish:docs`; conferir se `docs/assets` ficou só com os arquivos referenciados por `docs/index.html`.
+- **`visual-prep/`** existe vazia e ignorada pelo git: é onde os testes de UI (`conversations_ui.mjs`, `telegram_ui.mjs`) gravam capturas. Não guardar nada importante nela; arquivar fora do repositório.
 - **Scripts auxiliares** reutilizáveis ficam em `scripts/`; descartáveis ficam no rascunho.
 
 ## Trabalho em paralelo com outros agentes
