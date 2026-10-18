@@ -56,7 +56,7 @@
 @media(pointer:coarse){.inline-priority select{min-height:44px}}
 
 /* Meu dia: scoped refinements leave the general task list unchanged. */
-.app-shell .daily-actions .day-choose-primary{background:#0176d3;border-color:#0176d3;color:#fff}
+.app-shell .daily-actions .day-choose-primary{background:var(--brand);border-color:var(--brand);color:#fff}
 .app-shell .daily-actions .day-choose-primary:hover{background:#0b5cab;border-color:#0b5cab}
 .app-shell .daily-view .day-group.is-empty{display:flex;align-items:center;flex-wrap:wrap;gap:8px 16px;padding-top:10px;padding-bottom:10px}
 .app-shell .daily-view .day-group.is-empty h2,.app-shell .daily-view .day-group.is-empty p{margin:0;padding:0;font-size:14px}

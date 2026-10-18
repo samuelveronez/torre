@@ -23,7 +23,7 @@
 .quick-capture-dialog .attachment-row>button{flex-shrink:0}
 .quick-capture-dialog [role=alert]{margin:0;color:#a30515;overflow-wrap:anywhere}
 .quick-capture-dialog [role=alert]:empty{display:none}
-.quick-capture-dialog .capture-body>.primary{width:100%;padding:10px 12px;background:#0176d3;color:#fff;border-color:#0176d3}
+.quick-capture-dialog .capture-body>.primary{width:100%;padding:10px 12px;background:var(--brand);color:#fff;border-color:var(--brand)}
 .quick-capture-dialog .capture-body>.primary:hover{background:#0b5cab}
 [data-theme=dark] .quick-capture-dialog [role=alert]{color:#ffb5bd}
 @media(max-width:600px){.quick-capture-dialog .capture-body{padding:16px}.quick-capture-dialog .card-head{padding:12px 16px}}
