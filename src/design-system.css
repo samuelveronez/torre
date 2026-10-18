@@ -149,3 +149,7 @@ body{background:inherit;color:inherit}.app-shell :is(h1,h2,h3,strong){color:var(
 :root .calendar .time-axis,:root .calendar .time-head,:root .calendar .all-day-axis{position:sticky;left:0;background:var(--background);z-index:4}:root .calendar .time-head{top:0;z-index:5}
 
 .reminder-event{border-style:dashed!important;background:var(--muted)!important;color:var(--foreground)!important}
+
+/* Select: same look as Input, with a chevron instead of the browser arrow. */
+:root select:not([multiple]):not([size]){appearance:none;background-color:var(--background);background-image:url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='16' height='16' viewBox='0 0 24 24' fill='none' stroke='%2371717a' stroke-width='2' stroke-linecap='round' stroke-linejoin='round'%3E%3Cpath d='m6 9 6 6 6-6'/%3E%3C/svg%3E");background-repeat:no-repeat;background-position:right 10px center;background-size:16px;border:1px solid var(--border);border-radius:6px;color:var(--foreground);padding-right:34px;text-overflow:ellipsis}
+:root select:not([multiple]):not([size]):disabled{opacity:.5}
