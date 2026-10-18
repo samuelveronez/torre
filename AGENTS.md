@@ -30,3 +30,15 @@ Stack: React 19 + Vite + Tailwind 4 + shadcn/ui no frontend; Supabase (Postgres 
 - Commits pequenos, mensagem no imperativo em inglês, um assunto por commit. Não commitar nem dar push sem pedido. Nunca `--no-verify`.
 - Não criar `.md` novos sem pedido. Não commitar `dist/`, `.zip`, imagens soltas na raiz.
 - O working tree pode ter mudanças do dono que não são suas: faça `git add` só dos seus arquivos.
+
+## Organização do repositório (manter)
+- **Raiz só com**: `README.md`, `AGENTS.md`, `CLAUDE.md`, `package*.json`, configs (`vite`, `tsconfig`, `components.json`, `index.html`, `.gitignore`) e as pastas `src/`, `supabase/`, `docs/`, `docs-internas/`, `scripts/`, `.github/`, `.claude/`. Qualquer outra coisa na raiz (imagens, `.zip`, `.md`, clones) está errada.
+- **Área de rascunho fora do repositório**: clones, builds de publicação, `*.tar`, testes descartáveis e capturas de tela temporárias vão em `%TEMP%\torre-scratch\` (ou `.scratch/`, ignorada pelo git). **Nunca** criar clones, `node_modules` ou outro `.git` dentro do projeto nem dentro de `docs-internas/`.
+- **`docs-internas/`** guarda só texto versionável (`.md`). Relatórios novos só sob pedido, em `docs-internas/` (revisões em `docs-internas/revisao-de-arquitetura/`). Imagens e evidências ficam fora do git (`docs-internas/evidencias/` é ignorada); o repositório é **público**, então nunca commitar capturas de login, e-mails, IDs ou tokens.
+- **`docs/`** é só o build publicado. Publicar: `npm run build` e `npm run publish:docs`; conferir se `docs/assets` ficou só com os arquivos referenciados por `docs/index.html`.
+- **Scripts auxiliares** reutilizáveis ficam em `scripts/`; descartáveis ficam no rascunho.
+
+## Trabalho em paralelo com outros agentes
+- Codex e Claude Code editam esta mesma pasta. Antes de começar: `git status` e `git fetch`. Se a `main` local estiver atrás do `origin/main`, avise o dono em vez de dar `pull`/`reset` sobre mudanças não commitadas.
+- Um agente por vez na pasta. Não apagar `.git/index.lock` se houver processo git rodando.
+- Em logs públicos (GitHub Actions) **nunca imprimir** partes de URLs de conexão, senhas ou tokens, nem para depurar.
