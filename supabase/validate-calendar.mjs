@@ -23,6 +23,7 @@ try {
  await db.exec(await read('./migrations/20261006160000_ai_agent.sql'));
  await db.exec(await read('./migrations/20261006234650_agent_model_selection.sql'));
  await db.exec(await read('./migrations/20261007010329_agent_conversations.sql'));
+ await db.exec(await read('./migrations/20261007023829_capture_due_date.sql'));
  for(const path of ['./tests/calendar_overlaps.sql','./tests/integrations.sql','./tests/capture_many.sql','./tests/capture_workflow.sql','./tests/agent.sql','./tests/agent_models.sql','./tests/agent_conversations.sql']){
   await db.exec(await read(path));console.log('PASS:',path);
  }

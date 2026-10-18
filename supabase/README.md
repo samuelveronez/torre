@@ -46,3 +46,7 @@ A opção Detalhes permitidos exige uma permissão superior a freeBusyReader. Co
 ## Situação automática na captura
 
 `20261006123023_capture_workflow_status.sql` atualiza a gravação transacional da triagem para aceitar `situation`, `waitingFor` e `followUpDate`, mantendo compatibilidade com payloads anteriores (A fazer). Espera exige responsável e acompanhamento, conserva RLS e acesso ao RPC somente pelo backend. A lease passa a 180 segundos para comportar a extração adicional de dependências. Publicar a migração antes da função `torre-integrations`. Sem dados completos, a captura permanece salva e nenhuma tarefa do conjunto é gravada. Testes: `workflow_test.ts`, `intelligence_test.ts`, `capture_workflow.sql` e `node supabase/validate-calendar.mjs`.
+
+## Prazo automático na captura
+
+`20261007023829_capture_due_date.sql` persiste `dueDate` na gravação transacional da captura. Publicar a migração antes de atualizar `torre-integrations`. A IA extrai prazo por item, exige evidência literal e resolve datas relativas com a data de São Paulo; ausência ou ambiguidade deixa o prazo vazio. Acompanhamento permanece independente.
