@@ -3,6 +3,20 @@
 App pessoal de planejamento (tarefas, agenda, captura com IA, Telegram), usado todo dia. **Não pode perder dados.**
 Stack: React 19 + Vite + Tailwind 4 + shadcn/ui no frontend; Supabase (Postgres + RLS + Edge Functions Deno) no backend; publicado no GitHub Pages. Projeto Supabase: `nvxwqrpztecrvrxoddxf` (produção, única).
 
+## Início e fim de sessão (Codex e outros agentes)
+**Ao começar**
+1. Leia este arquivo e `docs-internas/PROGRESSO.md`.
+2. Rode `git status` e `git fetch`. Se a `main` local estiver atrás do `origin/main` ou houver mudanças não commitadas que não sejam suas, avise o dono antes de qualquer `pull`, `reset` ou `restore`.
+3. Rascunhos, clones e builds de publicação vão em `%TEMP%\torre-scratch\` ou `C:\Users\samue\torre-arquivo\` (fora do repositório). **Nunca** dentro do projeto.
+
+**Ao terminar**
+1. `npm run build` e `npm test` verdes.
+2. `git status`: a raiz só pode ter os itens permitidos em "Organização do repositório"; nada de imagens, `.zip`, clones ou `.md` novos sem pedido.
+3. Commits só dos seus arquivos. Não dar push sem o dono pedir; push de `.github/workflows/*` exige a permissão `workflow` do `gh`.
+4. Se mudou algo que afeta o fluxo (comando, pasta, deploy), atualize este arquivo e `docs-internas/PROGRESSO.md`.
+
+**Nunca, sem pedido explícito do dono:** `supabase db push|reset`, `supabase functions deploy`, SQL direto na produção, publicar o site (`publish:docs`) com mudanças não revisadas, imprimir segredos ou partes de URLs de conexão em logs.
+
 ## Mapa
 - `src/` — frontend (alias `@/` = `src/`). `components/ui` é shadcn: não editar à mão.
 - `supabase/migrations/` — única fonte do schema. `supabase/functions/` — Edge Functions (`_shared/` = código comum). `supabase/tests/` — testes Deno, SQL e Playwright.
