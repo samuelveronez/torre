@@ -18,7 +18,7 @@
 .app-shell .day-group h2,.app-shell .day-group summary{font-size:16px;padding:16px 0;font-weight:600}
 .app-shell .count{font-family:inherit;font-size:12px;font-weight:600}
 .app-shell .toolbar>span{font-family:inherit;font-size:14px;line-height:1.5;color:var(--muted-foreground)}
-.app-shell .section-empty{font-size:14px;padding-bottom:16px}
+.app-shell .section-empty{font-size:14px;padding:20px 16px;text-align:center;color:var(--muted-foreground)}
 .app-shell .home-tasks .task-row{padding:14px 0}
 .app-shell .task-title{font-family:inherit;font-size:14px;font-weight:600;line-height:1.5}
 .app-shell .task-meta{font-family:inherit;font-size:12px;line-height:1.5;gap:8px}
