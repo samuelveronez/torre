@@ -1,0 +1,43 @@
+name: Backup do banco
+
+on:
+  schedule:
+    - cron: '0 6 * * *'
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  dump:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: supabase/setup-cli@v1
+        with:
+          version: latest
+      - name: Dump criptografado do schema, dos dados e dos papéis
+        env:
+          SUPABASE_DB_URL: ${{ secrets.SUPABASE_DB_URL }}
+          BACKUP_PASSPHRASE: ${{ secrets.BACKUP_PASSPHRASE }}
+        run: |
+          set -euo pipefail
+          test -n "$SUPABASE_DB_URL" || { echo "Secret SUPABASE_DB_URL ausente"; exit 1; }
+          # O repositório é público: artefatos podem ser baixados por qualquer usuário logado no GitHub.
+          # Por isso o backup só é enviado criptografado.
+          test -n "$BACKUP_PASSPHRASE" || { echo "Secret BACKUP_PASSPHRASE ausente"; exit 1; }
+          mkdir backup
+          supabase db dump --db-url "$SUPABASE_DB_URL" -f backup/schema.sql
+          supabase db dump --db-url "$SUPABASE_DB_URL" --data-only --use-copy -f backup/data.sql
+          supabase db dump --db-url "$SUPABASE_DB_URL" --role-only -f backup/roles.sql
+          test -s backup/schema.sql && test -s backup/data.sql
+          for f in backup/*.sql; do
+            gpg --batch --yes --pinentry-mode loopback --symmetric --cipher-algo AES256 \
+              --passphrase "$BACKUP_PASSPHRASE" -o "$f.gpg" "$f"
+            rm "$f"
+          done
+      - uses: actions/upload-artifact@v4
+        with:
+          name: torre-backup-${{ github.run_id }}
+          path: backup/
+          retention-days: 30
+          if-no-files-found: error
