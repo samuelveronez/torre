@@ -15,20 +15,6 @@ jobs:
       - uses: supabase/setup-cli@v1
         with:
           version: latest
-      - name: Diagnóstico da URL (nunca imprime a senha)
-        env:
-          SUPABASE_DB_URL: ${{ secrets.SUPABASE_DB_URL }}
-        run: |
-          u="$SUPABASE_DB_URL"
-          rest="${u#*://}"; cred="${rest%%@*}"; hostpart="${rest#*@}"
-          user="${cred%%:*}"; pass="${cred#*:}"
-          echo "tamanho total: ${#u}"
-          echo "usuário: $user"
-          echo "host/porta/db: $hostpart"
-          echo "tamanho da senha: ${#pass}"
-          case "$pass" in *[!A-Za-z0-9]*) echo "senha: tem caracteres especiais";; *) echo "senha: só letras e números";; esac
-          case "$u" in *[[:space:]]*|*\"*|*\'*) echo "ALERTA: URL tem espaço, quebra de linha ou aspas";; esac
-          case "$pass" in *\[*|*\]*) echo "ALERTA: senha tem colchetes (use a senha sem [ ])";; esac
       - name: Dump criptografado do schema, dos dados e dos papéis
         env:
           SUPABASE_DB_URL: ${{ secrets.SUPABASE_DB_URL }}
