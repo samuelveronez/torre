@@ -1,0 +1,22 @@
+{
+  "permissions": {
+    "allow": [
+      "Bash(npm run *)",
+      "Bash(npm test)",
+      "Bash(deno test *)",
+      "Bash(git status*)",
+      "Bash(git diff*)",
+      "Bash(git log*)"
+    ],
+    "deny": [
+      "Bash(supabase db push*)",
+      "Bash(supabase db reset*)",
+      "Bash(supabase functions deploy*)",
+      "Bash(npx supabase db push*)",
+      "Bash(npx supabase db reset*)",
+      "Bash(npx supabase functions deploy*)",
+      "Read(./.env)",
+      "Read(./.env.*)"
+    ]
+  }
+}
