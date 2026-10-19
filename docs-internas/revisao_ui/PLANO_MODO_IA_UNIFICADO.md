@@ -74,5 +74,5 @@ Exigiria migration; sem benefício para uso pessoal.
 - Ordem de publicação (função antes do site): **aceita e executada** (função v30 e site no ar em 2026-10-19).
 - "Descartar" proposta: **local**, sem ação no servidor.
 
-## Fase 4 — menu "⋯" da conversa (aprovada, não iniciada)
+## Fase 4 — menu "⋯" da conversa (feita em 2026-10-19; migration aplicada em produção)
 Renomear e arquivar (recuperável) conversas. Exige backend: migration (título editável e `archived_at` por conversa), RPCs com RLS e teste SQL de isolamento, ajuste de `torre_agent_conversations`, Edge Function e deploy; frontend com menu no cabeçalho e "Ver arquivadas". Escrever plano próprio antes de começar (item T4 em `PLANO_UI_UNIFICADO.md`).

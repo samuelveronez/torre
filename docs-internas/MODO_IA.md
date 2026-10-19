@@ -14,6 +14,8 @@ Use o seletor de modelo dentro do campo de mensagem para escolher **OpenRouter g
 
 Respostas usam Markdown (títulos, negrito, listas e tabelas). Campos e valores aparecem em português do Brasil; IDs ficam somente nos destinos internos das referências clicáveis e não no texto visível. A apresentação também traduz os valores técnicos do histórico e remove colunas de IDs. HTML bruto e imagens externas não são renderizados.
 
+Cada conversa tem o menu **⋯** no cabeçalho: **Renomear conversa** (Enter salva, Esc cancela; vazio volta ao título automático), **Arquivar conversa** (sai da lista, nada é apagado) e, em **Arquivadas** no rodapé do histórico, **Restaurar conversa**. O "Histórico anterior" não tem o menu.
+
 Há um único campo: pergunte ou peça uma mudança. O agente responde em texto e, só quando a mensagem atual pede uma alteração explícita, devolve uma proposta em **Alterações propostas** com **Aplicar pedido** e **Descartar**. **Toda** proposta espera o clique em **Aplicar pedido**; nada é gravado a partir da conversa. **Descartar** apenas oculta a proposta neste navegador (a proposta expira sozinha no servidor). Pedidos antigos feitos no modo "Analisar" mostram o rótulo "Somente consulta" e não têm **Aplicar**. Internamente o app envia sempre `mode: 'execute'`; `analyze` segue válido para o histórico.
 - **Desfazer pedido** restaura os campos alterados quando os registros ainda correspondem ao resultado da operação. Criações são arquivadas; seus vínculos novos são removidos. Não recria reservas nem reabre conclusões do Google Tasks.
 

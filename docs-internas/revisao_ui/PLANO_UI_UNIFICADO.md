@@ -6,7 +6,7 @@ Substitui `PLANO_UI_SHADCN.md` (mantido só como histórico). Referência visual
 
 ## Registro de decisões (dono, 2026-10-19) e pendências
 
-Todas as decisões em aberto da migração de UI foram levadas ao dono. **Não há mais decisão em aberto**, exceto a marcada como "aguarda o dono". Os itens de trabalho decorrentes estão em "Trabalho aprovado, ainda não feito".
+Todas as decisões em aberto da migração de UI foram levadas ao dono e **T1 a T4 foram executados em 2026-10-19** (código commitado; migration de T4 aplicada em produção; site ainda **não** republicado com T1 a T4). Restam as pendências abaixo.
 
 ### Decisões tomadas
 | Tema | Decisão | Efeito |
@@ -26,13 +26,13 @@ Todas as decisões em aberto da migração de UI foram levadas ao dono. **Não h
 | Teste de restauração do backup (`scripts/restore-test.ps1`) | Dono faz depois | Pendência P2 (dono) |
 | Pasta `.db-validation/` (115 MB, ignorada pelo git) | **Aguarda o dono** (pediu risco x benefício) | Pendência P3 (dono) |
 
-### Trabalho aprovado, ainda não feito
+### Trabalho aprovado — feito em 2026-10-19
 | ID | Item | Observações |
 |---|---|---|
-| T1 | Carga por dia inclui reuniões do Google | Mudar `src/dayLoad.ts` (somar eventos com horário, não recusados, dentro do dia) + teste novo em `unit-tests.mjs`; decidir se reunião fora da jornada conta (proposta: conta até o limite da barra) |
-| T2 | Ordem padrão de Tarefas = Prazo | Mudar o padrão de `usePreference(...,'task-sort')`; afeta quem nunca escolheu ordem; conferir `ui-smoke` e capturas |
-| T3 | Agenda mobile em `Sheet` | Botões "Sem horário · N" e "Sugerir minha semana" abrem a gaveta; grade do dia fica livre; manter DnD no desktop; capturas 390 px |
-| T4 | Modo IA: renomear e arquivar conversa | **Backend:** migration nova (coluna de título e de arquivamento em conversas, RPCs com RLS, teste SQL de isolamento), Edge Function e deploy pelo dono (ou autorizado); **frontend:** menu "⋯" no cabeçalho da conversa; arquivadas somem da lista e voltam por "Ver arquivadas". Plano próprio antes de começar |
+| T1 | Carga por dia inclui reuniões do Google | **Feito** (`src/dayLoad.ts`): une tarefas reservadas e reuniões com horário que bloqueiam tempo (não conta dia inteiro nem recusadas), sem contar sobreposição duas vezes; teste novo |
+| T2 | Ordem padrão de Tarefas = Prazo | **Feito**: preferência passou a `task-sort-v2` com padrão "Prazo" (quem tinha "Mais recentes" salvo volta ao padrão novo uma vez; escolher outra ordem continua valendo) |
+| T3 | Agenda mobile em gaveta | **Feito**: botões "Sugerir minha semana" e "Sem horário · N" abrem a gaveta (`WeekPlanner` `sheet`), Escape e "Fechar" recolhem; o estado (seleção e proposta) é mantido com a gaveta fechada |
+| T4 | Modo IA: renomear e arquivar conversa | **Feito**: migration `20261019200000_agent_conversation_meta.sql` (tabela `torre_agent_conversation_meta` com RLS; RPCs `torre_agent_conversation_rename` e `torre_agent_conversation_archive`; `torre_agent_conversations` ganhou `p_archived` e `archived_at`), **aplicada em produção** (25 pedidos e 7 conversas intactos); menu "⋯" no cabeçalho (Renomear, Arquivar, Restaurar) e "Arquivadas" no histórico; testes SQL e Playwright |
 
 ### Pendências em aberto
 | ID | Pendência | Responsável | Situação |
@@ -41,8 +41,10 @@ Todas as decisões em aberto da migração de UI foram levadas ao dono. **Não h
 | P2 | Teste de restauração do backup no projeto descartável | Dono | Aberta |
 | P3 | `.db-validation/` | Dono | Aguarda decisão (ver risco x benefício no relatório da sessão) |
 | P4 | Conferir em produção (logado) o Modo IA e a Agenda semanal | Dono | Aberta (publicado em 2026-10-19) |
+| P5 | Republicar o site com T1 a T4 (`npm run build && npm run publish:docs`, commit de `docs/` e push) | Dono ou agente com autorização | Aberta; a função e o banco já estão prontos e o site antigo continua funcionando com o banco novo |
+| P6 | Teste SQL `capture_many.sql` falha desde 2026-10-19 por data fixa no passado (`2026-10-12`); `validate-calendar.mjs` para nele e não chega aos testes de agente | Agente, quando o dono pedir | Aberta (anterior a T1 a T4; não bloqueia) |
 
-**Situação geral:** a migração visual (Etapas 0 a 7 e Modo IA) está concluída e publicada. Restam T1 a T4 (melhorias aprovadas) e P1 a P4.
+**Situação geral:** a migração visual (Etapas 0 a 7 e Modo IA) está concluída e publicada; T1 a T4 estão prontos no código e a migration de T4 já está em produção, **falta republicar o site** (P5). Restam P1 a P5.
 
 ## Decisões fechadas (dono, 2026-10-18)
 | Tema | Decisão |
