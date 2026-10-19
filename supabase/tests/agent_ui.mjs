@@ -90,7 +90,7 @@ try{
  await page.getByRole('button',{name:'Histórico do agente',exact:true}).click();await page.getByLabel('Buscar conversa').waitFor();await page.keyboard.press('Escape');
  assert.equal(await page.locator('.agent-conversations').count(),0);
  await page.evaluate(()=>{document.documentElement.dataset.theme='dark';window.scrollTo(0,0);});await page.screenshot({path:'.db-validation/agent-dark.png',fullPage:true});
- await page.setViewportSize({width:1440,height:1000});await page.getByRole('button',{name:'Configurações',exact:true}).click();await page.getByRole('button',{name:'IA',exact:true}).click();
+ await page.setViewportSize({width:1440,height:1000});await page.getByRole('button',{name:'Configurações',exact:true}).click();await page.getByRole('button',{name:'Inteligência artificial',exact:true}).click();
  const runsBefore=tables.torre_agent_runs.length,tasksBefore=JSON.stringify(tables.torre_tasks);
  await page.getByRole('button',{name:'Testar modelo padrão'}).click();await page.getByText('Modelo padrão validado: test/model:free. Nenhum registro foi criado.',{exact:true}).waitFor();
  testFails=true;await page.getByRole('button',{name:'Testar modelo padrão'}).click();await page.getByRole('alert').filter({hasText:'A política de dados da conta'}).waitFor();
