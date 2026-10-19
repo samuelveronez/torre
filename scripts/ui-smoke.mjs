@@ -18,7 +18,10 @@ const user = {
   user_metadata: {},
   created_at: '2026-10-06T00:00:00Z',
 };
-const pages = ['Home', 'Caixa de entrada', 'Tarefas', 'Planejamento', 'Conversas', 'Modo IA', 'Configurações'];
+const settingsSections = ['Aparência', 'Labels', 'Jornada', 'Google', 'Calendários e listas', 'Telegram', 'IA', 'Dados'];
+const pageSpecs = ['Home', 'Caixa de entrada', 'Tarefas', 'Planejamento', 'Conversas', 'Modo IA']
+  .map((page) => ({page}))
+  .concat(settingsSections.map((section) => ({page: 'Configurações', section})));
 const viewports = [
   {name: '1440', width: 1440, height: 1000},
   {name: '390', width: 390, height: 844},
@@ -50,6 +53,7 @@ async function mockSupabase(route, theme) {
   const reply = (body) => route.fulfill({status: 200, headers: corsHeaders, body: JSON.stringify(body)});
   if (request.method() === 'OPTIONS') return reply({});
   if (url.pathname.startsWith('/auth/')) return reply(user);
+  if (url.pathname.includes('torre-telegram-settings')) return reply({botName: 'torre_bot', hasToken: true, linked: true, enabled: false, weekdays: [1, 2, 3, 4, 5], sendTime: '21:00', last: null, testAfter: null});
   if (url.pathname.includes('/functions/')) return reply({ok: true});
   if (url.pathname.includes('/rpc/')) return reply(null);
   const table = url.pathname.split('/').pop();
@@ -65,10 +69,11 @@ const failures = [];
 
 for (const viewport of viewports) {
   for (const theme of themes) {
-    for (const page of pages) {
+    for (const spec of pageSpecs) {
+      const page = spec.page;
       const context = await browser.newContext({viewport, timezoneId: 'America/Sao_Paulo'});
       await context.route('https://nvxwqrpztecrvrxoddxf.supabase.co/**', (route) => mockSupabase(route, theme));
-      await context.addInitScript(({user, userId, page}) => {
+      await context.addInitScript(({user, userId, page, section}) => {
         const token = [
           btoa(JSON.stringify({alg: 'HS256', typ: 'JWT'})),
           btoa(JSON.stringify({sub: userId, role: 'authenticated', exp: 4102444800})),
@@ -77,7 +82,8 @@ for (const viewport of viewports) {
         const session = {access_token: token, refresh_token: 'test', token_type: 'bearer', expires_at: 4102444800, expires_in: 3600, user};
         localStorage.setItem('sb-nvxwqrpztecrvrxoddxf-auth-token', JSON.stringify(session));
         localStorage.setItem(`torre:${userId}:page`, JSON.stringify(page));
-      }, {user, userId, page});
+        if (section) localStorage.setItem(`torre:${userId}:settings-section`, JSON.stringify(section));
+      }, {user, userId, page, section: spec.section});
 
       const errors = [];
       const tab = await context.newPage();
@@ -91,7 +97,7 @@ for (const viewport of viewports) {
       const hasHorizontalScroll = await tab.evaluate(() => document.documentElement.scrollWidth > innerWidth + 1);
       if (hasHorizontalScroll) errors.push('rolagem horizontal na página');
 
-      const label = `${page} · ${viewport.name}px · ${theme}`;
+      const label = `${page}${spec.section ? ' / ' + spec.section : ''} · ${viewport.name}px · ${theme}`;
       if (errors.length) failures.push(`${label}: ${errors.join(' | ')}`);
       console.log(`${errors.length ? 'FAIL' : 'ok  '} ${label}`);
       await context.close();

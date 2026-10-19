@@ -1,0 +1,5 @@
+type Props={checked:boolean;onChange:(checked:boolean)=>void;label:string;disabled?:boolean};
+
+export function Sw({checked,onChange,label,disabled}:Props){
+ return <button type="button" role="switch" className="sw" aria-checked={checked} aria-label={label} disabled={disabled} onClick={()=>onChange(!checked)}/>;
+}

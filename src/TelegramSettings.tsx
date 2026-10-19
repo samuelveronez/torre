@@ -1,5 +1,7 @@
 import {useEffect,useState} from 'react';
 import {supabase} from './supabase';
+import {Sw} from './ui-kit/Sw';
+import {SectionHeader} from './ui-kit/SectionHeader';
 
 async function telegram(action:string,fields:Record<string,unknown>={}){
  const {data:{session}}=await supabase.auth.getSession();
@@ -31,11 +33,47 @@ export function TelegramSettings({userId}:{userId:string}){
    try{const status=await telegram('status');setLinked(status.linked);setLast(status.last);setTestAfter(status.testAfter||data.testAfter||null);}catch{setMessage(success+' Não foi possível atualizar o estado da tela; a entrega já foi confirmada.');}
   }else if(action==='link'){setLink(data.url);setMessage('Abra o link abaixo e toque em Iniciar. O link vale por 10 minutos.');}else{if(action==='save'||action==='remove'){setToken('');setLink('');}apply(await telegram('status'));setMessage(success);}}catch(e){const error=e as Error&{code?:string;testAfter?:string};if(error.code==='TEST_COOLDOWN'){setTestAfter(error.testAfter||null);setNow(Date.now());setLinked(true);}if(error.code==='CHAT_NOT_LINKED')setLinked(false);setFailed(true);setMessage(error.message);}finally{setBusy(false);}
  }
- return <section className="card settings" aria-busy={busy}><div className="card-head"><h2>Telegram</h2></div><div className="settings-body">
-  <form onSubmit={e=>{e.preventDefault();void run('save',{botName:name,token});}}><p>Cadastre o bot que será usado pela Torre de Controle.</p><fieldset disabled={busy||!loaded} className="telegram-fields"><label>Nome do bot<input value={name} onChange={e=>setName(e.target.value)} required maxLength={33} placeholder="@torre_veronez_bot" autoCapitalize="none" spellCheck={false}/></label><label>Token do BotFather<input type="password" value={token} onChange={e=>setToken(e.target.value)} required={!saved} maxLength={256} placeholder={saved?'Token salvo · preencha para substituir':'Cole o token fornecido pelo BotFather'} autoComplete="new-password" spellCheck={false}/></label><small>{saved?'Token armazenado com segurança. Deixe vazio para mantê-lo.':'O token não será exibido após salvar.'}</small><div className="toolbar"><button className="primary" type="submit">Salvar credenciais</button>{saved&&<button type="button" onClick={()=>void run('remove',{},'Credenciais removidas e lembrete desativado.')}>Remover credenciais</button>}</div></fieldset></form>
-  <div className="telegram-connection"><h3>Seu chat</h3><p>{linked?'Chat vinculado à sua conta.':'Vincule seu chat para receber os resumos da sua conta.'}</p><div className="toolbar"><button disabled={busy||!saved} onClick={()=>void run('link')}>{linked?'Vincular outro chat':'Vincular meu Telegram'}</button><button disabled={busy||!saved} onClick={()=>void run('status',{},'Estado da conexão atualizado.')}>Atualizar conexão</button></div>{link&&<p><a href={link} target="_blank" rel="noreferrer">Abrir bot e vincular meu chat</a></p>}</div>
-  <form onSubmit={e=>{e.preventDefault();void run('schedule',{enabled,weekdays,sendTime},'Lembrete salvo.');}}><h3>Resumo diário com IA</h3><p>Fechamento do dia do envio e preparação do dia seguinte, com tarefas concluídas, pendências, acompanhamentos e agenda disponível na Torre.</p><fieldset disabled={busy||!saved||!loaded} className="telegram-fields"><label className="telegram-toggle"><input type="checkbox" checked={enabled} onChange={e=>setEnabled(e.target.checked)}/>Ativar envio automático</label><div><p>Dias de envio</p><div className="telegram-weekdays" role="group" aria-label="Dias de envio">{days.map((day,index)=><label key={day}><input type="checkbox" checked={weekdays.includes(index)} onChange={e=>setWeekdays(current=>e.target.checked?[...current,index]:current.filter(d=>d!==index))}/>{day}</label>)}</div></div><label>Horário de envio<input type="time" required value={sendTime} onChange={e=>setSendTime(e.target.value)}/></label><small>Horário de Brasília · envio normalmente em até um minuto após o horário escolhido. O site pode estar fechado.</small><div className="toolbar"><button type="submit" className="primary" disabled={!weekdays.length}>Salvar lembrete</button><button type="button" disabled={!linked||remaining>0} aria-describedby={!linked?'telegram-send-help':undefined} onClick={()=>void run('test',{},'Resumo de teste enviado ao seu Telegram.')}>{remaining>0?`Aguarde ${remaining}s`:'Enviar resumo de teste'}</button></div>{!linked&&<small id="telegram-send-help">Para liberar o envio, clique em Vincular meu Telegram, abra o link e toque em Iniciar no bot. O vínculo será reconhecido automaticamente ao voltar; você também pode clicar em Atualizar conexão.</small>}</fieldset><p>A IA usa a chave OpenRouter cadastrada em Configurações → IA. O resumo reflete os dados já registrados e a última sincronização da agenda.</p></form>
-  {last&&<p>Último envio automático ({new Date(last.digest_date+'T12:00:00').toLocaleDateString('pt-BR')}): {{sent:'Enviado',generating:'Gerando resumo',sending:'Enviando',error:'Falha',uncertain:'Sem confirmação de entrega'}[last.state]||last.state}{last.error&&` · ${last.error}`}</p>}
-  {busy&&<p role="status">Processando…</p>}<p role={failed?'alert':'status'} className={failed?'settings-feedback failed':'settings-feedback'}>{message}</p>
- </div></section>;
+ const h3={margin:0,fontSize:15,fontWeight:600} as const;
+ const fields={border:0,padding:0,margin:0,minWidth:0,display:'flex',flexDirection:'column',gap:12} as const;
+ const field={display:'flex',flexDirection:'column',gap:6} as const;
+ const deliveryText=last?`Último envio automático (${new Date(last.digest_date+'T12:00:00').toLocaleDateString('pt-BR')}): ${{sent:'Enviado',generating:'Gerando resumo',sending:'Enviando',error:'Falha',uncertain:'Sem confirmação de entrega'}[last.state]||last.state}${last.error?` · ${last.error}`:''}`:saved?'Token salvo. Vincule seu chat para receber os resumos.':'Cadastre o bot e vincule seu chat.';
+ return <>
+  <SectionHeader title="Telegram" description="Capture ideias e receba lembretes pelo bot da Torre."/>
+  <div className="tbl" aria-busy={busy}><div className="tr" style={{borderTop:0,minHeight:56}}>
+   <span style={{width:8,height:8,borderRadius:'50%',background:linked?'#16a34a':'#a1a1aa',flex:'0 0 auto'}}/>
+   <div style={{flex:1}}><div style={{fontWeight:500}}>{linked?'Conta vinculada':'Chat não vinculado'}</div><p className="desc">{deliveryText}</p></div>
+   {linked&&<span className="badge">Ativo</span>}
+  </div></div>
+  <form onSubmit={e=>{e.preventDefault();void run('save',{botName:name,token});}} style={{display:'flex',flexDirection:'column',gap:12}}>
+   <h3 style={h3}>Bot</h3><p className="desc">Cadastre o bot que será usado pela Torre de Controle.</p>
+   <fieldset disabled={busy||!loaded} style={fields}>
+    <div style={field}><label className="lab" htmlFor="telegram-bot">Nome do bot</label><input id="telegram-bot" className="inp" value={name} onChange={e=>setName(e.target.value)} required maxLength={33} placeholder="@torre_veronez_bot" autoCapitalize="none" spellCheck={false}/></div>
+    <div style={field}><label className="lab" htmlFor="telegram-token">Token do BotFather</label><input id="telegram-token" className="inp" type="password" value={token} onChange={e=>setToken(e.target.value)} required={!saved} maxLength={256} placeholder={saved?'Token salvo · preencha para substituir':'Cole o token fornecido pelo BotFather'} autoComplete="new-password" spellCheck={false}/><p className="desc">{saved?'Token armazenado com segurança. Deixe vazio para mantê-lo.':'O token não será exibido após salvar.'}</p></div>
+    <div style={{display:'flex',flexWrap:'wrap',gap:8}}><button className="btn btn-p" type="submit">Salvar credenciais</button>{saved&&<button className="btn btn-d" type="button" onClick={()=>void run('remove',{},'Credenciais removidas e lembrete desativado.')}>Remover credenciais</button>}</div>
+   </fieldset>
+  </form>
+  <hr className="sep"/>
+  <div style={{display:'flex',flexDirection:'column',gap:12}}>
+   <h3 style={h3}>Seu chat</h3>
+   <p className="desc">{linked?'Chat vinculado à sua conta.':'Vincule seu chat para receber os resumos da sua conta.'}</p>
+   <ol className="desc" style={{margin:0,paddingLeft:18,display:'flex',flexDirection:'column',gap:4}}><li>Gere um link de vinculação.</li><li>Abra o link e toque em <strong>Iniciar</strong> no bot.</li><li>Envie um resumo de teste para confirmar a entrega.</li></ol>
+   <div style={{display:'flex',flexWrap:'wrap',gap:8}}><button className="btn btn-p" disabled={busy||!saved} onClick={()=>void run('link')}>{linked?'Vincular outro chat':'Vincular meu Telegram'}</button><button className="btn" disabled={busy||!saved} onClick={()=>void run('status',{},'Estado da conexão atualizado.')}>Atualizar conexão</button></div>
+   {link&&<p><a href={link} target="_blank" rel="noreferrer" style={{color:'var(--primary)'}}>Abrir bot e vincular meu chat</a></p>}
+  </div>
+  <hr className="sep"/>
+  <form onSubmit={e=>{e.preventDefault();void run('schedule',{enabled,weekdays,sendTime},'Lembrete salvo.');}} style={{display:'flex',flexDirection:'column',gap:12}}>
+   <h3 style={h3}>Resumo diário com IA</h3>
+   <p className="desc">Fechamento do dia do envio e preparação do dia seguinte, com tarefas concluídas, pendências, acompanhamentos e agenda disponível na Torre.</p>
+   <fieldset disabled={busy||!saved||!loaded} style={fields}>
+    <div style={{display:'flex',alignItems:'center',gap:10}}><Sw checked={enabled} label="Ativar envio automático" disabled={busy||!saved||!loaded} onChange={setEnabled}/><span style={{fontWeight:500}}>Ativar envio automático</span></div>
+    <div style={field}><span className="lab">Dias de envio</span><div role="group" aria-label="Dias de envio" style={{display:'flex',flexWrap:'wrap',gap:8}}>{days.map((day,index)=><label key={day} className="badge" style={{height:30,gap:6,cursor:'pointer',flexDirection:'row'}}><input style={{width:16,height:16,minHeight:0,padding:0,margin:0}} type="checkbox" checked={weekdays.includes(index)} onChange={e=>setWeekdays(current=>e.target.checked?[...current,index]:current.filter(d=>d!==index))}/>{day}</label>)}</div></div>
+    <div style={field}><label className="lab" htmlFor="telegram-time">Horário de envio</label><input id="telegram-time" className="inp" style={{width:140}} type="time" required value={sendTime} onChange={e=>setSendTime(e.target.value)}/><p className="desc">Horário de Brasília · envio normalmente em até um minuto após o horário escolhido. O site pode estar fechado.</p></div>
+    <div style={{display:'flex',flexWrap:'wrap',gap:8}}><button type="submit" className="btn btn-p" disabled={!weekdays.length}>Salvar lembrete</button><button type="button" className="btn" disabled={!linked||remaining>0} aria-describedby={!linked?'telegram-send-help':undefined} onClick={()=>void run('test',{},'Resumo de teste enviado ao seu Telegram.')}>{remaining>0?`Aguarde ${remaining}s`:'Enviar resumo de teste'}</button></div>
+    {!linked&&<p className="desc" id="telegram-send-help">Para liberar o envio, clique em Vincular meu Telegram, abra o link e toque em Iniciar no bot. O vínculo será reconhecido automaticamente ao voltar; você também pode clicar em Atualizar conexão.</p>}
+   </fieldset>
+   <p className="desc">A IA usa a chave OpenRouter cadastrada em Configurações → Inteligência artificial. O resumo reflete os dados já registrados e a última sincronização da agenda.</p>
+  </form>
+  {busy&&<p className="desc" role="status">Processando…</p>}
+  <p role={failed?'alert':'status'} className="desc" style={failed?{color:'var(--tc-danger)'}:undefined}>{message}</p>
+ </>;
 }

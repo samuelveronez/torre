@@ -1,5 +1,6 @@
 import {useState} from 'react';
 import {supabase} from '@/supabase';
+import {SectionHeader} from './ui-kit/SectionHeader';
 
 const tables = [
   'torre_tasks',
@@ -47,15 +48,18 @@ export function ExportData() {
   }
 
   return (
-    <section>
-      <h3>Exportar meus dados</h3>
-      <p>Baixa um arquivo JSON com tarefas, reservas, labels, pessoas, conversas e capturas. Serve como cópia de segurança extra.</p>
-      <div className="toolbar">
-        <button disabled={busy} onClick={() => void exportAll()}>
+    <>
+      <SectionHeader title="Dados" description="Exportação e privacidade das suas informações." />
+      <div style={{display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: 16}}>
+        <div>
+          <div style={{fontWeight: 500}}>Exportar meus dados</div>
+          <p className="desc">Tarefas, labels, pessoas e conversas em JSON. Seus dados continuam privados.</p>
+        </div>
+        <button className="btn" disabled={busy} onClick={() => void exportAll()}>
           {busy ? 'Exportando…' : 'Exportar JSON'}
         </button>
       </div>
-      {message && <p role="status">{message}</p>}
-    </section>
+      {message && <p className="desc" role="status">{message}</p>}
+    </>
   );
 }
