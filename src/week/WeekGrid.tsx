@@ -1,6 +1,6 @@
 import type {DragEvent,MutableRefObject} from 'react';
 import {CalendarScroll} from '@/CalendarScroll';
-import {AllDayAgenda,TimedAgenda,agendaColumns} from '@/AgendaEvents';
+import {AllDayAgenda,TimedAgenda,agendaColumns,eventsForDay} from '@/AgendaEvents';
 import {slotAt,reservationError,reservationWarning,workHoursWarning} from '@/scheduling';
 import {dayLoad,loadLabel,type WorkHours} from '@/dayLoad';
 import type {AgendaRange} from '@/AgendaRange';
@@ -75,7 +75,7 @@ export function WeekGrid(p:Props){
    <div className={'grid wk-grid '+(p.focus?'focused':'')} style={{gridTemplateColumns:`52px ${columns}`}}>
     <div className="time-head">Hora</div>
     {p.dates.map(d=>{
-     const load=dayLoad(d,p.hours,p.active);
+     const load=dayLoad(d,p.hours,p.active,eventsForDay(d,p.features.events,p.features.calendars));
      return <button type="button" className={'day-head '+(dateKey(d)===p.today?'current ':'')+(load.capacity?'':'off')} key={dateKey(d)} aria-label={`${days[d.getDay()]} ${d.getDate()}, ${loadLabel(load)}`} aria-pressed={!!p.focus&&p.focus===dateKey(d)} onClick={()=>p.onFocus(p.focus?'':dateKey(d))}>
       <span className="wk-day"><span className="wk-dow">{days[d.getDay()]}</span><b>{d.getDate()}</b></span>
       <span className="wk-load" aria-hidden="true"><span style={{width:`${Math.round(load.ratio*100)}%`}}/></span>

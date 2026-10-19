@@ -1,17 +1,36 @@
 import type {Task} from './task';
 export type WorkHours={enabled:boolean;start:number;end:number};
 export type DayLoad={planned:number;capacity:number;ratio:number};
-/** Minutes of reserved tasks inside the day, against the working hours configured for that weekday. */
-export function dayLoad(date:Date,hours:WorkHours[],tasks:Task[]):DayLoad{
+export type LoadEvent={start_at:string;end_at:string;all_day:boolean;blocks_time:boolean};
+type Interval={start:number;end:number};
+/** Busy minutes inside the day: reserved tasks plus timed meetings, merged so overlaps count once. */
+function busyMinutes(from:number,to:number,intervals:Interval[]){
+ const clipped=intervals
+  .map(i=>({start:Math.max(i.start,from),end:Math.min(i.end,to)}))
+  .filter(i=>i.end>i.start)
+  .sort((a,b)=>a.start-b.start);
+ let total=0,cursor=from;
+ for(const i of clipped){
+  const start=Math.max(i.start,cursor);
+  if(i.end>start){total+=i.end-start;cursor=i.end;}
+ }
+ return Math.round(total/60000);
+}
+/** Busy time of the day (tasks and meetings) against the working hours configured for that weekday. */
+export function dayLoad(date:Date,hours:WorkHours[],tasks:Task[],events:LoadEvent[]=[]):DayLoad{
  const from=new Date(date);from.setHours(0,0,0,0);
  const to=new Date(from);to.setDate(to.getDate()+1);
- const planned=tasks.reduce((sum,task)=>{
-  if(task.done||!task.at)return sum;
+ const intervals:Interval[]=[];
+ for(const task of tasks){
+  if(task.done||!task.at)continue;
   const start=Date.parse(task.at);
-  const end=start+task.minutes*60000;
-  const overlap=Math.min(end,to.getTime())-Math.max(start,from.getTime());
-  return overlap>0?sum+Math.round(overlap/60000):sum;
- },0);
+  intervals.push({start,end:start+task.minutes*60000});
+ }
+ for(const event of events){
+  if(event.all_day||!event.blocks_time)continue;
+  intervals.push({start:Date.parse(event.start_at),end:Date.parse(event.end_at)});
+ }
+ const planned=busyMinutes(from.getTime(),to.getTime(),intervals);
  const day=hours[date.getDay()];
  const capacity=day?.enabled&&day.end>day.start?(day.end-day.start)*60:0;
  return {planned,capacity,ratio:capacity?Math.min(1,planned/capacity):0};

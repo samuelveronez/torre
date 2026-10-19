@@ -35,6 +35,20 @@ tests.push({name:'Histórico do Modo IA agrupa por Hoje, Ontem, Esta semana e An
  assert.deepEqual(groupConversations([c('x',0)],now).map(g=>g.title),['Hoje']);
  assert.deepEqual(groupConversations([],now),[]);
 }});
+tests.push({name:'Carga do dia soma tarefas e reuniões com horário sem contar duas vezes a sobreposição',run(){
+ const hours=Array.from({length:7},(_,i)=>({enabled:i>0&&i<6,start:8,end:18}));
+ const task=(at,minutes)=>({id:at,at,minutes,done:false});
+ const meeting=(start,end,extra={})=>({start_at:start,end_at:end,all_day:false,blocks_time:true,...extra});
+ const day=new Date('2026-10-20T12:00:00');
+ const tasks=[task('2026-10-20T10:00:00',60)];
+ const meetings=[meeting('2026-10-20T09:00:00','2026-10-20T10:30:00'),meeting('2026-10-20T14:00:00','2026-10-20T15:00:00')];
+ const load=dayLoad(day,hours,tasks,meetings);
+ assert.equal(load.planned,180,'09:00-11:00 merged (120) + 60 de reunião à tarde, tarefa sobreposta conta uma vez');
+ assert.equal(loadLabel(load),'3 h de 10 h');
+ assert.equal(dayLoad(day,hours,tasks,[meeting('2026-10-20T00:00:00','2026-10-21T00:00:00',{all_day:true})]).planned,60,'evento de dia inteiro não conta');
+ assert.equal(dayLoad(day,hours,[],[meeting('2026-10-20T09:00:00','2026-10-20T10:00:00',{blocks_time:false})]).planned,0,'evento que não bloqueia não conta');
+ assert.equal(dayLoad(day,hours,[],[meeting('2026-10-19T23:30:00','2026-10-20T00:30:00')]).planned,30,'reunião atravessando a meia-noite conta só a parte do dia');
+}});
 let failed=0;
 for(const {name,run} of tests){try{await run();console.log('PASS '+name);}catch(error){failed++;console.error('FAIL '+name,error.message);}}
 console.log(`${tests.length-failed}/${tests.length} testes passaram`);
