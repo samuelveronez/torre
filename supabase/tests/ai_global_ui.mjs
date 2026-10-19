@@ -25,8 +25,8 @@ try{
  await page.goto(process.env.TORRE_TEST_URL||'http://127.0.0.1:5188/');
  const select=page.getByLabel('Modelo padrão de toda a aplicação');await select.waitFor();assert.equal(await select.inputValue(),'openrouter/free');
  await select.selectOption('google/gemini-2.5-flash');await page.getByRole('button',{name:'Salvar modelo padrão',exact:true}).click();await page.getByText('Modelo padrão salvo para toda a Torre.',{exact:true}).waitFor();
- await page.getByRole('button',{name:'Modo IA',exact:true}).click();await page.getByLabel('Modelo da IA',{exact:true}).waitFor();assert.equal(await page.getByLabel('Modelo da IA',{exact:true}).inputValue(),'google/gemini-2.5-flash');
- await page.getByLabel('Modelo da IA',{exact:true}).selectOption('openrouter/free');await page.waitForFunction(()=>document.querySelector('[aria-label="Modelo da IA"]')?.value==='openrouter/free');
+ await page.getByRole('button',{name:'Modo IA',exact:true}).click();const picker=page.getByRole('button',{name:/^Modelo da IA/});await picker.waitFor();assert.match(await picker.getAttribute('aria-label'),/Gemini 2.5 Flash/);
+ await picker.click();await page.getByRole('menuitemradio',{name:/OpenRouter gratuito/}).click();await page.waitForFunction(()=>/OpenRouter gratuito/.test(document.querySelector('[aria-label^="Modelo da IA"]')?.getAttribute('aria-label')??''));
  await page.getByRole('button',{name:'Configurações',exact:true}).click();await select.waitFor();assert.equal(await select.inputValue(),'openrouter/free');
  fail=true;await select.selectOption('google/gemini-2.5-flash');await page.getByRole('button',{name:'Salvar modelo padrão',exact:true}).click();await page.getByText('Não foi possível salvar o modelo padrão.',{exact:true}).waitFor();assert.equal(model,'openrouter/free');
  await page.reload();await select.waitFor();assert.equal(await select.inputValue(),'openrouter/free');assert.equal(calls.filter(c=>c.action==='ai-default').length,3);

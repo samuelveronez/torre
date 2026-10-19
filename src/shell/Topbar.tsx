@@ -50,13 +50,13 @@ export function Topbar({title,agentPage,phone,narrow,compact,menuOpen,area,query
   {showMenuButton&&menuButton}
   {showMenuButton&&!phone&&<span aria-hidden="true" style={{width:1,height:16,background:'var(--border)'}}/>}
   {agentPage&&phone&&<strong style={{fontSize:15}}>Modo IA</strong>}
-  {!phone&&!agentPage&&<nav aria-label="Trilha" style={{display:'flex',alignItems:'center',gap:6,fontSize:14,padding:0,border:0,background:'transparent'}}>
+  {!phone&&<nav aria-label="Trilha" style={{display:'flex',alignItems:'center',gap:6,fontSize:14,padding:0,border:0,background:'transparent'}}>
    <span style={{color:'var(--muted-foreground)'}}>Torre de Controle</span>
    <ChevronRight size={14} color="var(--muted-foreground)" aria-hidden="true"/>
    <span style={{fontWeight:500}} aria-current="page">{title}</span>
   </nav>}
   <div className="tc-spacer" style={{flex:1}}/>
-  {!agentPage&&<>
+  {!(agentPage&&phone)&&<>
    <div className="tc-search">
     <Search size={16} color="var(--muted-foreground)" aria-hidden="true"/>
     <input className="inp" type="search" aria-label="Buscar tarefas" placeholder="Buscar tarefas…" value={query} onChange={e=>onQuery(e.target.value)} style={{paddingLeft:32}}/>

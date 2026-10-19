@@ -6,16 +6,15 @@ O agente avalia tarefas em português e faz CRUD de tarefas e labels. Não possu
 
 Abra **Modo IA** no menu. A chave cadastrada em **Configurações → IA** é reutilizada; o chat não depende de ativar a triagem automática de capturas.
 
-Ao entrar, o menu principal fica em ícones e o histórico começa recolhido. Use **Expandir menu principal** para revelar a navegação completa e **Conversas** para abrir o histórico com busca. No celular, o histórico abre como uma gaveta; Escape ou o botão de recolher fecha a gaveta. **Nova conversa** permanece no cabeçalho e começa um contexto separado, sem apagar pedidos anteriores. A última conversa selecionada fica salva por usuário neste navegador; a conversa passa a constar no histórico quando o primeiro pedido é salvo no backend.
+O histórico de conversas fica sempre visível ao lado do chat, agrupado em Hoje, Ontem, Esta semana e Anteriores, com **Nova conversa**, busca e **Ver anteriores**. No celular o histórico abre como uma gaveta pelo botão **Histórico do agente**; Escape ou o botão de fechar a recolhem.
 
 O chat tem rolagem própria e o campo de mensagem permanece na base. **Enter** envia e **Shift + Enter** adiciona uma linha. Sugestões aparecem somente em conversas vazias. Os pedidos existentes antes dessa mudança ficam em **Histórico anterior**, preservados com seus resultados e ações.
 
-Use **Modelo** para escolher **OpenRouter gratuito** ou **Gemini 2.5 Flash — pago**. A opção inicial é gratuita; a seleção fica salva neste navegador, separada por usuário. Gemini usa a mesma chave e consome o saldo OpenRouter com cobrança por tokens; a tela oferece um link para consultar os preços. Selecionar uma opção não chama o provedor. A escolha vale para novos pedidos; o histórico identifica o modelo solicitado, e novas tentativas mantêm o modelo original. Para usar outro modelo após um erro, envie um novo pedido.
+Use o seletor de modelo dentro do campo de mensagem para escolher **OpenRouter gratuito** ou **Gemini 2.5 Flash — pago**. A opção inicial é gratuita; a seleção fica salva neste navegador, separada por usuário. Gemini usa a mesma chave e consome o saldo OpenRouter com cobrança por tokens; a tela oferece um link para consultar os preços. Selecionar uma opção não chama o provedor. A escolha vale para novos pedidos; o histórico identifica o modelo solicitado, e novas tentativas mantêm o modelo original. Para usar outro modelo após um erro, envie um novo pedido.
 
 Respostas usam Markdown (títulos, negrito, listas e tabelas). Campos e valores aparecem em português do Brasil; IDs ficam somente nos destinos internos das referências clicáveis e não no texto visível. A apresentação também traduz os valores técnicos do histórico e remove colunas de IDs. HTML bruto e imagens externas não são renderizados.
 
-- **Analisar** consulta dados e responde sem gravar alterações.
-- **Executar pedido** aplica comandos explícitos. Arquivamentos de múltiplos registros exibem uma prévia para aplicar.
+Há um único campo: pergunte ou peça uma mudança. O agente responde em texto e, só quando a mensagem atual pede uma alteração explícita, devolve uma proposta em **Alterações propostas** com **Aplicar pedido** e **Descartar**. **Toda** proposta espera o clique em **Aplicar pedido**; nada é gravado a partir da conversa. **Descartar** apenas oculta a proposta neste navegador (a proposta expira sozinha no servidor). Pedidos antigos feitos no modo "Analisar" mostram o rótulo "Somente consulta" e não têm **Aplicar**. Internamente o app envia sempre `mode: 'execute'`; `analyze` segue válido para o histórico.
 - **Desfazer pedido** restaura os campos alterados quando os registros ainda correspondem ao resultado da operação. Criações são arquivadas; seus vínculos novos são removidos. Não recria reservas nem reabre conclusões do Google Tasks.
 
 Exemplos: “Avalie minhas tarefas e explique o que merece atenção”; “Crie uma label Financeiro e aplique à tarefa Pagar aluguel”; “Passe o prazo da tarefa Comprar material para amanhã”; “Conclua a tarefa X”; “Arquive estas duas tarefas”.
@@ -44,7 +43,7 @@ Em **Configurações → IA → Testar agente gratuito**, o backend usa a chave 
 
 ## Validação
 
-- `node supabase/tests/agent_test.mjs`: validação de campos, bloqueio de agenda, ferramentas somente leitura, seleção explícita de Gemini, proteção da opção gratuita e diagnósticos de erro/saldo.
+- `node supabase/tests/agent_test.mjs`: proposta vazia vira resposta em texto, toda proposta exige revisão, regra do prompt, validação de campos, bloqueio de agenda, ferramentas somente leitura, seleção explícita de Gemini, proteção da opção gratuita e diagnósticos de erro/saldo.
 - `node supabase/tests/agent_context.mjs`: serviço real com banco e provedor simulados; verifica isolamento do contexto por conversa e usuário, contexto legado e limite de seis pedidos.
 - `node supabase/validate-calendar.mjs`: migrações e testes SQL, incluindo isolamento, aplicação atômica, idempotência, conflito de versões e desfazer.
 - `node supabase/tests/agent_ui.mjs`: Playwright com Supabase inteiramente simulado. Usa uma prévia Vite em 5182; `TORRE_TEST_URL` e `PLAYWRIGHT_MODULE` podem definir URL e instalação do Playwright.

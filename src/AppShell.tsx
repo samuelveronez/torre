@@ -49,7 +49,7 @@ export function AppShell(props:Props){
  const phone=useMedia('(max-width:767px)');
  const [menuOpen,setMenuOpen]=useState(false);
  const agentPage=page==='Modo IA';
- const [compact,setCompact]=usePreference<boolean>(userId,'sidebar-collapsed',agentPage);
+ const [compact,setCompact]=usePreference<boolean>(userId,'sidebar-collapsed',false);
  const bottomNav=phone&&!agentPage;
  const pageTitle=navItems.find(i=>i.key===page)?.label??page;
 
