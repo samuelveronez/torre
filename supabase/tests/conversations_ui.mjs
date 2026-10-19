@@ -48,7 +48,7 @@ try{
  assert.equal(await page.getByLabel('Prazo (opcional)',{exact:true}).first().inputValue(),'2026-10-07');assert.equal(await page.getByLabel('Quando acompanhar?',{exact:true}).inputValue(),'2026-10-13');
  await page.getByRole('button',{name:'Salvar e criar tarefas (2)',exact:true}).click();await page.getByRole('button',{name:'Abrir tarefa',exact:true}).first().waitFor();assert.equal(tables.torre_tasks.length,2);
  await page.getByRole('heading',{name:'Ata da conversa com Ana Costa'}).waitFor();assert.equal(await page.getByLabel('Texto livre',{exact:true}).count(),0);assert.equal(tables.torre_tasks.length,2);
- await page.getByRole('button',{name:'Abrir tarefa',exact:true}).first().click();await page.getByRole('dialog',{name:'Editar tarefa'}).waitFor();await page.getByRole('button',{name:'Fechar',exact:true}).click();
+ await page.getByRole('button',{name:'Abrir tarefa',exact:true}).first().click();await page.getByRole('dialog',{name:'Editar tarefa'}).waitFor();await page.getByRole('button',{name:'Fechar detalhes',exact:true}).click();
  await page.evaluate(()=>window.scrollTo(0,0));await page.screenshot({path:'visual-prep/conversations-desktop.png',fullPage:true});
  await page.getByRole('button',{name:'Nova conversa',exact:true}).click();await page.getByLabel('Check-in',{exact:true}).fill('Tudo bem. Sem decisões ou combinados.');await page.getByRole('button',{name:'Salvar conversa',exact:true}).click();await page.getByText('Conversa salva.',{exact:true}).waitFor();assert.equal(tables.torre_tasks.length,2);
  await page.getByRole('button',{name:'Nova conversa',exact:true}).click();await page.getByLabel('Texto livre',{exact:true}).fill('Uma anotação importante');extractionFails=true;

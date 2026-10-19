@@ -94,6 +94,9 @@ for (const viewport of viewports) {
       await tab.goto(baseUrl);
       await tab.waitForTimeout(800);
       if(viewport.name==='390'&&page!=='Modo IA'){const bar=tab.getByRole('navigation',{name:'Navegação principal'});if(!(await bar.isVisible()))errors.push('barra inferior ausente');await tab.getByRole('button',{name:'Mais opções'}).click();if(!(await tab.getByRole('button',{name:'Configurações',exact:true}).isVisible()))errors.push('Mais não abriu o menu');await tab.keyboard.press('Escape');await tab.getByRole('button',{name:'Captura rápida'}).click();if(!(await tab.getByRole('dialog',{name:'Captura rápida'}).isVisible()))errors.push('botão flutuante não abriu a captura');await tab.keyboard.press('Escape');}
+      await tab.keyboard.press('Control+k');
+      if (!(await tab.getByRole('dialog', {name: 'Captura rápida'}).isVisible())) errors.push('Ctrl+K não abriu a captura');
+      await tab.keyboard.press('Escape');
       const hasHorizontalScroll = await tab.evaluate(() => document.documentElement.scrollWidth > innerWidth + 1);
       if (hasHorizontalScroll) errors.push('rolagem horizontal na página');
 

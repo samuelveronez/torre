@@ -1,7 +1,7 @@
 /* Kit portado do mockup (docs-internas/revisao_ui/torre_nova_ui_shadcn.html).
    Escopo .tc: especificidade 0,2,0 vence os estilos antigos de button/input/select. */
-.tc{--tc-side-bg:#fafafa;--tc-border:var(--border);--tc-th:#fafafa;--tc-switch-off:#d4d4d8;--tc-hover:var(--muted);--tc-danger:#b91c1c;--tc-danger-bg:#fef2f2;--tc-primary-hover:#0168bb;font-size:14px;color:var(--foreground)}
-[data-theme=dark] .tc{--tc-side-bg:#111113;--tc-th:#202023;--tc-switch-off:#52525b;--tc-danger:#f87171;--tc-danger-bg:#3b1d1d;--tc-primary-hover:#8cc4ff}
+.tc{--tc-side-bg:#fafafa;--tc-border:var(--border);--tc-th:#fafafa;--tc-switch-off:#d4d4d8;--tc-hover:var(--muted);--tc-danger:#b91c1c;--tc-danger-bg:#fef2f2;--tc-primary-hover:#0168bb;--tc-chip-on:#015ba7;--tc-warn:#92400e;--tc-listen-bg:#eff6ff;--tc-listen-border:#bfdbfe;--tc-listen-text:#1e40af;font-size:14px;color:var(--foreground)}
+[data-theme=dark] .tc{--tc-side-bg:#111113;--tc-th:#202023;--tc-switch-off:#52525b;--tc-danger:#f87171;--tc-danger-bg:#3b1d1d;--tc-primary-hover:#8cc4ff;--tc-chip-on:#8cc4ff;--tc-warn:#fbbf24;--tc-listen-bg:#172554;--tc-listen-border:#1e3a8a;--tc-listen-text:#bfdbfe}
 .tc .btn{display:inline-flex;align-items:center;justify-content:center;gap:8px;height:36px;min-height:0;padding:0 14px;border:1px solid var(--tc-border);border-radius:6px;background:var(--background);color:var(--foreground);font:inherit;font-size:14px;font-weight:500;white-space:nowrap;cursor:pointer;filter:none}
 .tc .btn:hover{background:var(--tc-hover);filter:none}
 .tc .btn:disabled{opacity:.55;cursor:not-allowed}
@@ -32,7 +32,7 @@
 .tc .sub{display:flex;align-items:center;gap:8px;width:100%;height:34px;min-height:0;padding:0 12px;border:0;border-radius:6px;background:transparent;color:var(--foreground);text-align:left;font:inherit;font-size:14px;font-weight:400;cursor:pointer}
 .tc .sub:hover{background:var(--tc-hover)}
 .tc .sub[aria-current=page]{background:var(--muted);font-weight:600}
-.tc .seg{display:inline-flex;border:1px solid var(--tc-border);border-radius:6px;overflow:hidden}
+.tc .seg{align-self:flex-start;display:inline-flex;border:1px solid var(--tc-border);border-radius:6px;overflow:hidden}
 .tc .seg button{height:34px;min-height:0;padding:0 14px;border:0;border-radius:0;background:var(--background);color:var(--foreground);font:inherit;font-size:14px;cursor:pointer}
 .tc .seg button+button{border-left:1px solid var(--tc-border)}
 .tc .seg button[aria-pressed=true]{background:var(--muted);font-weight:600}
@@ -88,3 +88,29 @@
 .app-shell.tc .app-content:has(main.settings-page){background:var(--background)}
 .tc .agent-header{border-top:0}
 :root [data-slot=sheet-content].navigation-sheet{padding:0;gap:0}
+/* Formulários, chips e janelas (mockups Captura rápida, Editar tarefa, Nova tarefa) */
+.tc .f{display:flex;flex-direction:column;gap:6px}
+.tc .chip{display:inline-flex;align-items:center;gap:6px;height:28px;min-height:0;padding:0 10px;border:1px solid var(--tc-border);border-radius:6px;background:var(--background);color:var(--foreground);font:inherit;font-size:13px;font-weight:500;cursor:pointer}
+.tc .chip[aria-pressed=true]{background:var(--accent);border-color:var(--primary);color:var(--tc-chip-on)}
+.tc .cb{width:16px;height:16px;min-height:0;margin:0;padding:0;accent-color:var(--primary);flex:0 0 auto}
+.tc .tc-fs{border:0;padding:0;margin:0;min-width:0;display:flex;flex-direction:column;gap:16px}
+.tc .tc-grid2{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:12px}
+.tc .tc-grid3{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:12px}
+.tc .tc-modal-title{margin:0;font-size:18px;font-weight:600;line-height:1;color:var(--foreground)}
+.tc .tc-modal-body{flex:1 1 auto;min-height:0;overflow:auto;margin:0 -4px;padding:0 4px;display:flex;flex-direction:column;gap:16px}
+.tc .tc-modal-actions{display:flex;flex-wrap:wrap;align-items:center;justify-content:flex-end;gap:8px}
+.tc .tc-modal-x{position:absolute;top:12px;right:12px;width:28px;height:28px;min-height:0;padding:0}
+.tc .tc-details{border-top:1px solid var(--tc-border);padding-top:12px}
+.tc .tc-details>summary{cursor:pointer;font-size:14px;font-weight:500;height:24px;list-style-position:inside}
+.tc .tc-dropzone{display:flex;flex-direction:column;align-items:center;gap:2px;padding:16px;border:1px dashed #d4d4d8;border-radius:6px;text-align:center}
+.tc .tc-filerow{display:flex;align-items:center;gap:8px;padding:6px 6px 6px 12px;border:1px solid var(--tc-border);border-radius:6px;font-size:13px}
+.tc .tc-listening{display:flex;flex-wrap:wrap;align-items:center;gap:10px;padding:8px 12px;border:1px solid var(--tc-listen-border);border-radius:6px;background:var(--tc-listen-bg)}
+@keyframes tc-pulse{0%,100%{opacity:1}50%{opacity:.35}}
+:root [data-slot=dialog-overlay]{background:#00000080}
+:root [data-slot=dialog-content].tc-modal{position:fixed;inset:50% auto auto 50%;transform:translate(-50%,-50%);translate:none;width:min(512px,calc(100vw - 32px));max-width:none;max-height:calc(100dvh - 48px);display:flex;flex-direction:column;gap:16px;box-sizing:border-box;padding:24px;background:var(--background);border:1px solid var(--border);border-radius:8px;box-shadow:0 10px 30px #0003;overflow:hidden}
+:root [data-slot=dialog-content].tc-modal.tc-modal-sm{width:min(400px,calc(100vw - 32px))}
+:root [data-slot=sheet-content].tc-panel{width:min(480px,100%);max-width:100%;padding:0;gap:0;display:flex;flex-direction:column;background:var(--background);border-left:1px solid var(--border);box-shadow:0 10px 30px #0003;font-size:14px;line-height:1.4}
+.tc .tc-panel-head{display:flex;align-items:flex-start;justify-content:space-between;gap:12px;padding:16px 16px 12px}
+.tc .tc-panel-body{flex:1 1 0;overflow:auto;padding:16px;display:flex;flex-direction:column;gap:16px}
+.tc .tc-panel-foot{display:flex;flex-wrap:wrap;align-items:center;gap:8px;padding:12px 16px}
+@media(max-width:767px){:root [data-slot=dialog-content].tc-modal{inset:0;transform:none;width:100vw;max-width:100vw;height:100dvh;max-height:100dvh;border-radius:0;border:0}:root [data-slot=sheet-content].tc-panel{width:100vw}.tc .tc-grid3{grid-template-columns:repeat(2,minmax(0,1fr))}}
