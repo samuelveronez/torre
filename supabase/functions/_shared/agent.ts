@@ -25,7 +25,8 @@ export function validateAgentPatch(entity:'task'|'label',patch:unknown,create=fa
  if('label_ids'in p&&(!Array.isArray(p.label_ids)||p.label_ids.length>50||p.label_ids.some(v=>typeof v!=='string'||(!agentId(v)&&!/^new:[a-z0-9_-]{1,40}$/.test(v)))))throw new Error('Labels inválidas.');
  return {...p};
 }
-export function needsAgentReview(operations:AgentOperation[]){return operations.filter(op=>op.patch.archived_at||op.patch.archived===true).length>1;}
+/** Every proposal waits for the user's explicit Apply; nothing is applied from a chat message alone. */
+export function needsAgentReview(operations:AgentOperation[]){return operations.length>0;}
 /** Shape check for a propose_changes call. An empty batch is a plain text answer, never an error. */
 export function proposalKind(mode:'analyze'|'execute',callCount:number,args:any):'changes'|'text'{
  if(mode!=='execute'||callCount!==1||typeof args?.response!=='string'||!Array.isArray(args.operations)||args.operations.length>50)throw new Error('Proposta inválida.');
