@@ -50,8 +50,8 @@ try {
  await page.getByRole('button',{name:/^Reunião aceita ·/}).waitFor();
  assert.equal(await page.locator('.agenda-card').count(),4);
  assert.equal(await page.locator('.agenda-card.response-declined').count(),0);
- assert(await page.getByText('Evento de dia inteiro',{exact:true}).isVisible());
- assert(await page.getByText('Reunião às seis',{exact:true}).isVisible());
+ assert(await page.getByRole('button',{name:/Evento de dia inteiro/}).isVisible());
+ assert(await page.getByRole('button',{name:/Reunião às seis/}).isVisible());
  const boxes=await page.locator('.agenda-card').evaluateAll(cards=>cards.map(card=>{const r=card.getBoundingClientRect();return {x:r.x,right:r.right,y:r.y,bottom:r.bottom,height:r.height};}));
  for(let i=0;i<boxes.length;i++)for(let j=i+1;j<boxes.length;j++){const a=boxes[i],b=boxes[j];if(a.y<b.bottom&&a.bottom>b.y)assert(a.right<=b.x||b.right<=a.x,'Cards hide each other');}
  assert.equal(boxes.filter(b=>b.height===48).length,3);
@@ -76,10 +76,10 @@ try {
  await page.getByRole('button',{name:/^Segunda tarefa · 10:15/}).waitFor();
  assert.equal(tables.torre_scheduled_blocks.length,3);
  // Dragging an existing reservation onto a meeting also changes its time.
- await page.locator(`.task-row[data-task-id="${taskIds[0]}"]`).dragTo(page.locator('.agenda-card.response-accepted'),{targetPosition:{x:10,y:30}});
+ await page.locator(`article[data-task-id="${taskIds[0]}"]`).dragTo(page.locator('.agenda-card.response-accepted'),{targetPosition:{x:10,y:30}});
  await page.getByRole('button',{name:/^Tarefa para reservar · 10:30/}).waitFor();
  assert.equal(tables.torre_scheduled_blocks.find(b=>b.task_id===taskIds[0]).start_at,'2099-01-05T13:30:00.000Z');
- await page.getByRole('button',{name:'Atualizar',exact:true}).click();
+ await page.getByRole('button',{name:'Sincronizar',exact:true}).click();
  await page.locator('.cloud-workspace:disabled').waitFor({state:'hidden'});
  assert.equal(tables.torre_scheduled_blocks.length,3);
  await page.reload();await page.getByLabel('Data de Meu dia').fill('2099-01-05');

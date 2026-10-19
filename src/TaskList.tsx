@@ -1,5 +1,5 @@
 import {useEffect,useState} from 'react';
-import {Plus,X} from 'lucide-react';
+import {Plus} from 'lucide-react';
 import {priorities,priorityRank} from './priority';
 import type {Features} from './features';
 import type {Task} from './task';
@@ -9,6 +9,7 @@ import {BulkActions,type BatchChange} from './BulkActions';
 import {writeTaskDrag} from './taskDrag';
 import {usePreference} from './uiState';
 import {formatDue} from './ui-kit/format';
+import {ActiveFilters} from './ui-kit/ActiveFilters';
 
 type Props={
  onBatch:(ids:string[],change:BatchChange)=>Promise<boolean>;
@@ -81,9 +82,6 @@ export function TaskList(props:Props){
  const selectedTasks=filtered.filter(t=>ids.includes(t.id));
  const grouped=tab==='open'&&sort==='Prazo';
  const groups=grouped?groupOrder.map(key=>({key,items:filtered.filter(t=>groupOf(t,today)===key)})).filter(g=>g.items.length):[{key:'',items:filtered}];
- const hasFilters=area!=='Tudo'||!!query||labelFilter.length>0||priorityFilter!=='all';
- const labelName=(id:string)=>id==='none'?'Sem label':features.labels.find(l=>l.id===id)?.name??id;
- const labelColor=(id:string)=>features.labels.find(l=>l.id===id)?.color;
  const clear=()=>{onClearFilters();setTab('open');setSituation('all');setPriorityFilter('all');};
 
  const subtitle=`${open.length} abertas · ${late.length} atrasadas · ${waiting.length} aguardando retorno`;
@@ -117,13 +115,7 @@ export function TaskList(props:Props){
     {sorts.map(s=><option key={s} value={s}>Ordenar: {s.toLowerCase()}</option>)}
    </select>
   </div>
-  {hasFilters&&<div aria-label="Filtros ativos" style={{display:'flex',flexWrap:'wrap',alignItems:'center',gap:8}}>
-   {area!=='Tudo'&&<FilterChip label={area} onRemove={onRemoveArea}/>}
-   {query&&<FilterChip label={`Busca: ${query}`} onRemove={onRemoveQuery}/>}
-   {labelFilter.map(id=><FilterChip key={id} label={labelName(id)} color={labelColor(id)} onRemove={()=>onRemoveLabel(id)}/>)}
-   {priorityFilter!=='all'&&<FilterChip label={`Prioridade: ${priorities.find(p=>p.value===priorityFilter)?.label}`} onRemove={()=>setPriorityFilter('all')}/>}
-   <button className="btn btn-g btn-sm" style={{color:'var(--tc-chip-on)'}} onClick={clear}>Limpar filtros</button>
-  </div>}
+  <ActiveFilters area={area} query={query} labelFilter={labelFilter} labels={features.labels} extra={priorityFilter!=='all'?[{label:`Prioridade: ${priorities.find(p=>p.value===priorityFilter)?.label}`,onRemove:()=>setPriorityFilter('all')}]:[]} onRemoveArea={onRemoveArea} onRemoveQuery={onRemoveQuery} onRemoveLabel={onRemoveLabel} onClear={clear}/>
   <BulkActions tasks={selectedTasks} features={features} onClear={()=>setSelection([])} onApply={change=>onBatch(ids,change)} onClassify={()=>onClassify(ids)}/>
   <section className="tbl" aria-label="Lista de tarefas">
    <div className="thk">
@@ -149,13 +141,6 @@ export function TaskList(props:Props){
    </div>}
   </section>
  </section>;
-}
-
-function FilterChip({label,color,onRemove}:{label:string;color?:string;onRemove:()=>void}){
- return <span className="badge b-s" style={{height:26,padding:'0 4px 0 10px'}}>
-  {color&&<span className="dot" style={{background:color}}/>}{label}
-  <button className="btn btn-g" aria-label={`Remover filtro ${label}`} style={{height:18,width:18,minHeight:0,padding:0,borderRadius:4}} onClick={onRemove}><X size={12} aria-hidden="true"/></button>
- </span>;
 }
 
 type RowProps={task:Task;features:Features;today:string;isNew:boolean;selecting:boolean;selected:boolean;onToggle:(id:string)=>void;onOpen:(id:string)=>void;onComplete:(id:string)=>void;onReopen:(id:string)=>void;onPlan:(id:string)=>void};
