@@ -1,9 +1,0 @@
-:root [data-slot=sheet-content].planner-sheet{width:min(440px,100vw);max-width:100vw}
-.planner-sheet .proposal-row{grid-template-columns:24px minmax(0,1fr);gap:6px 8px;padding:12px 0;border-color:var(--border);min-width:0}
-.planner-sheet .proposal-row>label{grid-column:1/-1;display:grid;grid-template-columns:24px minmax(0,1fr);gap:8px;align-items:start;padding:0;margin:0;min-height:32px}
-.planner-sheet .proposal-row input[type=checkbox]{width:18px;height:18px;min-height:18px;margin:2px 0;padding:0}
-.planner-sheet .proposal-title{font-size:14px;line-height:1.45;font-weight:500;color:var(--foreground);overflow-wrap:anywhere;min-width:0}
-.planner-sheet .proposal-row input[type=datetime-local]{grid-column:2;width:100%;min-width:0;max-width:100%;min-height:36px;box-sizing:border-box;font-size:14px;padding:6px 10px;margin:0}
-.planner-sheet .proposal-row>small{grid-column:2;font-size:12px;line-height:1.4;color:var(--muted-foreground);overflow-wrap:anywhere}
-.planner-sheet .toolbar{display:flex;flex-wrap:wrap;gap:8px;margin-top:12px}
-@media(max-width:767px){:root [data-slot=sheet-content].planner-sheet{width:100vw;padding:16px}.planner-sheet .proposal-row>label{min-height:44px;align-items:center}.planner-sheet .proposal-row input[type=datetime-local]{min-height:44px;font-size:16px}.planner-sheet .toolbar button{min-height:44px}}
