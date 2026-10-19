@@ -63,7 +63,7 @@ export function TaskList(props:Props){
  const [priorityFilter,setPriorityFilter]=useState('all');
  const [tab,setTab]=useState<Tab>('open');
  const [situation,setSituation]=useState<Situation>('all');
- const [sort,setSort]=usePreference(userId,'task-sort','Mais recentes');
+ const [sort,setSort]=usePreference(userId,'task-sort-v2','Prazo');
  useEffect(()=>{if(recentKey){setSort('Mais recentes');setTab('open');setSituation('all');}},[recentKey]);
  const [selecting,setSelecting]=useState(false),[selection,setSelection]=useState<string[]>([]);
  const toggle=(id:string)=>setSelection(list=>list.includes(id)?list.filter(x=>x!==id):[...list,id]);
