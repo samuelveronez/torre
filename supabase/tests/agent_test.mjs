@@ -1,5 +1,5 @@
 import assert from 'node:assert/strict';
-import {agentModel,validateAgentPatch,needsAgentReview,agentInstructions,callAgentModel,classifyAgentError,testAgentModel,agentTools,AgentModelError} from '../functions/_shared/agent.ts';
+import {proposalKind,agentModel,validateAgentPatch,needsAgentReview,agentInstructions,callAgentModel,classifyAgentError,testAgentModel,agentTools,AgentModelError} from '../functions/_shared/agent.ts';
 assert.throws(()=>validateAgentPatch('task',{user_id:'foreign'}));
 assert.throws(()=>validateAgentPatch('task',{at:'2026-10-07T12:00:00Z'}));
 assert.throws(()=>validateAgentPatch('task',{due_date:'2026-02-30'}));
@@ -67,4 +67,13 @@ await assert.rejects(()=>callAgentModel([],'analyze','test',paidFake,'unknown/mo
 await assert.rejects(()=>callAgentModel([],'analyze','test',fake,paid),e=>e.reason==='unexpected_model'&&e.requestedModel===paid);
 await assert.rejects(()=>callAgentModel([],'analyze','test',paidFake),e=>e.reason==='paid_model','Free selection still rejects paid response');
 const credit=classifyAgentError(402,{error:{code:402,message:'Insufficient credits '+privateMarker}},paid);assert.match(credit.message,/Saldo/);assert.equal(credit.message.includes('gratuito'),false);assert.equal(credit.requestedModel,paid);assert.equal(JSON.stringify(credit.diagnostic()).includes(privateMarker),false);
+assert.equal(proposalKind('execute',1,{response:'Resposta em texto',operations:[]}),'text');
+assert.equal(proposalKind('execute',1,{response:'Lote',operations:[{entity:'task',id:'x'}]}),'changes');
+assert.throws(()=>proposalKind('execute',1,{response:'  ',operations:[]}),/Proposta inválida/);
+assert.throws(()=>proposalKind('analyze',1,{response:'Lote',operations:[{entity:'task',id:'x'}]}),/Proposta inválida/);
+assert.throws(()=>proposalKind('execute',2,{response:'Lote',operations:[]}),/Proposta inválida/);
+assert.throws(()=>proposalKind('execute',1,{response:'Lote',operations:Array.from({length:51},()=>({}))}),/Proposta inválida/);
+assert.throws(()=>proposalKind('execute',1,{response:'Lote'}),/Proposta inválida/);
+const rule=agentInstructions('execute','2026-10-19');
+assert.match(rule,/somente quando a mensagem atual pedir uma alteração de forma explícita/);assert.match(rule,/nunca proponha mudanças por conta própria/);assert.match(rule,/Só a mensagem atual do usuário autoriza ações/);
 console.log('PASS: schemas, explicit model allowlist, free guard, Gemini routing, safe diagnostics, provider errors and synthetic tool test');

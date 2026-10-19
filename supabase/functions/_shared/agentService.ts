@@ -1,7 +1,7 @@
 import {preparePlan} from './planService.ts';
 import {selectedAiModel} from './aiSettings.ts';
 import {db,checked,secret} from './google.ts';
-import {agentId,agentModel,validateAgentPatch,needsAgentReview,agentInstructions,callAgentModel,testAgentModel,type AgentOperation} from './agent.ts';
+import {agentId,proposalKind,agentModel,validateAgentPatch,needsAgentReview,agentInstructions,callAgentModel,testAgentModel,type AgentOperation} from './agent.ts';
 
 export async function agentAction(uid:string,input:any){
  if(input.action==='agent-test'){
@@ -68,7 +68,7 @@ export async function agentAction(uid:string,input:any){
      answer=`Preparei uma proposta de horários. Nenhuma reserva foi aplicada. [Revisar horários](schedule:${proposal.id})`;break;
     }
     if(call.function.name==='propose_changes'){
-     if(input.mode!=='execute'||m.tool_calls.length!==1||typeof args.response!=='string'||!Array.isArray(args.operations)||args.operations.length<1||args.operations.length>50)throw new Error('Proposta inválida.');
+     proposalKind(input.mode,m.tool_calls.length,args);
      const refs=new Map<string,string>(),seen=new Set<string>();
      for(const raw of args.operations){
       if(!['task','label'].includes(raw.entity)||typeof raw.id!=='string')throw new Error('Operação inválida.');
