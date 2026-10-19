@@ -25,7 +25,9 @@
 .tc .sw[aria-checked=true]::after{left:18px}
 .tc .sw:disabled{opacity:.55;cursor:not-allowed}
 .tc .badge{display:inline-flex;align-items:center;height:22px;padding:0 8px;border:1px solid var(--tc-border);border-radius:6px;font-size:12px;font-weight:500;color:var(--foreground);background:var(--background)}
-.tc .tbl{border:1px solid var(--tc-border);border-radius:8px;background:var(--background);overflow:hidden}
+.tc .tbl{border:1px solid var(--tc-border);border-radius:8px;background:var(--background)}
+.tc .tbl>:first-child{border-top-left-radius:7px;border-top-right-radius:7px}
+.tc .tbl>:last-child{border-bottom-left-radius:7px;border-bottom-right-radius:7px}
 .tc .tr{display:flex;align-items:center;gap:12px;padding:0 14px;min-height:48px;border-top:1px solid var(--tc-border)}
 .tc .th{display:flex;align-items:center;gap:12px;padding:0 14px;height:36px;background:var(--tc-th);font-size:12px;font-weight:500;color:var(--muted-foreground)}
 .tc .tr:hover{background:var(--tc-th)}
