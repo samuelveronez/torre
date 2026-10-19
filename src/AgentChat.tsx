@@ -6,11 +6,12 @@ import {ensure,invoke,type Features} from './features';
 import {AgentHistory} from './agent/AgentHistory';
 import {AgentTurn} from './agent/AgentTurn';
 import {AgentComposer} from './agent/AgentComposer';
+import {AgentConversationMenu} from './agent/AgentConversationMenu';
 import {conversationKey,type Conversation,type ModelChoice,type Run} from './agent/types';
 
 export function AgentChat({userId,features,onRefresh,onTask,onLabel,onSettings,onSchedule}:{userId:string;features:Features;onRefresh:()=>void;onTask:(id:string)=>void;onLabel:(id:string)=>void;onSettings:()=>void;onSchedule?:(id:string)=>void}){
  const [runs,setRuns]=useState<Run[]>([]),[text,setText]=useState(''),[busy,setBusy]=useState(''),[error,setError]=useState(''),[loading,setLoading]=useState(true);
- const [conversations,setConversations]=useState<Conversation[]>([]),[selected,setSelected]=useState(''),[historyOpen,setHistoryOpen]=useState(false),[search,setSearch]=useState(''),[moreConversations,setMoreConversations]=useState(false),[moreRuns,setMoreRuns]=useState(false),[olderBusy,setOlderBusy]=useState(false),[listBusy,setListBusy]=useState(false),[dismissed,setDismissed]=useState<string[]>([]);
+ const [conversations,setConversations]=useState<Conversation[]>([]),[selected,setSelected]=useState(''),[historyOpen,setHistoryOpen]=useState(false),[search,setSearch]=useState(''),[moreConversations,setMoreConversations]=useState(false),[moreRuns,setMoreRuns]=useState(false),[olderBusy,setOlderBusy]=useState(false),[listBusy,setListBusy]=useState(false),[dismissed,setDismissed]=useState<string[]>([]),[showArchived,setShowArchived]=useState(false),[renaming,setRenaming]=useState(false),[renameText,setRenameText]=useState('');
  const [phone,setPhone]=useState(()=>window.matchMedia('(max-width: 767px)').matches);
  useEffect(()=>{const media=window.matchMedia('(max-width: 767px)');const update=()=>setPhone(media.matches);media.addEventListener('change',update);return()=>media.removeEventListener('change',update);},[]);
  const model:ModelChoice=features.ai?.default_model==='google/gemini-2.5-flash'?'google/gemini-2.5-flash':'openrouter/free';
@@ -18,11 +19,12 @@ export function AgentChat({userId,features,onRefresh,onTask,onLabel,onSettings,o
  const locked=useRef(false),bottom=useRef<HTMLDivElement>(null),historyButton=useRef<HTMLButtonElement>(null),panel=useRef<HTMLElement>(null);const active=useRef(true),selection=useRef(''),loadVersion=useRef(0),listVersion=useRef(0);
  function selectConversation(id:string){selection.current=id;setSelected(id);setText('');setError('');setHistoryOpen(false);try{localStorage.setItem(`torre:${userId}:agent-conversation`,id);}catch{}historyButton.current?.focus();}
  function newConversation(){if(locked.current)return;selectConversation(crypto.randomUUID());}
- async function list(offset=0,query=search){const version=++listVersion.current;setListBusy(true);try{const {data}=await ensure(supabase.rpc('torre_agent_conversations',{p_offset:offset,p_query:query}));if(active.current&&version===listVersion.current){setConversations(current=>offset?[...current,...data]:data??[]);setMoreConversations((data?.length??0)===50);}return (data??[]) as Conversation[];}finally{if(active.current&&version===listVersion.current)setListBusy(false);}}
+ async function list(offset=0,query=search,archived=showArchived){const version=++listVersion.current;setListBusy(true);try{const {data}=await ensure(supabase.rpc('torre_agent_conversations',{p_offset:offset,p_query:query,p_archived:archived}));if(active.current&&version===listVersion.current){setConversations(current=>offset?[...current,...data]:data??[]);setMoreConversations((data?.length??0)===50);}return (data??[]) as Conversation[];}finally{if(active.current&&version===listVersion.current)setListBusy(false);}}
  async function load(older=false){const id=selection.current,version=++loadVersion.current;if(!id)return;let q=supabase.from('torre_agent_runs').select('id,conversation_id,message,mode,state,response,model,requested_model,error,operations,created_at').eq('user_id',userId);q=id==='legacy'?q.is('conversation_id',null):q.eq('conversation_id',id);const offset=older?runs.length:0;const {data}=await ensure(q.order('created_at',{ascending:false}).order('id',{ascending:false}).range(offset,offset+29));if(active.current&&selection.current===id&&version===loadVersion.current){setRuns(current=>older?[...(data??[]).reverse() as Run[],...current]:(data??[]).reverse() as Run[]);setMoreRuns((data?.length??0)===30);}}
  async function initialize(){setLoading(true);setError('');try{const items=await list(0,'');if(!active.current)return;let saved='';try{saved=localStorage.getItem(`torre:${userId}:agent-conversation`)??'';}catch{}selectConversation(saved==='legacy'||/^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i.test(saved)?saved:items.length?conversationKey(items[0].conversation_id):crypto.randomUUID());}catch{if(active.current){setError('Não foi possível carregar as conversas.');setLoading(false);}}}
  useEffect(()=>{active.current=true;void initialize();return()=>{active.current=false;loadVersion.current++;listVersion.current++;};},[userId]);
  useEffect(()=>{if(!selected)return;let cancelled=false;setRuns([]);setMoreRuns(false);setLoading(true);void load().catch(()=>{if(active.current&&!cancelled)setError('Não foi possível carregar a conversa. Tente novamente.');}).finally(()=>{if(active.current&&!cancelled)setLoading(false);});return()=>{cancelled=true;};},[selected]);
+useEffect(()=>{if(!selected)return;void list(0,search,showArchived).catch(()=>setError('Não foi possível carregar as conversas.'));},[showArchived]);
  useEffect(()=>{if(!selected)return;const timer=setTimeout(()=>{void list(0,search).catch(()=>setError('Não foi possível buscar as conversas.'));},250);return()=>clearTimeout(timer);},[search]);
  useEffect(()=>{if(!olderBusy)bottom.current?.scrollIntoView({block:'nearest',behavior:'smooth'});},[runs.length,busy,loading]);
  useEffect(()=>{if(historyOpen)panel.current?.querySelector<HTMLInputElement>('input')?.focus();},[historyOpen]);
@@ -44,15 +46,35 @@ export function AgentChat({userId,features,onRefresh,onTask,onLabel,onSettings,o
  for(const run of runs){for(const match of run.response.matchAll(/\[([^\]]+)\]\((?:task|label):([0-9a-f-]{36})\)/gi))reference(match[2],match[1]);for(const op of run.operations)reference(op.id,op.title);}
  for(const label of features.labels)reference(label.id,label.name);
  for(const [prefix,ids] of prefixes)if(ids.size===1)references[prefix]=references[[...ids][0]];
- const title=conversations.find(c=>conversationKey(c.conversation_id)===selected)?.title??runs[0]?.message??'Nova conversa';
+ const current=conversations.find(c=>conversationKey(c.conversation_id)===selected);
+ const title=current?.title??runs[0]?.message??'Nova conversa';
+ const canManage=!!current?.conversation_id;
+ function startRename(){setRenameText(current?.title??'');setRenaming(true);}
+ async function saveRename(){
+  const id=selected,value=renameText.trim();
+  setRenaming(false);
+  if(!canManage||value===current?.title)return;
+  try{await ensure(supabase.rpc('torre_agent_conversation_rename',{p_conversation:id,p_title:value}));setSearch('');await list(0,'');}
+  catch{setError('Não foi possível renomear a conversa. Tente novamente.');}
+ }
+ async function archive(archived:boolean){
+  const id=selected;
+  if(!canManage||locked.current)return;
+  try{
+   await ensure(supabase.rpc('torre_agent_conversation_archive',{p_conversation:id,p_archived:archived}));
+   if(archived){const items=await list(0,search,false);selectConversation(items.length?conversationKey(items[0].conversation_id):crypto.randomUUID());}
+   else setShowArchived(false);
+  }catch{setError(archived?'Não foi possível arquivar a conversa. Tente novamente.':'Não foi possível restaurar a conversa. Tente novamente.');}
+ }
  const suggestions=['Avalie minhas tarefas e explique o que merece atenção.','Quais tarefas estão atrasadas?','Revise minhas labels e sugira melhorias.'];
- const historyPanel=<AgentHistory ref={panel} dialog={phone} conversations={conversations} selected={selected} search={search} onSearch={setSearch} busy={!!busy||olderBusy} listBusy={listBusy} more={moreConversations} onSelect={selectConversation} onNew={newConversation} onMore={()=>void list(conversations.length).catch(()=>setError('Não foi possível carregar mais conversas.'))}/>;
+ const historyPanel=<AgentHistory ref={panel} dialog={phone} conversations={conversations} selected={selected} search={search} onSearch={setSearch} busy={!!busy||olderBusy} listBusy={listBusy} more={moreConversations} showArchived={showArchived} onToggleArchived={()=>{setSearch('');setShowArchived(v=>!v);}} onSelect={selectConversation} onNew={newConversation} onMore={()=>void list(conversations.length).catch(()=>setError('Não foi possível carregar mais conversas.'))}/>;
  return <section className={'agent-chat ag-chat'+(historyOpen?' history-open':'')} aria-label="Conversa com o agente" onKeyDown={e=>{if(e.key==='Escape'&&historyOpen){e.stopPropagation();closeHistory();}if(e.key==='Tab'&&historyOpen&&phone&&panel.current){const controls=Array.from(panel.current.querySelectorAll<HTMLElement>('button:not(:disabled),input'));const first=controls[0],last=controls[controls.length-1];if(e.shiftKey&&document.activeElement===first){e.preventDefault();last?.focus();}else if(!e.shiftKey&&document.activeElement===last){e.preventDefault();first?.focus();}}}}>
   {phone?historyOpen&&<><button type="button" tabIndex={-1} className="ag-scrim" aria-label="Fechar histórico do agente" onClick={closeHistory}/>{historyPanel}</>:historyPanel}
   <div className="ag-workspace" inert={historyOpen&&phone}>
    <header className="ag-head">
     {phone&&<button ref={historyButton} type="button" className="btn btn-sm" aria-expanded={historyOpen} aria-controls="agent-conversations" onClick={()=>historyOpen?closeHistory():setHistoryOpen(true)}><PanelLeft size={16} aria-hidden="true"/>Histórico do agente</button>}
-    <h1 title={title}>{title}</h1>
+    {renaming?<input className="inp ag-rename" autoFocus aria-label="Nome da conversa" maxLength={90} value={renameText} onChange={e=>setRenameText(e.target.value)} onBlur={()=>void saveRename()} onKeyDown={e=>{if(e.key==='Enter'){e.preventDefault();e.currentTarget.blur();}if(e.key==='Escape'){e.preventDefault();setRenaming(false);}}}/>:<h1 title={title}>{title}</h1>}
+    {canManage&&!renaming&&<AgentConversationMenu archived={!!current?.archived_at} disabled={!!busy} onRename={startRename} onArchive={v=>void archive(v)}/>}
    </header>
    <div className="agent-history ag-scroll" aria-label="Histórico da conversa" aria-busy={loading||!!busy}><div className="ag-col">{loading?<p role="status" className="desc">Carregando conversa…</p>:<>
     {moreRuns&&<button type="button" className="btn btn-sm ag-older" disabled={olderBusy||!!busy} onClick={()=>{setOlderBusy(true);void load(true).catch(()=>setError('Não foi possível carregar pedidos anteriores.')).finally(()=>setOlderBusy(false));}}>{olderBusy?'Carregando…':'Carregar pedidos anteriores'}</button>}

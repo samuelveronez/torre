@@ -390,3 +390,6 @@
 .tc .wk-sheet-grip{width:36px;height:4px;border-radius:2px;background:var(--tc-border)}
 .tc .wk-sheet .wk-side{max-width:none}
 }
+.tc .ag-rename{flex:1;min-width:0;height:32px;font-size:14px;font-weight:500}
+.tc .ag-head .ico{flex:0 0 auto}
+.tc .ag-archived-toggle{margin-top:2px}

@@ -4,6 +4,7 @@ const {chromium}=await import(process.env.PLAYWRIGHT_MODULE?pathToFileURL(proces
 const browser=await chromium.launch({channel:'msedge',headless:true});
 const uid='a7ba7610-735e-4da5-a17f-104419acf001',task='a7ba7610-735e-4da5-a17f-104419acf002';
 const user={id:uid,email:'test@example.com',aud:'authenticated',role:'authenticated',app_metadata:{},user_metadata:{},created_at:'2026-10-06T00:00:00Z'};
+const meta={},metaCalls=[];
 const tables={torre_conversations:[],torre_people:[],torre_task_people:[],torre_week_proposals:[],torre_tasks:[{id:task,user_id:uid,title:'Pagar aluguel',description:'Conta mensal',area:'personal',duration_minutes:30,status:'todo',source:'torre',priority:'high',due_date:'2026-10-06',created_at:'2026-10-05T00:00:00Z'}],torre_preferences:[{user_id:uid,timezone:'America/Sao_Paulo',theme:'light'}],torre_work_hours:Array.from({length:7},(_,weekday)=>({weekday,user_id:uid,enabled:true,start_time:'09:00',end_time:'18:00'})),torre_ai_settings:[{user_id:uid,has_key:true,enabled:true}],torre_agent_runs:[],torre_scheduled_blocks:[],torre_task_labels:[],torre_labels:[],torre_captures:[],torre_attachments:[],torre_google_lists:[],torre_google_status:[],torre_calendars:[],torre_calendar_events:[]};
 const calls=[],errors=[];let testFails=false;
 const analysisResponse=`## Avaliação de hoje\n\n**Foco:** confira [Pagar aluguel](task:${task}): vence hoje.\n\n- **Prioridade:** high\n- status: waiting\n- ID: ${task}\n\n| Tarefa | priority | status | ID |\n| --- | --- | --- | --- |\n| [Pagar aluguel](task:${task}) | high | waiting | ${task} |\n\nProjeto high fidelity permanece com seu nome.\n\nPriorize a tarefa ${task.slice(0,8)} com prioridade “high”.\n\nSituação **“waiting”**, área="professional".\n\n[Link inseguro](javascript:alert(1))\n\n<script>window.markdownInjected=true</script>`;
@@ -25,10 +26,16 @@ await context.route('https://nvxwqrpztecrvrxoddxf.supabase.co/**',async route=>{
   }else if(input.action==='agent-apply')run.state='applied';else if(input.action==='agent-undo')run.state='undone';else throw new Error('Unexpected action');
   return route.fulfill({status:200,headers,body:JSON.stringify({run})});
  }
+ if(url.pathname.endsWith('/rpc/torre_agent_conversation_rename')||url.pathname.endsWith('/rpc/torre_agent_conversation_archive')){
+  const body=request.postDataJSON();const m=(meta[body.p_conversation]??={});
+  if(url.pathname.endsWith('rename'))m.title=String(body.p_title).trim()||undefined;else m.archived_at=body.p_archived?new Date().toISOString():null;
+  metaCalls.push({kind:url.pathname.split('/').pop(),...body});
+  return route.fulfill({status:200,headers,body:'null'});
+ }
  if(url.pathname.endsWith('/rpc/torre_agent_conversations')){
-  const {p_offset=0,p_query=''}=request.postDataJSON();const groups=new Map();
-  for(const r of tables.torre_agent_runs){const key=r.conversation_id??'legacy';let c=groups.get(key);if(!c){c={conversation_id:r.conversation_id??null,title:key==='legacy'?'Histórico anterior':r.message.slice(0,90),updated_at:r.created_at,run_count:0};groups.set(key,c);}c.run_count++;c.updated_at=r.created_at;}
-  const data=[...groups.values()].filter(c=>c.title.toLowerCase().includes(p_query.toLowerCase())).reverse().slice(p_offset,p_offset+50);
+  const {p_offset=0,p_query='',p_archived=false}=request.postDataJSON();const groups=new Map();
+  for(const r of tables.torre_agent_runs){const key=r.conversation_id??'legacy';let c=groups.get(key);if(!c){c={conversation_id:r.conversation_id??null,title:meta[key]?.title??(key==='legacy'?'Histórico anterior':r.message.slice(0,90)),updated_at:r.created_at,run_count:0,archived_at:meta[key]?.archived_at??null};groups.set(key,c);}c.run_count++;c.updated_at=r.created_at;}
+  const data=[...groups.values()].filter(c=>!!c.archived_at===!!p_archived&&c.title.toLowerCase().includes(p_query.toLowerCase())).reverse().slice(p_offset,p_offset+50);
   return route.fulfill({status:200,headers,body:JSON.stringify(data)});
  }
  if(url.pathname.includes('/rpc/'))return route.fulfill({status:200,headers,body:'null'});
@@ -80,6 +87,19 @@ try{
  await page.getByRole('button',{name:/O que merece atenção hoje/}).waitFor();
  await page.getByRole('button',{name:/O que merece atenção hoje/}).click();await page.getByText('Gemini respondeu ao pedido.',{exact:true}).waitFor();
  assert.equal(await page.locator('.ag-turn').count(),4,'Old conversation intact');
+ await page.getByRole('button',{name:'Mais ações da conversa'}).click();await page.getByRole('menuitem',{name:'Renomear conversa'}).click();
+ await page.getByRole('textbox',{name:'Nome da conversa'}).fill('Prioridades da semana');await page.getByRole('textbox',{name:'Nome da conversa'}).press('Enter');
+ await page.getByRole('heading',{name:'Prioridades da semana'}).waitFor();assert.equal(metaCalls.at(-1).kind,'torre_agent_conversation_rename');assert.equal(metaCalls.at(-1).p_title,'Prioridades da semana');
+ await page.getByLabel('Buscar conversa').fill('');await page.getByRole('button',{name:'Prioridades da semana'}).waitFor();
+ await page.getByRole('button',{name:'Mais ações da conversa'}).click();await page.getByRole('menuitem',{name:'Renomear conversa'}).click();
+ await page.getByRole('textbox',{name:'Nome da conversa'}).fill('Nome descartado');await page.getByRole('textbox',{name:'Nome da conversa'}).press('Escape');
+ await page.getByRole('heading',{name:'Prioridades da semana'}).waitFor();assert.equal(metaCalls.filter(c=>c.kind==='torre_agent_conversation_rename').length,1,'Escape cancels without saving');
+ await page.getByRole('button',{name:'Mais ações da conversa'}).click();await page.getByRole('menuitem',{name:'Arquivar conversa'}).click();
+ await page.getByRole('button',{name:'Prioridades da semana'}).waitFor({state:'hidden'});assert.equal(metaCalls.at(-1).kind,'torre_agent_conversation_archive');assert.equal(metaCalls.at(-1).p_archived,true);
+ assert.equal(tables.torre_agent_runs.length>=4,true,'Archiving never deletes requests');
+ await page.getByRole('button',{name:'Arquivadas',exact:true}).click();await page.getByRole('button',{name:'Prioridades da semana'}).click();
+ await page.getByRole('button',{name:'Mais ações da conversa'}).click();await page.getByRole('menuitem',{name:'Restaurar conversa'}).click();
+ await page.getByRole('button',{name:'Arquivadas',exact:true}).waitFor();await page.getByRole('button',{name:'Prioridades da semana'}).waitFor();assert.equal(metaCalls.at(-1).p_archived,false);
  await page.screenshot({path:'.db-validation/agent-history-open.png',fullPage:true});
  await page.screenshot({path:'.db-validation/agent-history-collapsed.png',fullPage:true});
  await page.setViewportSize({width:390,height:844});await page.screenshot({path:'.db-validation/agent-mobile.png',fullPage:true});
