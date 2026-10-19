@@ -49,6 +49,18 @@ tests.push({name:'Carga do dia soma tarefas e reuniões com horário sem contar 
  assert.equal(dayLoad(day,hours,[],[meeting('2026-10-20T09:00:00','2026-10-20T10:00:00',{blocks_time:false})]).planned,0,'evento que não bloqueia não conta');
  assert.equal(dayLoad(day,hours,[],[meeting('2026-10-19T23:30:00','2026-10-20T00:30:00')]).planned,30,'reunião atravessando a meia-noite conta só a parte do dia');
 }});
+const {hourToClock,clockToHour}=await import('../../src/hourClock.ts');
+tests.push({name:'Jornada aceita minutos quebrados e desconta o almoço da capacidade',run(){
+ assert.equal(hourToClock(8.5),'08:30');assert.equal(hourToClock(8.25),'08:15');assert.equal(clockToHour('08:15'),8.25);
+ const lunch={enabled:true,start:12,end:13.5};
+ const hours=Array.from({length:7},()=>({enabled:true,start:8.5,end:18,lunch}));
+ const day=dayLoad(new Date('2026-10-19T12:00:00'),hours,[]);
+ assert.equal(day.capacity,9.5*60-90);
+ hours[1].lunch={...lunch,enabled:false};
+ assert.equal(dayLoad(new Date('2026-10-19T12:00:00'),hours,[]).capacity,9.5*60);
+ hours[1].lunch={enabled:true,start:7,end:8};
+ assert.equal(dayLoad(new Date('2026-10-19T12:00:00'),hours,[]).capacity,9.5*60);
+}});
 let failed=0;
 for(const {name,run} of tests){try{await run();console.log('PASS '+name);}catch(error){failed++;console.error('FAIL '+name,error.message);}}
 console.log(`${tests.length-failed}/${tests.length} testes passaram`);

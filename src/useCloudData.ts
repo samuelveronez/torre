@@ -2,7 +2,8 @@ import {defaultAgendaRange,type AgendaRange} from './AgendaRange';
 import {useEffect,useRef,useState,type SetStateAction} from 'react';
 import {supabase} from './supabase';
 import type {Task} from './task';
-export type Hours={enabled:boolean;start:number;end:number};
+import {dbTimeToHour,hourToDbTime,defaultLunch,type Lunch} from './hourClock';
+export type Hours={enabled:boolean;start:number;end:number;lunch?:Lunch};
 async function check(result:PromiseLike<{error:unknown}>){const {error}=await result;if(error)throw error;}
 export function useCloudData(userId:string,defaults:Hours[]){
  const [tasks,putTasks]=useState<Task[]>([]),[hours,putHours]=useState(defaults),[theme,putTheme]=useState<'light'|'dark'>('light'),[ready,setReady]=useState(false),[pending,setPending]=useState(false),[error,setError]=useState('');
@@ -15,10 +16,11 @@ export function useCloudData(userId:string,defaults:Hours[]){
   for(const result of results)if(result.error)throw result.error;
   const [t,b,h,p,labels,people]=results;
   if(!p.data)await check(supabase.from('torre_preferences').insert({user_id:userId}));
-  const missing=defaults.flatMap((value,weekday)=>h.data?.some(row=>row.weekday===weekday)?[]:[{user_id:userId,weekday,enabled:value.enabled,start_time:`${String(value.start).padStart(2,'0')}:00`,end_time:`${String(value.end).padStart(2,'0')}:00`}]);
+  const missing=defaults.flatMap((value,weekday)=>h.data?.some(row=>row.weekday===weekday)?[]:[{user_id:userId,weekday,enabled:value.enabled,start_time:hourToDbTime(value.start),end_time:hourToDbTime(value.end)}]);
   if(missing.length)await check(supabase.from('torre_work_hours').upsert(missing,{ignoreDuplicates:true}));
   putTasks((t.data??[]).map(row=>({id:row.id,focusDate:row.focus_date??'',reservationKind:b.data?.find(block=>block.task_id===row.id)?.kind??'execution',people:people.data?.filter(p=>p.task_id===row.id).map(p=>({name:p.name,personId:p.person_id,role:p.role}))??[],priority:row.priority??'none',createdAt:row.created_at,capturePosition:row.capture_position,labelIds:labels.data?.filter(l=>l.task_id===row.id).map(l=>l.label_id)??[],captureId:row.capture_id,googleTaskId:row.google_task_id,title:row.title,area:row.area==='personal'?'Pessoal':'Profissional',minutes:row.duration_minutes,due:row.due_date??'',source:row.source==='torre'?'Torre':'Google Tasks',done:row.status==='completed',situation:row.status==='waiting'?'waiting':'todo',description:row.description,link:row.reference_url??'',waitingFor:row.waiting_for??'',followUp:row.follow_up_date??'',at:b.data?.find(block=>block.task_id===row.id)?.start_at})));
-  putHours(defaults.map((value,weekday)=>{const row=h.data?.find(r=>r.weekday===weekday);return row?{enabled:row.enabled,start:Number(row.start_time.slice(0,2)),end:Number(row.end_time.slice(0,2))}:value;}));putTheme(p.data?.theme??'light');putAgendaRange({start:p.data?.agenda_start_hour??7,end:p.data?.agenda_end_hour??22});loaded.current=true;setReady(true);
+  const lunch:Lunch=p.data?.lunch_start?{enabled:p.data.lunch_enabled,start:dbTimeToHour(p.data.lunch_start),end:dbTimeToHour(p.data.lunch_end)}:defaultLunch;
+  putHours(defaults.map((value,weekday)=>{const row=h.data?.find(r=>r.weekday===weekday);return {...(row?{enabled:row.enabled,start:dbTimeToHour(row.start_time),end:dbTimeToHour(row.end_time)}:value),lunch};}));putTheme(p.data?.theme??'light');putAgendaRange({start:p.data?.agenda_start_hour??7,end:p.data?.agenda_end_hour??22});loaded.current=true;setReady(true);
  }
  useEffect(()=>{load().catch(e=>setError(e.message??String(e)));},[userId]);
  async function write(operation:()=>Promise<void>){
@@ -67,8 +69,9 @@ export function useCloudData(userId:string,defaults:Hours[]){
    if(JSON.stringify(t.labelIds??[])!==JSON.stringify(old?.labelIds??[])){await check(supabase.rpc('torre_set_task_labels',{p_task:t.id,p_labels:t.labelIds??[]}));}
 
   }});}
- function setHours(action:SetStateAction<Hours[]>){return write(async()=>{const next=typeof action==='function'?action(hours):action;await check(supabase.from('torre_work_hours').upsert(next.map((h,weekday)=>({user_id:userId,weekday,enabled:h.enabled,start_time:`${String(h.start).padStart(2,'0')}:00`,end_time:`${String(h.end).padStart(2,'0')}:00`}))));});}
+ function setHours(action:SetStateAction<Hours[]>){return write(async()=>{const next=typeof action==='function'?action(hours):action;await check(supabase.from('torre_work_hours').upsert(next.map((h,weekday)=>({user_id:userId,weekday,enabled:h.enabled,start_time:hourToDbTime(h.start),end_time:hourToDbTime(h.end)}))));});}
+ function setLunch(lunch:Lunch){return write(async()=>{await check(supabase.from('torre_preferences').upsert({user_id:userId,lunch_enabled:lunch.enabled,lunch_start:hourToDbTime(lunch.start),lunch_end:hourToDbTime(lunch.end)}));});}
  function setTheme(value:'light'|'dark'){void write(async()=>{await check(supabase.from('torre_preferences').upsert({user_id:userId,theme:value}));});}
  function setAgendaRange(range:AgendaRange){return write(async()=>{await check(supabase.from('torre_preferences').upsert({user_id:userId,agenda_start_hour:range.start,agenda_end_hour:range.end}));});}
- return {agendaRange,setAgendaRange,tasks,setTasks,hours,setHours,theme,setTheme,ready,pending,error,needsRefresh,retry};
+ return {agendaRange,setAgendaRange,tasks,setTasks,hours,setHours,setLunch,theme,setTheme,ready,pending,error,needsRefresh,retry};
 }

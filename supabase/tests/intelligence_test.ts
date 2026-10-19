@@ -35,3 +35,9 @@ Deno.test('Allocator respects duration, area, busy intervals and insufficient sp
  assert(result.placements[0].start==='2026-10-05T12:30:00.000Z');assert(result.placements[1].start==='2026-10-05T10:00:00.000Z');assert(result.unplaced[0]==='c');
  rejects(()=>validateOrder({order:[{taskId:'a',reason:''},{taskId:'a',reason:''}]},['a','b']));
 });
+Deno.test('Allocator keeps professional tasks out of the lunch break',()=>{
+ const snapshot={preferences:{timezone:'America/Sao_Paulo',lunch_enabled:true,lunch_start:'12:00:00',lunch_end:'13:30:00'},tasks:[{id:'a',duration_minutes:60,area:'professional'}],hours:[{weekday:1,enabled:true,start_time:'09:00',end_time:'18:00'}],blocks:[],busy:[]};
+ const from='2026-10-05T14:30:00Z';
+ const result=allocate(snapshot,[{taskId:'a',reason:''}],from,'2026-10-05T20:00:00Z',Date.parse(from));
+ assert(result.placements[0].start==='2026-10-05T16:30:00.000Z');
+});

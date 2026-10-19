@@ -9,6 +9,7 @@ import {GoogleSection} from './GoogleSection';
 import {LabelsSection} from './LabelsSection';
 import {SettingsNav} from './SettingsNav';
 import {WorkHoursSection} from './WorkHoursSection';
+import type {Lunch} from '../hourClock';
 import {useSettingsActions} from './useSettingsActions';
 
 type Hours={enabled:boolean;start:number;end:number};
@@ -25,6 +26,7 @@ type Props={
  onAgendaRange:(range:AgendaRange)=>Promise<boolean>;
  hours:Hours[];
  onHours:(update:(hours:Hours[])=>Hours[])=>Promise<boolean>;
+ onLunch:(lunch:Lunch)=>Promise<boolean>;
  syncing:boolean;
  labelCounts:Record<string,number>;
 };
@@ -42,7 +44,7 @@ export function SettingsPage(props:Props){
    <div style={{flex:'1 1 480px',maxWidth:660,minWidth:0,display:'flex',flexDirection:'column',gap:16}}>
     {section==='Aparência'&&<AppearanceSection theme={props.theme} onTheme={props.onTheme} density={props.density} onDensity={props.onDensity} agendaRange={props.agendaRange} onAgendaRange={props.onAgendaRange}/>}
     {section==='Labels'&&<LabelsSection labels={features.labels} counts={props.labelCounts} actions={actions} busy={features.working}/>}
-    {section==='Jornada'&&<WorkHoursSection hours={props.hours} syncing={props.syncing} onChange={props.onHours}/>}
+    {section==='Jornada'&&<WorkHoursSection hours={props.hours} syncing={props.syncing} onChange={props.onHours} onLunch={props.onLunch}/>}
     {section==='Google'&&<GoogleSection features={features} actions={actions}/>}
     {section==='Calendários e listas'&&<CalendarsSection features={features} actions={actions}/>}
     {section==='Telegram'&&<TelegramSettings userId={userId}/>}

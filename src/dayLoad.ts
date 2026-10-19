@@ -1,5 +1,7 @@
 import type {Task} from './task';
-export type WorkHours={enabled:boolean;start:number;end:number};
+import {hourToClock,lunchOverlapMinutes,type Lunch} from './hourClock';
+// lunch is the single break from preferences, copied onto every weekday when loaded.
+export type WorkHours={enabled:boolean;start:number;end:number;lunch?:Lunch};
 export type DayLoad={planned:number;capacity:number;ratio:number};
 export type LoadEvent={start_at:string;end_at:string;all_day:boolean;blocks_time:boolean};
 type Interval={start:number;end:number};
@@ -32,7 +34,7 @@ export function dayLoad(date:Date,hours:WorkHours[],tasks:Task[],events:LoadEven
  }
  const planned=busyMinutes(from.getTime(),to.getTime(),intervals);
  const day=hours[date.getDay()];
- const capacity=day?.enabled&&day.end>day.start?(day.end-day.start)*60:0;
+ const capacity=day?.enabled&&day.end>day.start?Math.round((day.end-day.start)*60)-lunchOverlapMinutes(day.lunch,day.start,day.end):0;
  return {planned,capacity,ratio:capacity?Math.min(1,planned/capacity):0};
 }
 const duration=(minutes:number)=>{
@@ -50,7 +52,7 @@ export function weekRangeLabel(first:Date){
  if(first.getMonth()===last.getMonth())return `${first.getDate()} a ${last.getDate()} de ${months[last.getMonth()]}`;
  return `${first.getDate()} de ${months[first.getMonth()]} a ${last.getDate()} de ${months[last.getMonth()]}`;
 }
-const hhmm=(hour:number)=>`${String(hour).padStart(2,'0')}:00`;
+const hhmm=hourToClock;
 /** Earliest start to latest end among the enabled weekdays. */
 export function hoursSummary(hours:WorkHours[]){
  const on=hours.filter(h=>h.enabled&&h.end>h.start);
