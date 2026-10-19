@@ -1,56 +1,97 @@
-import {Input} from './components/ui/input';
-import {Button} from './components/ui/button';
 import {Sheet,SheetContent,SheetTitle,SheetDescription} from './components/ui/sheet';
-import {labelMatchesArea} from './labelArea';
-import './day-visual.css';
-import {isTaskDrag,readTaskDrag} from './taskDrag';
+import {Button} from './components/ui/button';
 import {usePreference} from './uiState';
 import type {Label} from './features';
 import {useEffect,useState,type ReactNode} from 'react';
-import {LayoutDashboard,Sun,Inbox,ListChecks,CalendarDays,Users,Sparkles,Settings,Search,Plus,Menu,X,Circle,ChevronDown,ChevronRight,Pencil,GripVertical,PanelLeftClose,PanelLeftOpen} from 'lucide-react';
+import {Menu,Plus} from 'lucide-react';
+import {Sidebar} from './shell/Sidebar';
+import {Topbar} from './shell/Topbar';
+import {navItems,type ShellCounts} from './shell/navItems';
+import type {LabelDraft} from './shell/ShellLabelEditor';
 
-// key é o valor salvo em `page` (não renomear); label é o texto exibido.
-const navItems=[
- {key:'Home',label:'Meu dia',icon:Sun,group:'main'},
- {key:'Caixa de entrada',label:'Caixa de entrada',icon:Inbox,group:'main'},
- {key:'Tarefas',label:'Tarefas',icon:ListChecks,group:'main'},
- {key:'Planejamento',label:'Agenda semanal',icon:CalendarDays,group:'main'},
- {key:'Conversas',label:'Pessoas e conversas',icon:Users,group:'main'},
- {key:'Modo IA',label:'Modo IA',icon:Sparkles,group:'assistant'},
- {key:'Configurações',label:'Configurações',icon:Settings,group:'footer'},
-] as const;
-type LabelDraft=Pick<Label,'name'|'description'|'color'|'area'>;
-type Props={userId:string;onArchiveLabel:(id:string)=>Promise<boolean>;onSaveLabel:(value:LabelDraft,id?:string)=>Promise<boolean>;labelsBusy:boolean;labelError:string;account:ReactNode;labels:Label[];labelFilter:string[];onLabel:(id:string)=>void;onDropLabel:(taskIds:string[],labelId:string)=>void;children:ReactNode;page:string;area:string;query:string;pendingCount:number;onPage:(page:string)=>void;onArea:(area:string)=>void;onQuery:(query:string)=>void;onNew:()=>void};
-export function AppShell({userId,onArchiveLabel,onSaveLabel,labelsBusy,labelError,account,labels,labelFilter,onLabel,onDropLabel,children,page,area,query,pendingCount,onPage,onArea,onQuery,onNew}:Props){
- const [labelsOpen,setLabelsOpen]=useState(()=>{try{return localStorage.getItem('torre:sidebar:labels-open')!=='false';}catch{return true;}});
- const toggleLabels=()=>{setLabelsOpen(value=>{const next=!value;try{localStorage.setItem('torre:sidebar:labels-open',String(next));}catch{}return next;});};
- const [narrow,setNarrow]=useState(()=>window.matchMedia('(max-width:1023px)').matches);
- useEffect(()=>{const media=window.matchMedia('(max-width:1023px)');const change=()=>{setNarrow(media.matches);setMenuOpen(false);};media.addEventListener('change',change);return()=>media.removeEventListener('change',change);},[]);
- const [phone,setPhone]=useState(()=>window.matchMedia('(max-width:767px)').matches);
- useEffect(()=>{const media=window.matchMedia('(max-width:767px)');const change=()=>setPhone(media.matches);media.addEventListener('change',change);return()=>media.removeEventListener('change',change);},[]);
- const [menuOpen,setMenuOpen]=useState(false),[dropLabel,setDropLabel]=useState('');
- useEffect(()=>{setMenuOpen(false);},[page]);
- const agentPage=page==='Modo IA';
- const bottomNav=phone&&!agentPage;
- const pageTitle=navItems.find(i=>i.key===page)?.label??page;
- const [compact,setCompact]=usePreference<boolean>(userId,'sidebar-collapsed',agentPage);
- const [labelOrder,setLabelOrder]=usePreference<string[]>(userId,'sidebar-label-order',[]);
- const [draggingLabel,setDraggingLabel]=useState(''),[labelTarget,setLabelTarget]=useState<{id:string;after:boolean}|null>(null);
- const activeLabels=labels.filter(l=>!l.archived);
- const allOrderedLabels=[...activeLabels].sort((a,b)=>{const rank=(id:string)=>{const index=Array.isArray(labelOrder)?labelOrder.indexOf(id):-1;return index<0?Number.MAX_SAFE_INTEGER:index;};return rank(a.id)-rank(b.id);});
- const orderedLabels=allOrderedLabels.filter(label=>labelMatchesArea(label,area));
- const moveLabel=(id:string,target:string,after:boolean)=>{if(id===target)return;const ids=allOrderedLabels.map(l=>l.id).filter(value=>value!==id);const index=ids.indexOf(target);if(index<0||!activeLabels.some(l=>l.id===id))return;ids.splice(index+(after?1:0),0,id);setLabelOrder(ids);};
- const [editing,setEditing]=useState<Label|null|undefined>(undefined);
- const openLabel=(label:Label|null)=>{setEditing(label);setLabelsOpen(true);try{localStorage.setItem('torre:sidebar:labels-open','true');}catch{}};
- const navButton=(item:typeof navItems[number],count?:number)=>{const Icon=item.icon;return <button key={item.key} aria-label={item.label} title={item.label} className={page===item.key?'active':''} aria-current={page===item.key?'page':undefined} onClick={()=>{onPage(item.key);setMenuOpen(false);}}><Icon size={18}/><span>{item.label}</span>{count!==undefined&&<span className="nav-count">{count}</span>}</button>;};
- const navigation=<aside className={'sidebar '+(menuOpen?'is-open':'')} aria-label="Menu principal"><div className="sidebar-brand"><span className="brand-icon"><LayoutDashboard size={22}/></span><div><strong>Torre de Controle</strong></div><button className="close-menu" onClick={()=>setMenuOpen(false)} aria-label="Fechar menu"><X size={19}/></button></div><button className="sidebar-collapse" aria-label={compact?'Expandir menu principal':'Recolher menu principal'} aria-expanded={!compact} title={compact?'Expandir menu principal':'Recolher menu principal'} onClick={()=>setCompact(v=>!v)}>{compact?<PanelLeftOpen size={19}/>:<PanelLeftClose size={19}/>}</button><nav className="sidebar-nav">{navItems.filter(i=>i.group==='main').map(i=>navButton(i,i.key==='Tarefas'?pendingCount:undefined))}</nav><div className="sidebar-section">Assistente</div><nav className="sidebar-nav">{navItems.filter(i=>i.group==='assistant').map(i=>navButton(i))}</nav><div className="sidebar-label-heading"><button className="labels-heading" aria-expanded={labelsOpen} aria-controls="sidebar-labels" onClick={toggleLabels}><span>LABELS{labelFilter.length>0&&<span className="labels-filter-count">{labelFilter.length}</span>}</span>{labelsOpen?<ChevronDown size={14}/>:<ChevronRight size={14}/>}</button><button className="sidebar-label-add" aria-label="Criar label" title="Criar label" disabled={labelsBusy||editing!==undefined} onClick={()=>openLabel(null)}><Plus size={16}/></button></div><nav id="sidebar-labels" aria-label="Labels" hidden={!labelsOpen} className="sidebar-nav sidebar-labels"><button onClick={()=>onLabel('none')} className={labelFilter.includes('none')?'active':''}>Sem label</button>{orderedLabels.map(l=><div className={'sidebar-label-row'+(draggingLabel===l.id?' label-reordering':'')+(labelTarget?.id===l.id?(labelTarget.after?' label-insert-after':' label-insert-before'):'')} key={l.id} onKeyDown={e=>{if(e.altKey&&(e.key==='ArrowUp'||e.key==='ArrowDown')){e.preventDefault();const index=orderedLabels.findIndex(item=>item.id===l.id);const target=orderedLabels[index+(e.key==='ArrowUp'?-1:1)];if(target)moveLabel(l.id,target.id,e.key==='ArrowDown');}}} onDragOver={e=>{if(draggingLabel&&e.dataTransfer.types.includes('application/x-torre-label-id')){e.preventDefault();e.dataTransfer.dropEffect='move';const rect=e.currentTarget.getBoundingClientRect();setLabelTarget({id:l.id,after:e.clientY>rect.top+rect.height/2});}}} onDragLeave={e=>{if(!e.currentTarget.contains(e.relatedTarget as Node|null))setLabelTarget(null);}} onDrop={e=>{if(!draggingLabel||!e.dataTransfer.types.includes('application/x-torre-label-id'))return;e.preventDefault();const rect=e.currentTarget.getBoundingClientRect();moveLabel(draggingLabel,l.id,e.clientY>rect.top+rect.height/2);setDraggingLabel('');setLabelTarget(null);}}><button className="sidebar-label-drag" draggable={!labelsBusy&&editing===undefined} disabled={labelsBusy||editing!==undefined} aria-label={`Reordenar label ${l.name}`} title="Arraste para ordenar · Alt + ↑/↓ para mover" onDragStart={e=>{e.dataTransfer.effectAllowed='move';e.dataTransfer.setData('application/x-torre-label-id',l.id);setDraggingLabel(l.id);}} onKeyDown={e=>{if(e.key==='ArrowUp'||e.key==='ArrowDown'){e.preventDefault();e.stopPropagation();const index=orderedLabels.findIndex(item=>item.id===l.id);const target=orderedLabels[index+(e.key==='ArrowUp'?-1:1)];if(target)moveLabel(l.id,target.id,e.key==='ArrowDown');}}}><GripVertical size={14}/></button><button onDragOver={e=>{if(isTaskDrag(e.dataTransfer)){e.preventDefault();e.dataTransfer.dropEffect='copy';setDropLabel(l.id);}}} onDragLeave={e=>{if(!e.currentTarget.contains(e.relatedTarget as Node|null))setDropLabel('');}} onDrop={e=>{e.preventDefault();setDropLabel('');const ids=readTaskDrag(e.dataTransfer);if(ids.length)onDropLabel(ids,l.id);}} onClick={()=>onLabel(l.id)} title="Solte tarefas aqui para adicionar esta label" className={(labelFilter.includes(l.id)?'active ':'')+(dropLabel===l.id?'label-drop-ready':'')}><span className="label-indicator"><Circle size={10} fill={l.color} stroke="none"/></span><span className="label-name">{l.name}</span></button><button className="sidebar-label-edit" aria-label={`Editar label ${l.name}`} title={`Editar ${l.name}`} disabled={labelsBusy||editing!==undefined} onClick={()=>openLabel(l)}><Pencil size={14}/></button></div>)}{editing!==undefined&&<SidebarLabelEditor key={editing?.id??'new'} label={editing} defaultArea={area} onArchive={async()=>{if(editing&&await onArchiveLabel(editing.id))setEditing(undefined);}} busy={labelsBusy} error={labelError} onCancel={()=>setEditing(undefined)} onSave={async value=>{if(await onSaveLabel(value,editing?.id))setEditing(undefined);}}/>}</nav><div className="sidebar-bottom"><button aria-label="Configurações" title="Configurações" className={page==='Configurações'?'active':''} onClick={()=>{onPage('Configurações');setMenuOpen(false);}} aria-current={page==='Configurações'?'page':undefined}><Settings size={18}/><span>Configurações</span></button><div className="sidebar-account" aria-label="Conta">{account}</div></div></aside>;
- return <div className={'app-shell'+(agentPage?' agent-focus':'')+(compact?' menu-compact':'')} onDragEnd={()=>{setDropLabel('');setDraggingLabel('');setLabelTarget(null);}} onKeyDown={e=>{if(e.key==='Escape')setMenuOpen(false);}}>{narrow?<Sheet open={menuOpen} onOpenChange={setMenuOpen}><SheetContent side="left" className="navigation-sheet"><SheetTitle className="sr-only">Menu principal</SheetTitle><SheetDescription className="sr-only">Navegação, labels e conta da Torre.</SheetDescription>{navigation}</SheetContent></Sheet>:navigation}<div className="app-content"><header className="app-topbar">{!bottomNav&&<button className="mobile-menu" aria-label="Abrir menu" aria-expanded={menuOpen} onClick={()=>setMenuOpen(true)}><Menu size={21}/></button>}{agentPage&&<strong className="agent-mobile-title">Modo IA</strong>}{!phone&&!agentPage&&<div role="group" className="flex shrink-0 items-center gap-1.5 text-sm text-muted-foreground" aria-label="Trilha"><span>Torre de Controle</span><ChevronRight size={14} aria-hidden="true"/><strong className="font-medium text-foreground" aria-current="page">{pageTitle}</strong></div>}<div className="top-search"><Search size={18}/><Input type="search" aria-label="Buscar tarefas" placeholder="Buscar tarefas…" value={query} onChange={e=>onQuery(e.target.value)}/>{query&&<button aria-label="Limpar busca" onClick={()=>onQuery('')}><X size={16}/></button>}</div><div className="top-area" role="group" aria-label="Área das tarefas">{['Tudo','Pessoal','Profissional'].map(a=><button key={a} aria-pressed={area===a} onClick={()=>onArea(a)}>{a==='Tudo'?'Todas as áreas':a}</button>)}</div>{!phone&&<button className="top-capture" aria-label="Captura rápida" onClick={onNew}><Plus size={17}/><span>Capturar</span></button>}</header>{children}{bottomNav&&<div aria-hidden="true" className="h-24 shrink-0"/>}</div>{bottomNav&&<><nav aria-label="Navegação principal" className="fixed inset-x-0 bottom-0 z-40 flex border-t border-border bg-background pb-[env(safe-area-inset-bottom)]">{(navItems.filter(i=>['Home','Caixa de entrada','Tarefas','Planejamento'].includes(i.key)) as readonly typeof navItems[number][]).map(item=>{const Icon=item.icon;const short=item.key==='Planejamento'?'Agenda':item.key==='Caixa de entrada'?'Caixa':item.label;return <Button key={item.key} variant="ghost" aria-label={item.label} aria-current={page===item.key?'page':undefined} className={'h-14 min-w-0 flex-1 flex-col gap-0.5 rounded-none px-0 '+(page===item.key?'text-primary!':'text-muted-foreground!')} onClick={()=>onPage(item.key)}><Icon size={20}/><span className="text-[11px] leading-none">{short}</span></Button>;})}<Button variant="ghost" aria-label="Mais opções" aria-expanded={menuOpen} className="h-14 min-w-0 flex-1 flex-col gap-0.5 rounded-none px-0 text-muted-foreground!" onClick={()=>setMenuOpen(true)}><Menu size={20}/><span className="text-[11px] leading-none">Mais</span></Button></nav><Button size="icon" aria-label="Captura rápida" className="fixed right-4 bottom-20 z-40 size-12 rounded-full shadow-lg" onClick={onNew}><Plus size={22}/></Button></>}</div>;
+type Props={
+ userId:string;
+ email:string;
+ account:ReactNode;
+ counts:ShellCounts;
+ labels:Label[];
+ labelFilter:string[];
+ labelsBusy:boolean;
+ labelError:string;
+ children:ReactNode;
+ page:string;
+ area:string;
+ query:string;
+ onPage:(page:string)=>void;
+ onArea:(area:string)=>void;
+ onQuery:(query:string)=>void;
+ onNew:()=>void;
+ onLabel:(id:string)=>void;
+ onDropLabel:(taskIds:string[],labelId:string)=>void;
+ onSaveLabel:(value:LabelDraft,id?:string)=>Promise<boolean>;
+ onArchiveLabel:(id:string)=>Promise<boolean>;
+};
+
+function useMedia(query:string){
+ const [matches,setMatches]=useState(()=>window.matchMedia(query).matches);
+ useEffect(()=>{
+  const media=window.matchMedia(query);
+  const change=()=>setMatches(media.matches);
+  media.addEventListener('change',change);
+  return()=>media.removeEventListener('change',change);
+ },[query]);
+ return matches;
 }
 
-function SidebarLabelEditor({label,busy,error,onSave,onCancel,onArchive,defaultArea}:{defaultArea:string;onArchive:()=>Promise<void>;label:Label|null;busy:boolean;error:string;onSave:(value:LabelDraft)=>Promise<void>;onCancel:()=>void}){
- const [name,setName]=useState(label?.name??''),[description,setDescription]=useState(label?.description??''),[color,setColor]=useState(label?.color??'#1673d1'),[saving,setSaving]=useState(false),[localError,setLocalError]=useState('');
- const [labelArea,setLabelArea]=useState<Label['area']>(label?.area??(label?'both':defaultArea==='Pessoal'?'personal':defaultArea==='Profissional'?'professional':'both'));
- const pending=busy||saving;
- return <form className="sidebar-label-form" aria-label={label?'Editar label':'Criar label'} onKeyDown={e=>{if(e.key==='Escape'){e.stopPropagation();if(!pending)onCancel();}}} onSubmit={async e=>{e.preventDefault();if(pending)return;setLocalError('');if(!name.trim()){setLocalError('Digite um nome para a label.');return;}setSaving(true);try{await onSave({name:name.trim(),description:description.trim(),color,area:labelArea});}catch(e){setLocalError((e as Error).message);}finally{setSaving(false);}}}>
- <strong>{label?'Editar label':'Nova label'}</strong><fieldset disabled={pending}><label>Nome<input autoFocus required maxLength={60} value={name} onChange={e=>setName(e.target.value)}/></label><label>Descrição<textarea rows={2} placeholder="Quando usar esta label" value={description} onChange={e=>setDescription(e.target.value)}/></label><label>Área<select value={labelArea} onChange={e=>setLabelArea(e.target.value as Label['area'])}><option value="both">Ambas as áreas</option><option value="personal">Pessoal</option><option value="professional">Profissional</option></select></label><label className="sidebar-label-color">Cor<input type="color" value={color} onChange={e=>setColor(e.target.value)}/></label><div className="sidebar-label-actions"><button className="primary" type="submit">{pending?'Salvando…':label?'Salvar':'Criar'}</button><button type="button" onClick={onCancel}>Cancelar</button></div>{label&&<button className="sidebar-label-archive" type="button" onClick={async()=>{if(pending)return;setLocalError('');setSaving(true);try{await onArchive();}catch(e){setLocalError((e as Error).message);}finally{setSaving(false);}}}>Arquivar label</button>}</fieldset>{(localError||error)&&<p role="alert">{localError||error}</p>}</form>;
+export function AppShell(props:Props){
+ const {userId,email,account,counts,labels,labelFilter,labelsBusy,labelError,children,page,area,query,onPage,onArea,onQuery,onNew,onLabel,onDropLabel,onSaveLabel,onArchiveLabel}=props;
+ const narrow=useMedia('(max-width:1023px)');
+ const phone=useMedia('(max-width:767px)');
+ const [menuOpen,setMenuOpen]=useState(false);
+ const agentPage=page==='Modo IA';
+ const [compact,setCompact]=usePreference<boolean>(userId,'sidebar-collapsed',agentPage);
+ const bottomNav=phone&&!agentPage;
+ const pageTitle=navItems.find(i=>i.key===page)?.label??page;
+
+ useEffect(()=>{setMenuOpen(false);},[page,narrow]);
+
+ const choose=(next:string)=>{onPage(next);setMenuOpen(false);};
+ const sidebar=<Sidebar userId={userId} page={page} area={area} counts={counts} labels={labels} labelFilter={labelFilter} labelsBusy={labelsBusy} labelError={labelError}
+  onPage={choose} onLabel={onLabel} onDropLabel={onDropLabel} onSaveLabel={onSaveLabel} onArchiveLabel={onArchiveLabel}/>;
+
+ return <div className={'app-shell tc'+(agentPage?' agent-focus':'')+(compact?' menu-compact':'')} onKeyDown={e=>{if(e.key==='Escape')setMenuOpen(false);}}>
+  {narrow
+   ? <Sheet open={menuOpen} onOpenChange={setMenuOpen}>
+      <SheetContent side="left" className="navigation-sheet">
+       <SheetTitle className="sr-only">Menu principal</SheetTitle>
+       <SheetDescription className="sr-only">Navegação, labels e conta da Torre.</SheetDescription>
+       {sidebar}
+      </SheetContent>
+     </Sheet>
+   : sidebar}
+  <div className="app-content">
+   <Topbar title={pageTitle} agentPage={agentPage} phone={phone} narrow={narrow} compact={compact} menuOpen={menuOpen} area={area} query={query} email={email} account={account}
+    onMenu={()=>setMenuOpen(true)} onToggleCompact={()=>setCompact(v=>!v)} onArea={onArea} onQuery={onQuery} onNew={onNew}/>
+   {children}
+   {bottomNav&&<div aria-hidden="true" className="h-24 shrink-0"/>}
+  </div>
+  {bottomNav&&<>
+   <nav aria-label="Navegação principal" className="fixed inset-x-0 bottom-0 z-40 flex border-t border-border bg-background pb-[env(safe-area-inset-bottom)]">
+    {navItems.filter(i=>['Home','Caixa de entrada','Tarefas','Planejamento'].includes(i.key)).map(item=>{
+     const Icon=item.icon;
+     const short=item.key==='Planejamento'?'Agenda':item.key==='Caixa de entrada'?'Caixa':item.label;
+     const current=page===item.key;
+     return <Button key={item.key} variant="ghost" aria-label={item.label} aria-current={current?'page':undefined} className={'h-14 min-w-0 flex-1 flex-col gap-0.5 rounded-none px-0 '+(current?'text-primary!':'text-muted-foreground!')} onClick={()=>onPage(item.key)}>
+      <Icon size={20}/>
+      <span className="text-[11px] leading-none">{short}</span>
+     </Button>;
+    })}
+    <Button variant="ghost" aria-label="Mais opções" aria-expanded={menuOpen} className="h-14 min-w-0 flex-1 flex-col gap-0.5 rounded-none px-0 text-muted-foreground!" onClick={()=>setMenuOpen(true)}>
+     <Menu size={20}/>
+     <span className="text-[11px] leading-none">Mais</span>
+    </Button>
+   </nav>
+   <Button size="icon" aria-label="Captura rápida" className="fixed right-4 bottom-20 z-40 size-12 rounded-full shadow-lg" onClick={onNew}><Plus size={22}/></Button>
+  </>}
+ </div>;
 }
