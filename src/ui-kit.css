@@ -85,7 +85,7 @@
 @media(max-width:1023px){.app-shell.tc,.app-shell.tc.menu-compact{grid-template-columns:minmax(0,1fr)}.app-shell.tc>.tc-side{display:none}.tc .nav{height:40px}}
 @media(hover:none){.tc .tc-label-tool{opacity:1}.tc .tc-label-grip{display:none}.tc .tc-label-count{margin-right:28px}}
 @media(max-width:767px){.tc.tc-top{padding:8px 12px}.tc .tc-spacer{display:none}.tc .tc-search{width:auto;order:1;flex:1 1 0;min-width:0}.tc .tc-avatar-box{order:2}.tc .tc-area{order:3;flex:1 1 100%}.tc .tc-area button{flex:1}}
-.app-shell.tc .app-content:has(:is(main.settings-page,main.inbox-page,main.tasks-page,main.home-page)){background:var(--background)}
+.app-shell.tc .app-content:has(:is(main.settings-page,main.inbox-page,main.tasks-page,main.home-page,main.conversations-page)){background:var(--background)}
 .tc .agent-header{border-top:0}
 :root [data-slot=sheet-content].navigation-sheet{padding:0;gap:0}
 /* Formulários, chips e janelas (mockups Captura rápida, Editar tarefa, Nova tarefa) */
@@ -184,3 +184,12 @@
 .tc .tc-summary{display:grid;grid-template-columns:repeat(auto-fit,minmax(200px,1fr));gap:12px}
 @media(max-width:767px){.tc .tc-summary{grid-template-columns:repeat(2,minmax(0,1fr));gap:8px}.tc .tc-summary .tc-card-s{padding:10px 12px!important}}
 @media(max-width:767px){.tc .ch{flex-wrap:wrap}.tc .ch h2{white-space:nowrap}}
+/* Pessoas e conversas (mockup Pessoas e conversas) */
+.tc .tc-person{display:flex;align-items:center;gap:10px;width:100%;padding:6px 8px;border:0;border-radius:6px;background:transparent;color:var(--foreground);text-align:left;font:inherit;min-height:0;cursor:pointer}
+.tc .tc-person:hover,.tc .tc-person.selected{background:var(--muted)}
+.tc .tc-avatar-sm{width:32px;height:32px;border-radius:50%;background:var(--muted);display:inline-flex;align-items:center;justify-content:center;font-size:12px;font-weight:600;flex:0 0 auto}
+.tc .tc-person.selected .tc-avatar-sm{background:var(--background)}
+.tc .tc-agreement{display:grid;grid-template-columns:repeat(auto-fit,minmax(170px,1fr));gap:10px;padding:12px;border:1px solid var(--tc-border);border-radius:6px}
+.tc .conversation-mobile-back{display:none;align-self:flex-start}
+.tc .conversation-text{white-space:pre-wrap;overflow-wrap:anywhere;margin:0}
+@media(max-width:767px){.tc .conversation-mobile-back{display:inline-flex}.tc .conversations.people-view .conversation-main,.tc.conversations.people-view .conversation-main{display:none!important}.tc .conversations.detail-view .conversation-people,.tc.conversations.detail-view .conversation-people{display:none!important}.tc.conversations .conversation-people{flex:1 1 100%!important}}
