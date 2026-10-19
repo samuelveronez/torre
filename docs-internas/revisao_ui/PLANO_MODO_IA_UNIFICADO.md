@@ -2,7 +2,7 @@
 
 ## Objetivo
 1. Tirar o seletor de modo do Modo IA. O usuário escreve uma pergunta ou um pedido; o agente responde em texto e, só quando a mensagem atual pede uma mudança, devolve uma proposta com **Aplicar pedido / Descartar**. Nada muda sem o clique do usuário (como hoje).
-2. Refazer a tela fiel ao mockup `docs-internas/revisao_ui/Modo IA-html/ModoIA.dc.html`, seguindo o "Protocolo de fidelidade ao mockup" do `PLANO_UI_UNIFICADO.md` (kit `src/ui-kit.css`, classes do mockup, capturas lado a lado em claro, escuro e 390 px). Isto substitui a linha "Modo IA (tela própria): fora do escopo" daquele plano.
+2. Refazer a tela fiel ao mockup `C:Userssamue	orre-arquivomockups-uiModo IA-htmlModoIA.dc.html` (fora do repositório), seguindo o "Protocolo de fidelidade ao mockup" do `PLANO_UI_UNIFICADO.md` (kit `src/ui-kit.css`, classes do mockup, capturas lado a lado em claro, escuro e 390 px). Isto substitui a linha "Modo IA (tela própria): fora do escopo" daquele plano.
 
 ## Decisões do dono
 - Sem seletor de modo e **sem** interruptor "Só consultar": o app é de uso pessoal e a trava real é a prévia + **Aplicar** + **Desfazer**.
@@ -69,6 +69,10 @@ Exigiria migration; sem benefício para uso pessoal.
 4. Atualizar `docs-internas/MODO_IA.md`, `docs-internas/PROGRESSO.md` e a linha do Modo IA no `PLANO_UI_UNIFICADO.md`.
 5. **Deploy pelo dono**: `supabase functions deploy torre-integrations` (função que atende `agent-*`). Não rodar sem pedido. Como o frontend publicado (GitHub Pages) e a função são independentes, o dono publica a função **antes** do site (`publish:docs`); o contrato antigo continua aceito pela função nova (`analyze` e `execute`).
 
-## Pontos para validação do dono
-- Rótulo "Somente consultar" nas runs antigas: confirmado como discreto?
-- Ordem: servidor primeiro, depois o site. Aceita publicar a função antes de qualquer mudança visual?
+## Validações do dono (2026-10-19)
+- Rótulo "Somente consulta" nas runs antigas: **mantido**.
+- Ordem de publicação (função antes do site): **aceita e executada** (função v30 e site no ar em 2026-10-19).
+- "Descartar" proposta: **local**, sem ação no servidor.
+
+## Fase 4 — menu "⋯" da conversa (aprovada, não iniciada)
+Renomear e arquivar (recuperável) conversas. Exige backend: migration (título editável e `archived_at` por conversa), RPCs com RLS e teste SQL de isolamento, ajuste de `torre_agent_conversations`, Edge Function e deploy; frontend com menu no cabeçalho e "Ver arquivadas". Escrever plano próprio antes de começar (item T4 em `PLANO_UI_UNIFICADO.md`).

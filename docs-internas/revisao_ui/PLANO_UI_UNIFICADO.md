@@ -1,8 +1,48 @@
 # Plano unificado — migração de UI para o padrão shadcn
 
-Substitui `PLANO_UI_SHADCN.md` (mantido só como histórico). Referência visual: `torre_nova_ui_shadcn.html` (10 telas, 1440 px, modo claro).
+Substitui `PLANO_UI_SHADCN.md` (mantido só como histórico). Referência visual: `torre_nova_ui_shadcn.html` (10 telas, 1440 px, modo claro), guardada fora do repositório em `C:Userssamue	orre-arquivomockups-ui` (HTML não é versionado; ver `AGENTS.md`).
 
 **Como usar numa nova conversa:** ler `AGENTS.md`, `docs-internas/PROGRESSO.md` e este arquivo; começar pela Etapa 0. Um commit por etapa; sem push sem pedido do dono.
+
+## Registro de decisões (dono, 2026-10-19) e pendências
+
+Todas as decisões em aberto da migração de UI foram levadas ao dono. **Não há mais decisão em aberto**, exceto a marcada como "aguarda o dono". Os itens de trabalho decorrentes estão em "Trabalho aprovado, ainda não feito".
+
+### Decisões tomadas
+| Tema | Decisão | Efeito |
+|---|---|---|
+| Rótulo "Somente consulta" nas runs antigas do Modo IA | Manter | Nada a fazer |
+| "Descartar" proposta do Modo IA | Manter local (só oculta no navegador; a proposta expira no servidor) | Nada a fazer |
+| Toda proposta do Modo IA exige Aplicar | Confirmado (decisão anterior) | Já em produção |
+| Carga por dia na Agenda | **Contar tarefas + reuniões do Google** (hoje conta só tarefas) | Item de trabalho T1 |
+| Ordem padrão da lista de Tarefas | **Prazo** (hoje "Mais recentes") | Item de trabalho T2 |
+| Agenda semanal no celular | **Gaveta (`Sheet`)** para proposta da IA e "Tarefas sem horário" (hoje empilhado) | Item de trabalho T3 |
+| Dicas em Configurações e Captura rápida | Manter texto como no mockup | Nada a fazer |
+| "Excluir tarefa" do mockup | **Não implementar** (evita perda de dados) | Nada a fazer; registrado como diferença aceita |
+| Menu "⋯" da conversa no Modo IA | **Criar renomear e excluir; "excluir" = arquivar (recuperável)** | Item de trabalho T4 (backend) |
+| Refazer `ReservationDecision`, `FocusReview` e menu mobile no kit | **Depois** | Pendência P1 |
+| Componentes shadcn sem uso (`badge`, `checkbox`, `collapsible`, `input`, `label`, `select`, `switch`, `tabs`, `textarea`) | **Apagar** | **Feito** (commit local; `tsc`, build e `npm test` verdes) |
+| Mockups HTML (`torre_nova_ui_shadcn.html`, `Modo IA-html/`) | **Mover para fora do projeto** | **Feito**: agora em `C:\Users\samue\torre-arquivo\mockups-ui\` |
+| Teste de restauração do backup (`scripts/restore-test.ps1`) | Dono faz depois | Pendência P2 (dono) |
+| Pasta `.db-validation/` (115 MB, ignorada pelo git) | **Aguarda o dono** (pediu risco x benefício) | Pendência P3 (dono) |
+
+### Trabalho aprovado, ainda não feito
+| ID | Item | Observações |
+|---|---|---|
+| T1 | Carga por dia inclui reuniões do Google | Mudar `src/dayLoad.ts` (somar eventos com horário, não recusados, dentro do dia) + teste novo em `unit-tests.mjs`; decidir se reunião fora da jornada conta (proposta: conta até o limite da barra) |
+| T2 | Ordem padrão de Tarefas = Prazo | Mudar o padrão de `usePreference(...,'task-sort')`; afeta quem nunca escolheu ordem; conferir `ui-smoke` e capturas |
+| T3 | Agenda mobile em `Sheet` | Botões "Sem horário · N" e "Sugerir minha semana" abrem a gaveta; grade do dia fica livre; manter DnD no desktop; capturas 390 px |
+| T4 | Modo IA: renomear e arquivar conversa | **Backend:** migration nova (coluna de título e de arquivamento em conversas, RPCs com RLS, teste SQL de isolamento), Edge Function e deploy pelo dono (ou autorizado); **frontend:** menu "⋯" no cabeçalho da conversa; arquivadas somem da lista e voltam por "Ver arquivadas". Plano próprio antes de começar |
+
+### Pendências em aberto
+| ID | Pendência | Responsável | Situação |
+|---|---|---|---|
+| P1 | Refazer `ReservationDecision`, `FocusReview` e o menu mobile no kit; depois apagar remendos `:root [data-slot=…]` e `!important` | Agente, quando o dono pedir | Adiado por decisão |
+| P2 | Teste de restauração do backup no projeto descartável | Dono | Aberta |
+| P3 | `.db-validation/` | Dono | Aguarda decisão (ver risco x benefício no relatório da sessão) |
+| P4 | Conferir em produção (logado) o Modo IA e a Agenda semanal | Dono | Aberta (publicado em 2026-10-19) |
+
+**Situação geral:** a migração visual (Etapas 0 a 7 e Modo IA) está concluída e publicada. Restam T1 a T4 (melhorias aprovadas) e P1 a P4.
 
 ## Decisões fechadas (dono, 2026-10-18)
 | Tema | Decisão |
