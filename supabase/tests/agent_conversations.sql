@@ -23,7 +23,7 @@ begin
  perform public.torre_agent_claim(u,gen_random_uuid(),'Legado','analyze',gen_random_uuid());
  update public.torre_agent_runs set state='answered' where user_id=u;
  perform public.torre_agent_claim(v,gen_random_uuid(),'Conversa privada','analyze',gen_random_uuid(),'openrouter/free',gen_random_uuid());
- if has_function_privilege('authenticated','public.torre_agent_claim(uuid,uuid,text,text,uuid,text,uuid)','execute') or has_function_privilege('anon','public.torre_agent_conversations(integer,text)','execute') then raise exception 'Unexpected client permissions'; end if;
+ if has_function_privilege('authenticated','public.torre_agent_claim(uuid,uuid,text,text,uuid,text,uuid)','execute') or has_function_privilege('anon','public.torre_agent_conversations(integer,text,boolean)','execute') then raise exception 'Unexpected client permissions'; end if;
 end $$;
 set local role authenticated;
 set local request.jwt.claim.sub='a7ba7610-735e-4da5-a17f-104419acf201';
