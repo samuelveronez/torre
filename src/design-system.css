@@ -55,7 +55,7 @@ body{background:inherit;color:inherit}.app-shell :is(h1,h2,h3,strong){color:var(
 :root .app-shell .card-head{background:var(--background);border-color:var(--border)}
 :root .app-shell .sidebar-nav button,:root .app-shell .sidebar-bottom>button{background:transparent;color:var(--foreground);border:0}
 :root .app-shell .sidebar-nav button:hover,:root .app-shell .sidebar-bottom>button:hover{background:var(--muted)}
-:root .app-shell .sidebar-nav button.active,:root .app-shell .sidebar-bottom>button.active{background:var(--accent);color:var(--primary)}
+:root .app-shell .sidebar-nav button.active,:root .app-shell .sidebar-bottom>button.active{background:var(--muted);color:var(--foreground);font-weight:600}
 :root [data-slot=button]{background:var(--background);color:var(--foreground);border:1px solid var(--border)}
 :root [data-slot=button][data-variant=default]{background:var(--primary);color:var(--primary-foreground);border-color:var(--primary)}
 :root [data-variant=ghost]{background:transparent;border-color:transparent}:root [data-variant=ghost]:hover{background:var(--muted)}
@@ -158,3 +158,4 @@ body{background:inherit;color:inherit}.app-shell :is(h1,h2,h3,strong){color:var(
 .app-shell .daily-tabs{width:100%;padding:3px;background:var(--muted);border:1px solid var(--border);border-radius:8px}
 .app-shell .daily-tabs [role=tab]{flex:1;min-height:36px;font-size:13px;border:0;border-radius:6px;background:transparent;color:var(--muted-foreground)}
 .app-shell .daily-tabs [role=tab][data-state=active]{background:var(--background);color:var(--foreground);box-shadow:0 1px 2px #0002}
+@media(min-width:1100px){:root .app-shell:not(.agent-focus) .app-topbar{min-height:56px;height:56px;padding-block:8px}}
