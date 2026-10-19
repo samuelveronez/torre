@@ -4,7 +4,7 @@ import {DropdownMenu,DropdownMenuTrigger,DropdownMenuContent,DropdownMenuItem,Dr
 import {PriorityContext} from './priorityContext';
 import {priorities,type Priority} from './priority';
 import type {Task} from './task';
-export function TaskActionMenu({task,onOpen,onPlan}:{task:Task;onOpen?:(id:string)=>void;onPlan?:(id:string)=>void}){
+export function TaskActionMenu({task,onOpen,onPlan,onComplete}:{task:Task;onOpen?:(id:string)=>void;onPlan?:(id:string)=>void;onComplete?:(id:string)=>void}){
  const save=useContext(PriorityContext),menuId=useId();
  const [open,setOpen]=useState(false),[busy,setBusy]=useState(false),[error,setError]=useState('');
  const previousFocus=useRef<HTMLElement|null>(null);
@@ -18,6 +18,7 @@ export function TaskActionMenu({task,onOpen,onPlan}:{task:Task;onOpen?:(id:strin
  {save&&<DropdownMenuSub><DropdownMenuSubTrigger disabled={busy}>Prioridade</DropdownMenuSubTrigger><DropdownMenuSubContent onPointerEnter={enter} onPointerLeave={leave}><DropdownMenuRadioGroup value={task.priority??'none'} onValueChange={value=>void change(value)}>{priorities.map(p=><DropdownMenuRadioItem disabled={busy} key={p.value} value={p.value} onSelect={e=>e.preventDefault()}>{p.label}</DropdownMenuRadioItem>)}</DropdownMenuRadioGroup></DropdownMenuSubContent></DropdownMenuSub>}
  {onOpen&&<DropdownMenuItem onSelect={()=>onOpen(task.id)}>Editar tarefa</DropdownMenuItem>}
  {onPlan&&!task.done&&task.situation!=='waiting'&&<DropdownMenuItem onSelect={()=>onPlan(task.id)}>{task.at?'Reagendar':'Reservar horário'}</DropdownMenuItem>}
+ {onComplete&&!task.done&&<DropdownMenuItem onSelect={()=>onComplete(task.id)}>Concluir</DropdownMenuItem>}
  {busy&&<small role="status">Salvando…</small>}{error&&<small role="alert">{error}</small>}
  </DropdownMenuContent></DropdownMenu>;
 }
