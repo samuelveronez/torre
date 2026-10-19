@@ -40,11 +40,11 @@ Todas as decisões em aberto da migração de UI foram levadas ao dono e **T1 a 
 | P1 | Refazer `ReservationDecision`, `FocusReview` e o menu mobile no kit; depois apagar remendos `:root [data-slot=…]` e `!important` | Agente, quando o dono pedir | Adiado por decisão |
 | P2 | Teste de restauração do backup no projeto descartável | Dono | Aberta |
 | P3 | `.db-validation/` | Dono | Aguarda decisão (ver risco x benefício no relatório da sessão) |
-| P4 | Conferir em produção (logado) o Modo IA e a Agenda semanal | Dono | Aberta (publicado em 2026-10-19) |
+| P4 | Conferir em produção (logado) o Modo IA e a Agenda semanal | Dono | **Feita** (2026-10-19) |
 | P5 | Republicar o site com T1 a T4 (`npm run build && npm run publish:docs`, commit de `docs/` e push) | Dono ou agente com autorização | Aberta; a função e o banco já estão prontos e o site antigo continua funcionando com o banco novo |
 | P6 | Teste SQL `capture_many.sql` falha desde 2026-10-19 por data fixa no passado (`2026-10-12`); `validate-calendar.mjs` para nele e não chega aos testes de agente | Agente, quando o dono pedir | Aberta (anterior a T1 a T4; não bloqueia) |
 
-**Situação geral:** a migração visual (Etapas 0 a 7 e Modo IA) está concluída e publicada; T1 a T4 estão prontos no código e a migration de T4 já está em produção, **falta republicar o site** (P5). Restam P1 a P5.
+**Situação geral:** a migração visual (Etapas 0 a 7 e Modo IA) está concluída e publicada; T1 a T4 e o agrupador por pessoa em "Aguardando" estão prontos no código e a migration de T4 já está em produção; **falta republicar o site** (P5). Restam P1, P2, P3, P5 e P6.
 
 ## Decisões fechadas (dono, 2026-10-18)
 | Tema | Decisão |

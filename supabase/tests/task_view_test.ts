@@ -1,4 +1,4 @@
-import {dayGroups,newest,matchesTask,dateKey} from '../../src/taskView.ts';
+import {dayGroups,newest,matchesTask,dateKey,groupByPerson} from '../../src/taskView.ts';
 import type {Task} from '../../src/task.ts';
 const task=(id:string,fields:Partial<Task>={}):Task=>({id,title:id,area:'Pessoal',minutes:30,due:'',source:'Torre',done:false,...fields});
 function equal(actual:unknown,expected:unknown){if(JSON.stringify(actual)!==JSON.stringify(expected))throw new Error(`${JSON.stringify(actual)} != ${JSON.stringify(expected)}`);}
@@ -22,4 +22,11 @@ Deno.test('Unified day list retains multiple reasons once and separates overdue 
  equal(groups.late.map(t=>t.id),['late']);equal(groups.follow.map(t=>t.id),['follow']);
  equal(groups.today.find(t=>t.id==='many')?.due,day);
  equal(dayGroups(rows,new Date('2026-10-06T12:00:00')).today.map(t=>t.id),['future']);
+});
+Deno.test('Waiting tasks group by person ignoring case and accents, keep order and put no-owner last',()=>{
+ const rows=[task('a',{waitingFor:'Cardia'}),task('b',{waitingFor:'Iran'}),task('c'),task('d',{waitingFor:'  cárdia '}),task('e',{waitingFor:'Eduardo'}),task('f',{waitingFor:'  '}),task('g',{waitingFor:'iran'})];
+ const groups=groupByPerson(rows);
+ equal(groups.map(g=>g.label),['Cardia','Eduardo','Iran','Sem responsável']);
+ equal(groups.map(g=>g.items.map(t=>t.id)),[['a','d'],['e'],['b','g'],['c','f']]);
+ equal(groupByPerson([]),[]);
 });

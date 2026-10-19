@@ -4,7 +4,7 @@ import {priorities,priorityRank} from './priority';
 import type {Features} from './features';
 import type {Task} from './task';
 import {TaskActionMenu} from './TaskActionMenu';
-import {dateKey,matchesTask,newest} from './taskView';
+import {dateKey,groupByPerson,matchesTask,newest} from './taskView';
 import {BulkActions,type BatchChange} from './BulkActions';
 import {writeTaskDrag} from './taskDrag';
 import {usePreference} from './uiState';
@@ -80,8 +80,9 @@ export function TaskList(props:Props){
  const visibleIds=filtered.map(t=>t.id);
  const ids=selection.filter(id=>visibleIds.includes(id));
  const selectedTasks=filtered.filter(t=>ids.includes(t.id));
- const grouped=tab==='open'&&sort==='Prazo';
- const groups=grouped?groupOrder.map(key=>({key,items:filtered.filter(t=>groupOf(t,today)===key)})).filter(g=>g.items.length):[{key:'',items:filtered}];
+ const byPerson=tab==='waiting';
+ const grouped=byPerson||(tab==='open'&&sort==='Prazo');
+ const groups=byPerson?groupByPerson(filtered).map(g=>({key:g.key||'none',label:g.label,items:g.items})):grouped?groupOrder.map(key=>({key,label:groupNames[key],items:filtered.filter(t=>groupOf(t,today)===key)})).filter(g=>g.items.length):[{key:'',label:'',items:filtered}];
  const clear=()=>{onClearFilters();setTab('open');setSituation('all');setPriorityFilter('all');};
 
  const subtitle=`${open.length} abertas · ${late.length} atrasadas · ${waiting.length} aguardando retorno`;
@@ -130,7 +131,7 @@ export function TaskList(props:Props){
    </div>
    <div onDragStart={e=>{const id=e.dataTransfer.getData('text/plain');if(ids.includes(id))writeTaskDrag(e.dataTransfer,ids);}}>
     {groups.map(group=><div key={group.key}>
-     {grouped&&<div className="grk" style={{color:groupColors[group.key]}}>{groupNames[group.key]}<span style={{fontWeight:500,color:'var(--muted-foreground)',marginLeft:4}}>{group.items.length}</span></div>}
+     {grouped&&<div className="grk" style={{color:byPerson?undefined:groupColors[group.key]}}>{group.label}<span style={{fontWeight:500,color:'var(--muted-foreground)',marginLeft:4}}>{group.items.length}</span></div>}
      {group.items.map(t=><TaskTableRow key={t.id} task={t} features={features} today={today} isNew={newIds.includes(t.id)} selecting={selecting} selected={ids.includes(t.id)} onToggle={toggle} onOpen={onOpen} onComplete={onComplete} onReopen={onReopen} onPlan={onPlan}/>)}
     </div>)}
    </div>
