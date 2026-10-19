@@ -103,17 +103,17 @@ export function TaskList(props:Props){
    <div className="tabs" role="tablist" aria-label="Situação das tarefas">
     {(Object.keys(tabNames) as Tab[]).map(key=><button key={key} role="tab" aria-selected={tab===key} onClick={()=>setTab(key)}>{tabNames[key]}<span style={{marginLeft:4,fontSize:12,color:'var(--muted-foreground)'}}>{counts[key]}</span></button>)}
    </div>
-   <span style={{flex:1}}/>
-   <select className="inp" style={{width:160}} aria-label="Prioridade" value={priorityFilter} onChange={e=>setPriorityFilter(e.target.value)}>
+   <span className="tc-spacer" style={{flex:1}}/>
+   <select className="inp tc-fsel" style={{width:160}} aria-label="Prioridade" value={priorityFilter} onChange={e=>setPriorityFilter(e.target.value)}>
     <option value="all">Prioridade: todas</option>
     {priorities.map(p=><option key={p.value} value={p.value}>{p.label}</option>)}
    </select>
-   <select className="inp" style={{width:160}} aria-label="Situação" disabled={tab!=='open'} value={situation} onChange={e=>setSituation(e.target.value as Situation)}>
+   <select className="inp tc-fsel" style={{width:160}} aria-label="Situação" disabled={tab!=='open'} value={situation} onChange={e=>setSituation(e.target.value as Situation)}>
     <option value="all">Situação: todas</option>
     <option value="todo">A fazer</option>
     <option value="waiting">Aguardando</option>
    </select>
-   <select className="inp" style={{width:170}} aria-label="Ordenar por" value={sort} onChange={e=>setSort(e.target.value)}>
+   <select className="inp tc-fsel" style={{width:170}} aria-label="Ordenar por" value={sort} onChange={e=>setSort(e.target.value)}>
     {sorts.map(s=><option key={s} value={s}>Ordenar: {s.toLowerCase()}</option>)}
    </select>
   </div>

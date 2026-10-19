@@ -144,5 +144,13 @@
 .tc .trk-col-prio{width:100px;padding-top:1px}
 .tc .trk-col-min{width:64px;text-align:right;font-size:13px;color:var(--muted-foreground);padding-top:2px}
 .tc .trk-inline{display:none}
-.tc .tc-bulk{padding:12px 16px}
+.tc .tc-bulk{padding:12px 16px;position:sticky;top:64px;z-index:20}
 @media(max-width:767px){.tc .trk-col-due,.tc .trk-col-prio,.tc .trk-col-min,.tc .thk-col{display:none}.tc .trk-inline{display:inline}}
+.tc .tc-hint{display:inline-flex;align-items:center}
+.tc .tc-hint-btn{display:inline-flex;align-items:center;justify-content:center;width:18px;height:18px;min-height:0;padding:0;border:0;border-radius:50%;background:transparent;color:var(--muted-foreground);cursor:help}
+.tc .tc-hint-btn:hover{color:var(--foreground)}
+@media(max-width:767px){.tc .tc-hint{display:none}}
+@media(max-width:767px){.tc .tc-bulk{position:static;top:auto}}
+.tc .tc-area button{white-space:nowrap}
+@media(max-width:767px){.tc .tc-area button{padding:0 6px;font-size:13px}}
+@media(max-width:767px){.tc .tc-fsel{width:auto!important;flex:1 1 140px;min-width:0}}
