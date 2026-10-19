@@ -1,7 +1,7 @@
 /* Kit portado do mockup (docs-internas/revisao_ui/torre_nova_ui_shadcn.html).
    Escopo .tc: especificidade 0,2,0 vence os estilos antigos de button/input/select. */
-.tc{--tc-side-bg:#fafafa;--tc-border:var(--border);--tc-th:#fafafa;--tc-switch-off:#d4d4d8;--tc-hover:var(--muted);--tc-danger:#b91c1c;--tc-danger-bg:#fef2f2;--tc-primary-hover:#0168bb;--tc-chip-on:#015ba7;--tc-warn:#92400e;--tc-listen-bg:#eff6ff;--tc-listen-border:#bfdbfe;--tc-listen-text:#1e40af;--tc-b-a-bg:#fffbeb;--tc-b-a-bd:#fde68a;--tc-b-a-fg:#92400e;--tc-b-g-bg:#f0fdf4;--tc-b-g-bd:#bbf7d0;--tc-b-g-fg:#166534;--tc-b-b-bg:#eff6ff;--tc-b-b-bd:#bfdbfe;--tc-b-b-fg:#1e40af;--tc-b-r-bg:#fef2f2;--tc-b-r-bd:#fecaca;--tc-b-r-fg:#b91c1c;font-size:14px;color:var(--foreground)}
-[data-theme=dark] .tc{--tc-side-bg:#111113;--tc-th:#202023;--tc-switch-off:#52525b;--tc-danger:#f87171;--tc-danger-bg:#3b1d1d;--tc-primary-hover:#8cc4ff;--tc-chip-on:#8cc4ff;--tc-warn:#fbbf24;--tc-listen-bg:#172554;--tc-listen-border:#1e3a8a;--tc-listen-text:#bfdbfe;--tc-b-a-bg:#2a1f05;--tc-b-a-bd:#5c4410;--tc-b-a-fg:#fcd34d;--tc-b-g-bg:#06210f;--tc-b-g-bd:#14532d;--tc-b-g-fg:#86efac;--tc-b-b-bg:#0b1b3d;--tc-b-b-bd:#1e3a8a;--tc-b-b-fg:#bfdbfe;--tc-b-r-bg:#2a0d0d;--tc-b-r-bd:#5c1d1d;--tc-b-r-fg:#fca5a5}
+.tc{--tc-row-line:#f0f0f2;--tc-side-bg:#fafafa;--tc-border:var(--border);--tc-th:#fafafa;--tc-switch-off:#d4d4d8;--tc-hover:var(--muted);--tc-danger:#b91c1c;--tc-danger-bg:#fef2f2;--tc-primary-hover:#0168bb;--tc-chip-on:#015ba7;--tc-warn:#92400e;--tc-listen-bg:#eff6ff;--tc-listen-border:#bfdbfe;--tc-listen-text:#1e40af;--tc-b-a-bg:#fffbeb;--tc-b-a-bd:#fde68a;--tc-b-a-fg:#92400e;--tc-b-g-bg:#f0fdf4;--tc-b-g-bd:#bbf7d0;--tc-b-g-fg:#166534;--tc-b-b-bg:#eff6ff;--tc-b-b-bd:#bfdbfe;--tc-b-b-fg:#1e40af;--tc-b-r-bg:#fef2f2;--tc-b-r-bd:#fecaca;--tc-b-r-fg:#b91c1c;font-size:14px;color:var(--foreground)}
+[data-theme=dark] .tc{--tc-row-line:#202023;--tc-side-bg:#111113;--tc-th:#202023;--tc-switch-off:#52525b;--tc-danger:#f87171;--tc-danger-bg:#3b1d1d;--tc-primary-hover:#8cc4ff;--tc-chip-on:#8cc4ff;--tc-warn:#fbbf24;--tc-listen-bg:#172554;--tc-listen-border:#1e3a8a;--tc-listen-text:#bfdbfe;--tc-b-a-bg:#2a1f05;--tc-b-a-bd:#5c4410;--tc-b-a-fg:#fcd34d;--tc-b-g-bg:#06210f;--tc-b-g-bd:#14532d;--tc-b-g-fg:#86efac;--tc-b-b-bg:#0b1b3d;--tc-b-b-bd:#1e3a8a;--tc-b-b-fg:#bfdbfe;--tc-b-r-bg:#2a0d0d;--tc-b-r-bd:#5c1d1d;--tc-b-r-fg:#fca5a5}
 .tc .btn{display:inline-flex;align-items:center;justify-content:center;gap:8px;height:36px;min-height:0;padding:0 14px;border:1px solid var(--tc-border);border-radius:6px;background:var(--background);color:var(--foreground);font:inherit;font-size:14px;font-weight:500;white-space:nowrap;cursor:pointer;filter:none}
 .tc .btn:hover{background:var(--tc-hover);filter:none}
 .tc .btn:disabled{opacity:.55;cursor:not-allowed}
@@ -85,7 +85,7 @@
 @media(max-width:1023px){.app-shell.tc,.app-shell.tc.menu-compact{grid-template-columns:minmax(0,1fr)}.app-shell.tc>.tc-side{display:none}.tc .nav{height:40px}}
 @media(hover:none){.tc .tc-label-tool{opacity:1}.tc .tc-label-grip{display:none}.tc .tc-label-count{margin-right:28px}}
 @media(max-width:767px){.tc.tc-top{padding:8px 12px}.tc .tc-spacer{display:none}.tc .tc-search{width:auto;order:1;flex:1 1 0;min-width:0}.tc .tc-avatar-box{order:2}.tc .tc-area{order:3;flex:1 1 100%}.tc .tc-area button{flex:1}}
-.app-shell.tc .app-content:has(:is(main.settings-page,main.inbox-page)){background:var(--background)}
+.app-shell.tc .app-content:has(:is(main.settings-page,main.inbox-page,main.tasks-page)){background:var(--background)}
 .tc .agent-header{border-top:0}
 :root [data-slot=sheet-content].navigation-sheet{padding:0;gap:0}
 /* Formulários, chips e janelas (mockups Captura rápida, Editar tarefa, Nova tarefa) */
@@ -131,3 +131,18 @@
 .tc .tc-link{border:0;background:transparent;padding:0;min-height:0;text-align:left;font:inherit;font-size:14px;font-weight:500;color:var(--foreground);cursor:pointer}
 .tc .tc-link:hover{text-decoration:underline}
 @media(max-width:767px){.tc .tc-foot-note{flex:1 1 100%!important}.tc .tabs{display:flex;width:100%;align-self:stretch}.tc .tabs button{flex:1 1 auto;padding:0 6px;font-size:13px}.tc .sug>:last-child{flex:0 0 auto;width:auto}}
+/* Tabela de tarefas (mockup Tarefas) */
+.tc .thk{display:flex;align-items:center;gap:12px;padding:0 16px;height:40px;border-bottom:1px solid var(--tc-border);font-size:13px;font-weight:500;color:var(--muted-foreground)}
+.tc .trk{display:flex;align-items:flex-start;gap:12px;padding:10px 16px;border-bottom:1px solid var(--tc-row-line);cursor:default}
+.tc .trk:hover{background:var(--tc-th)}
+.tc .trk[data-selected=true],.tc .trk[data-new=true]{background:var(--accent)}
+.tc .trk.is-done .trk-title{text-decoration:line-through;color:var(--muted-foreground)}
+.tc .grk{padding:8px 16px;background:var(--tc-th);border-bottom:1px solid var(--tc-row-line);font-size:12px;font-weight:600}
+.tc .trk-title{display:block;border:0;background:transparent;padding:0;min-height:0;text-align:left;font:inherit;font-size:14px;font-weight:500;line-height:1.4;color:var(--foreground);cursor:pointer}
+.tc .trk-title:hover{text-decoration:underline}
+.tc .trk-col-due{width:110px;font-size:13px;padding-top:2px}
+.tc .trk-col-prio{width:100px;padding-top:1px}
+.tc .trk-col-min{width:64px;text-align:right;font-size:13px;color:var(--muted-foreground);padding-top:2px}
+.tc .trk-inline{display:none}
+.tc .tc-bulk{padding:12px 16px}
+@media(max-width:767px){.tc .trk-col-due,.tc .trk-col-prio,.tc .trk-col-min,.tc .thk-col{display:none}.tc .trk-inline{display:inline}}
