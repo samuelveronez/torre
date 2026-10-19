@@ -11,17 +11,20 @@ const localInput=(value:string)=>{const d=new Date(value);return `${d.getFullYea
 const hoursLeft=(value:string)=>{const hours=Math.floor((Date.parse(value)-Date.now())/3600000);return hours>=1?`expira em ${hours} h`:'expira em breve';};
 const rangeLabel=(minutes:number)=>{const h=Math.floor(minutes/60),m=minutes%60;return h?(m?`${h} h ${m} min`:`${h} h`):`${m} min`;};
 const whenLabel=(value:string)=>{const d=new Date(value);const day=d.toLocaleDateString('pt-BR',{weekday:'short'}).replace('.','');return `${day[0].toUpperCase()+day.slice(1)}, ${d.toLocaleDateString('pt-BR',{day:'2-digit',month:'2-digit'})} · ${d.toLocaleTimeString('pt-BR',{hour:'2-digit',minute:'2-digit'})}`;};
-type Props={autoOpenKey?:number;proposalId?:string;tasks:Task[];week:Date;features:Features;onPreview:(rows:Placement[])=>void;onApplied:()=>void;children:(selection:PlannerSelection)=>ReactNode};
+export type PlannerSheet={phone:boolean;open:boolean;onOpen:()=>void;onClose:()=>void};
+type Props={sheet?:PlannerSheet;autoOpenKey?:number;proposalId?:string;tasks:Task[];week:Date;features:Features;onPreview:(rows:Placement[])=>void;onApplied:()=>void;children:(selection:PlannerSelection)=>ReactNode};
 /** Right column of the weekly agenda: the AI proposal panel above the list of tasks without a slot. */
-export function WeekPlanner({tasks,week,features,onPreview,onApplied,autoOpenKey=0,proposalId,children}:Props){
+export function WeekPlanner({tasks,week,features,onPreview,onApplied,autoOpenKey=0,proposalId,sheet,children}:Props){
  const [open,setOpen]=useState(false),[selected,setSelected]=useState<string[]>([]),[accepted,setAccepted]=useState<string[]>([]),[instruction,setInstruction]=useState(''),[proposal,setProposal]=useState<Proposal|null>(null),[busy,setBusy]=useState(false),[error,setError]=useState(''),[editing,setEditing]=useState('');const revision=useRef(0);
+ const sheetOpen=!!sheet?.phone&&sheet.open,closeSheet=sheet?.onClose;
+ useEffect(()=>{if(!sheetOpen)return;const onKey=(e:KeyboardEvent)=>{if(e.key==='Escape')closeSheet?.();};document.addEventListener('keydown',onKey);return()=>document.removeEventListener('keydown',onKey);},[sheetOpen]);
  const eligible=tasks.filter(t=>!t.done&&!t.at&&t.situation!=='waiting');
  const eligibleKey=eligible.map(t=>t.id).sort().join(',');
- useEffect(()=>{if(!autoOpenKey)return;setOpen(true);setSelected(current=>current.length?current:eligible.slice(0,MAX_TASKS).map(t=>t.id));},[autoOpenKey]);
+ useEffect(()=>{if(!autoOpenKey)return;setOpen(true);sheet?.onOpen();setSelected(current=>current.length?current:eligible.slice(0,MAX_TASKS).map(t=>t.id));},[autoOpenKey]);
  const key=week.toISOString();
  useEffect(()=>{revision.current++;setProposal(null);setSelected([]);setAccepted([]);onPreview([]);setBusy(false);},[key]);
  useEffect(()=>()=>{revision.current++;},[]);
- useEffect(()=>{if(!proposalId)return;let cancelled=false;setError('');void supabase.from('torre_week_proposals').select('id,placements,task_ids,expires_at,applied_at').eq('id',proposalId).single().then(({data,error})=>{if(cancelled)return;if(error||!data){setError('Não foi possível carregar a proposta.');setOpen(true);return;}if(data.applied_at){setError('Esta proposta já foi aplicada.');setOpen(true);return;}const p:Proposal={...data,unplaced:data.task_ids.filter((id:string)=>!data.placements.some((row:Placement)=>row.taskId===id))};setProposal(p);setAccepted(p.placements.map(row=>row.taskId));setSelected(data.task_ids);onPreview(p.placements);setOpen(true);});return()=>{cancelled=true;};},[proposalId,key]);
+ useEffect(()=>{if(!proposalId)return;let cancelled=false;setError('');void supabase.from('torre_week_proposals').select('id,placements,task_ids,expires_at,applied_at').eq('id',proposalId).single().then(({data,error})=>{if(cancelled)return;if(error||!data){setError('Não foi possível carregar a proposta.');setOpen(true);sheet?.onOpen();return;}if(data.applied_at){setError('Esta proposta já foi aplicada.');setOpen(true);sheet?.onOpen();return;}const p:Proposal={...data,unplaced:data.task_ids.filter((id:string)=>!data.placements.some((row:Placement)=>row.taskId===id))};setProposal(p);setAccepted(p.placements.map(row=>row.taskId));setSelected(data.task_ids);onPreview(p.placements);setOpen(true);sheet?.onOpen();});return()=>{cancelled=true;};},[proposalId,key]);
  useEffect(()=>{const ids=new Set(eligibleKey.split(','));setSelected(current=>current.filter(id=>ids.has(id)));},[eligibleKey]);
  const selectedMinutes=eligible.filter(t=>selected.includes(t.id)).reduce((sum,t)=>sum+t.minutes,0);
  async function suggest(){setBusy(true);setError('');const rev=revision.current;try{const end=new Date(week);end.setDate(end.getDate()+7);const data:Proposal=await invoke('plan-propose',{taskIds:selected,start:week.toISOString(),end:end.toISOString(),instruction});if(rev!==revision.current)return;setProposal(data);setAccepted(data.placements.map(p=>p.taskId));onPreview(data.placements);}catch(e){if(rev===revision.current)setError((e as Error).message);}finally{if(rev===revision.current)setBusy(false);}}
@@ -31,7 +34,7 @@ export function WeekPlanner({tasks,week,features,onPreview,onApplied,autoOpenKey
  function toggle(id:string,on:boolean){setSelected(ids=>on?(ids.length>=MAX_TASKS||ids.includes(id)?ids:[...ids,id]):ids.filter(x=>x!==id));}
  const placedMinutes=proposal?proposal.placements.filter(p=>accepted.includes(p.taskId)).reduce((sum,p)=>sum+Math.round((Date.parse(p.end)-Date.parse(p.start))/60000),0):0;
  const unplacedTasks=proposal?proposal.unplaced.map(id=>tasks.find(t=>t.id===id)).filter((t):t is Task=>!!t):[];
- return <div className="wk-side">
+ const panels=<div className="wk-side">
   {open&&<section className="card" aria-label="Proposta da IA">
    <div className="ch"><h2>Proposta da IA</h2>{proposal?<span className="desc" style={{fontSize:12}}>{hoursLeft(proposal.expires_at)}</span>:<button type="button" className="btn btn-g btn-sm" disabled={busy} onClick={close}>Fechar</button>}</div>
    <div className="wk-body">
@@ -63,4 +66,12 @@ export function WeekPlanner({tasks,week,features,onPreview,onApplied,autoOpenKey
   </section>}
   {children({selected,toggle,busy,minutes:selectedMinutes,limit:MAX_TASKS,open})}
  </div>;
+ if(!sheet?.phone)return panels;
+ return <>
+  {sheet.open&&<button type="button" tabIndex={-1} className="wk-sheet-scrim" aria-label="Fechar painel da semana" onClick={sheet.onClose}/>}
+  <div className={'wk-sheet'+(sheet.open?' open':'')} role="dialog" aria-modal={sheet.open} aria-label="Planejar a semana" inert={!sheet.open}>
+   <div className="wk-sheet-head"><span className="wk-sheet-grip" aria-hidden="true"/><button type="button" className="btn btn-g btn-sm" onClick={sheet.onClose}>Fechar</button></div>
+   {panels}
+  </div>
+ </>;
 }

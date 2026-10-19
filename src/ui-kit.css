@@ -379,3 +379,14 @@
 .tc .ag-composer textarea{font-size:16px}
 .tc .ag-notice{margin:0 12px 8px}
 }
+.tc .wk-sheet:not(.open){display:none}
+@media(max-width:767px){
+.tc .wk-suggest{flex:1 1 0;margin-left:0}
+.tc .wk-pending-btn{flex:0 0 auto}
+.tc .wk-sheet-scrim{position:fixed;inset:0;z-index:59;min-height:0;padding:0;border:0;border-radius:0;background:rgba(0,0,0,.4)}
+.tc .wk-sheet.open{position:fixed;left:0;right:0;bottom:0;z-index:60;max-height:88dvh;overflow:auto;padding:0 12px max(16px,env(safe-area-inset-bottom));border-top:1px solid var(--tc-border);border-radius:16px 16px 0 0;background:var(--background);box-shadow:0 -8px 30px rgba(0,0,0,.2)}
+.tc .wk-sheet-head{position:sticky;top:0;z-index:1;display:flex;align-items:center;justify-content:center;padding:10px 0;background:var(--background)}
+.tc .wk-sheet-head .btn{position:absolute;right:0}
+.tc .wk-sheet-grip{width:36px;height:4px;border-radius:2px;background:var(--tc-border)}
+.tc .wk-sheet .wk-side{max-width:none}
+}
