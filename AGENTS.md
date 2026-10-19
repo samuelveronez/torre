@@ -37,7 +37,8 @@ Stack: React 19 + Vite + Tailwind 4 + shadcn/ui no frontend; Supabase (Postgres 
 
 ## Estilo
 - Código novo legível: uma instrução por linha, arquivos pequenos e com uma responsabilidade. Não compactar nem minificar à mão. Em arquivo antigo e denso, não reformatar fora do trecho que você alterou.
-- Imports com `@/`. Novos estilos: utilitários Tailwind ou tokens de `src/design-system.css`; não criar CSS global novo.
+- Imports com `@/`. UI nova usa o kit `src/ui-kit.css` (escopado em `.tc`, portado do mockup `docs-internas/revisao_ui/torre_nova_ui_shadcn.html`: `.btn`, `.inp`, `.badge`, `.tbl`, `.seg`, `.tc-modal`, `.tc-panel`, `wk-*` etc., tokens `--tc-*` e modo escuro em `[data-theme=dark] .tc`), utilitários Tailwind ou tokens de `src/design-system.css`; não criar CSS global novo. Toda tela deve ser conferida lado a lado com o mockup (claro, escuro e 390 px).
+- CSS legado (`style.css`, `ux.css`, `design-system.css`, `agent.css`): só para o que ainda não foi migrado. Antes de apagar uma regra, busque a classe nos `.tsx`; classes sem uso podem sair. Componentes shadcn em `components/ui` não se editam à mão.
 - UI e documentação em português; identificadores de código em inglês.
 
 ## Git e artefatos
