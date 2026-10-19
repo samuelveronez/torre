@@ -7,7 +7,7 @@ const browser=await chromium.launch({channel:'msedge',headless:true});
 const userId='a7ba7610-735e-4da5-a17f-104419acd001';
 const taskIds=[3,4,5].map(n=>`a7ba7610-735e-4da5-a17f-104419acd00${n}`);
 const user={id:userId,email:'test@example.com',aud:'authenticated',role:'authenticated',app_metadata:{},user_metadata:{},created_at:'2026-10-05T00:00:00Z'};
-const tables={
+const tables={torre_people:[],torre_task_people:[],torre_week_proposals:[],
  torre_tasks:taskIds.map((id,i)=>({id,user_id:userId,title:['Tarefa para reservar','Segunda tarefa','Reserva existente'][i],area:'professional',duration_minutes:30,status:'todo',source:'torre',due_date:'2099-01-05',created_at:'2026-10-05T00:00:00Z',capture_position:0})),
  torre_scheduled_blocks:[{id:'block',user_id:userId,task_id:taskIds[2],start_at:'2099-01-05T13:15:00Z',end_at:'2099-01-05T13:45:00Z'}],
  torre_preferences:[{user_id:userId,timezone:'America/Sao_Paulo',theme:'light'}],
@@ -26,7 +26,7 @@ await context.route('https://nvxwqrpztecrvrxoddxf.supabase.co/**',async route=>{
  if(method==='OPTIONS')return route.fulfill({status:200,headers,body:'{}'});
  if(url.pathname.startsWith('/auth/'))return route.fulfill({status:200,headers,body:JSON.stringify(user)});
  if(url.pathname.includes('/functions/'))return route.fulfill({status:200,headers,body:'{"ok":true}'});
- if(url.pathname.includes('/rpc/'))return route.fulfill({status:200,headers,body:'null'});
+ if(url.pathname.includes('/rpc/')){const rpcName=url.pathname.split('/').pop(),rpcPayload=request.postDataJSON();writes.push({table:'rpc:'+rpcName,method,payload:rpcPayload});if(rpcName==='torre_save_task'){const task=tables.torre_tasks.find(t=>t.id===rpcPayload.p_task);Object.assign(task,rpcPayload.p_fields);tables.torre_scheduled_blocks=tables.torre_scheduled_blocks.filter(b=>b.task_id!==rpcPayload.p_task);if(rpcPayload.p_at)tables.torre_scheduled_blocks.push({id:'block-'+rpcPayload.p_task,user_id:userId,task_id:rpcPayload.p_task,start_at:rpcPayload.p_at,end_at:new Date(Date.parse(rpcPayload.p_at)+task.duration_minutes*60000).toISOString(),kind:rpcPayload.p_kind});}return route.fulfill({status:200,headers,body:'null'});}
  const table=url.pathname.split('/').pop();
  if(!(table in tables))throw new Error('Unexpected API '+url.pathname);
  let rows=tables[table];
@@ -50,8 +50,8 @@ try {
  await page.getByRole('button',{name:/^Reunião aceita ·/}).waitFor();
  assert.equal(await page.locator('.agenda-card').count(),4);
  assert.equal(await page.locator('.agenda-card.response-declined').count(),0);
- assert(await page.getByText('Evento de dia inteiro',{exact:false}).isVisible());
- assert(await page.getByText('Reunião às seis',{exact:false}).isVisible());
+ assert(await page.getByText('Evento de dia inteiro',{exact:true}).isVisible());
+ assert(await page.getByText('Reunião às seis',{exact:true}).isVisible());
  const boxes=await page.locator('.agenda-card').evaluateAll(cards=>cards.map(card=>{const r=card.getBoundingClientRect();return {x:r.x,right:r.right,y:r.y,bottom:r.bottom,height:r.height};}));
  for(let i=0;i<boxes.length;i++)for(let j=i+1;j<boxes.length;j++){const a=boxes[i],b=boxes[j];if(a.y<b.bottom&&a.bottom>b.y)assert(a.right<=b.x||b.right<=a.x,'Cards hide each other');}
  assert.equal(boxes.filter(b=>b.height===48).length,3);
@@ -61,17 +61,17 @@ try {
  await page.keyboard.press('Escape');
  await page.getByLabel('Mostrar recusados').check();assert.equal(await page.locator('.agenda-card.response-declined').count(),1);
  await page.getByLabel('Mostrar recusados').uncheck();
- await page.getByRole('button',{name:'Reservar Tarefa para reservar',exact:true}).click();
+ await page.getByRole('button',{name:'Ações de Tarefa para reservar',exact:true}).click();await page.getByRole('menuitem',{name:'Reservar horário',exact:true}).click();
  const form=page.getByRole('dialog').filter({hasText:'Reservar um horário'});
  await form.getByLabel('Horário',{exact:true}).fill('10:15');
  assert(await form.getByText(/Sobrepõe Reunião aceita/).isVisible());
  assert(await form.getByText(/A reserva manual continua disponível/).isVisible());
  await form.getByRole('button',{name:'Reservar horário',exact:true}).click();
  await form.waitFor({state:'hidden'});
- assert(writes.some(w=>w.table==='torre_scheduled_blocks'&&w.payload.task_id===taskIds[0]&&w.payload.start_at==='2099-01-05T13:15:00.000Z'));
+ assert(writes.some(w=>w.table==='rpc:torre_save_task'&&w.payload.p_task===taskIds[0]&&w.payload.p_at==='2099-01-05T13:15:00.000Z'));
  // Selecting a task then clicking an occupied card reserves without a dialog.
  await page.getByRole('button',{name:'Escolher tarefas',exact:true}).click();
- await page.locator('.day-choice').getByRole('button',{name:'Reservar Segunda tarefa',exact:true}).click();
+ await page.locator('.day-choice').getByRole('button',{name:'Ações de Segunda tarefa',exact:true}).click();await page.getByRole('menuitem',{name:'Reservar horário',exact:true}).click();
  await page.getByRole('button',{name:/^Reservar sobre Reunião aceita/}).click({position:{x:10,y:18}});
  await page.getByRole('button',{name:/^Segunda tarefa · 10:15/}).waitFor();
  assert.equal(tables.torre_scheduled_blocks.length,3);
@@ -86,7 +86,7 @@ try {
  await page.getByRole('button',{name:/^Tarefa para reservar · 10:30/}).waitFor();
  await page.screenshot({path:'.db-validation/agenda-desktop.png',fullPage:true});
  await page.setViewportSize({width:390,height:844});
- await page.getByRole('button',{name:'Agenda',exact:true}).click();
+ await page.getByRole('tab',{name:'Agenda',exact:true}).click();
  assert(await page.getByRole('button',{name:/^Reunião aceita ·/}).isVisible());
  await page.getByRole('button',{name:/^Convite talvez ·/}).click();
  assert(await page.getByText('Resposta: Talvez').isVisible());await page.keyboard.press('Escape');

@@ -4,7 +4,7 @@ const {chromium}=await import(process.env.PLAYWRIGHT_MODULE?pathToFileURL(proces
 const browser=await chromium.launch({channel:'msedge',headless:true});
 const uid='a7ba7610-735e-4da5-a17f-104419acf001',task='a7ba7610-735e-4da5-a17f-104419acf002';
 const user={id:uid,email:'test@example.com',aud:'authenticated',role:'authenticated',app_metadata:{},user_metadata:{},created_at:'2026-10-06T00:00:00Z'};
-const tables={torre_tasks:[{id:task,user_id:uid,title:'Pagar aluguel',description:'Conta mensal',area:'personal',duration_minutes:30,status:'todo',source:'torre',priority:'high',due_date:'2026-10-06',created_at:'2026-10-05T00:00:00Z'}],torre_preferences:[{user_id:uid,timezone:'America/Sao_Paulo',theme:'light'}],torre_work_hours:Array.from({length:7},(_,weekday)=>({weekday,user_id:uid,enabled:true,start_time:'09:00',end_time:'18:00'})),torre_ai_settings:[{user_id:uid,has_key:true,enabled:true}],torre_agent_runs:[],torre_scheduled_blocks:[],torre_task_labels:[],torre_labels:[],torre_captures:[],torre_attachments:[],torre_google_lists:[],torre_google_status:[],torre_calendars:[],torre_calendar_events:[]};
+const tables={torre_conversations:[],torre_people:[],torre_task_people:[],torre_week_proposals:[],torre_tasks:[{id:task,user_id:uid,title:'Pagar aluguel',description:'Conta mensal',area:'personal',duration_minutes:30,status:'todo',source:'torre',priority:'high',due_date:'2026-10-06',created_at:'2026-10-05T00:00:00Z'}],torre_preferences:[{user_id:uid,timezone:'America/Sao_Paulo',theme:'light'}],torre_work_hours:Array.from({length:7},(_,weekday)=>({weekday,user_id:uid,enabled:true,start_time:'09:00',end_time:'18:00'})),torre_ai_settings:[{user_id:uid,has_key:true,enabled:true}],torre_agent_runs:[],torre_scheduled_blocks:[],torre_task_labels:[],torre_labels:[],torre_captures:[],torre_attachments:[],torre_google_lists:[],torre_google_status:[],torre_calendars:[],torre_calendar_events:[]};
 const calls=[],errors=[];let testFails=false;
 const analysisResponse=`## Avaliação de hoje\n\n**Foco:** confira [Pagar aluguel](task:${task}): vence hoje.\n\n- **Prioridade:** high\n- status: waiting\n- ID: ${task}\n\n| Tarefa | priority | status | ID |\n| --- | --- | --- | --- |\n| [Pagar aluguel](task:${task}) | high | waiting | ${task} |\n\nProjeto high fidelity permanece com seu nome.\n\nPriorize a tarefa ${task.slice(0,8)} com prioridade “high”.\n\nSituação **“waiting”**, área="professional".\n\n[Link inseguro](javascript:alert(1))\n\n<script>window.markdownInjected=true</script>`;
 const context=await browser.newContext({viewport:{width:1440,height:1000},timezoneId:'America/Sao_Paulo'});
@@ -13,7 +13,8 @@ await context.route('https://nvxwqrpztecrvrxoddxf.supabase.co/**',async route=>{
  if(request.method()==='OPTIONS')return route.fulfill({status:200,headers,body:'{}'});
  if(url.pathname.startsWith('/auth/'))return route.fulfill({status:200,headers,body:JSON.stringify(user)});
  if(url.pathname.includes('/functions/')){
-  const input=request.postDataJSON();calls.push(input);let run=tables.torre_agent_runs.find(r=>r.id===input.runId);
+  const input=request.postDataJSON();if(input.action!=='ai-default')calls.push(input);let run=tables.torre_agent_runs.find(r=>r.id===input.runId);
+  if(input.action==='ai-default'){tables.torre_ai_settings[0].default_model=input.model;return route.fulfill({status:200,headers,body:JSON.stringify({ok:true})});}
   if(input.action==='agent-test')return route.fulfill({status:testFails?400:200,headers,body:JSON.stringify(testFails?{error:'A política de dados da conta bloqueou os provedores gratuitos. Nenhuma alteração foi realizada.'}:{ok:true,model:'test/model:free'})});
   if(input.action==='agent-chat'&&input.message==='Pedido de teste Gemini'){
    if(!run){run={id:input.runId,conversation_id:input.conversationId??null,message:input.message,mode:input.mode,requested_model:input.model,state:'error',response:'',model:null,error:'Saldo insuficiente no OpenRouter.',operations:[],created_at:new Date().toISOString()};tables.torre_agent_runs.push(run);}else{run.state='answered';run.error=null;run.response='Gemini respondeu ao pedido.';run.model=input.model;}
@@ -76,29 +77,29 @@ try{
  assert.equal(await page.locator('.agent-turn').count(),1,'Only selected conversation renders');
  await page.reload();await page.getByRole('heading',{name:'Avaliação de hoje'}).waitFor();assert.equal(await page.locator('.agent-turn').count(),1,'Conversation survives reload');
  assert.equal(await page.locator('.agent-conversations').count(),0,'Reload starts history collapsed');
- await page.getByRole('button',{name:'Conversas',exact:true}).click();await page.getByLabel('Buscar conversa').fill('O que merece');
+ await page.getByRole('button',{name:'Histórico do agente',exact:true}).click();await page.getByLabel('Buscar conversa').fill('O que merece');
  await page.getByRole('button',{name:/O que merece atenção hoje/}).waitFor();
  await page.getByRole('button',{name:/O que merece atenção hoje/}).click();await page.getByText('Gemini respondeu ao pedido.',{exact:true}).waitFor();
  assert.equal(await page.locator('.agent-turn').count(),4,'Old conversation intact');
- await page.getByRole('button',{name:'Conversas',exact:true}).click();await page.getByRole('button',{name:'Recolher conversas',exact:true}).waitFor();
+ await page.getByRole('button',{name:'Histórico do agente',exact:true}).click();await page.getByRole('button',{name:'Recolher histórico do agente',exact:true}).waitFor();
  await page.screenshot({path:'.db-validation/agent-history-open.png',fullPage:true});await page.keyboard.press('Escape');
  await page.screenshot({path:'.db-validation/agent-history-collapsed.png',fullPage:true});
  await page.setViewportSize({width:390,height:844});await page.screenshot({path:'.db-validation/agent-mobile.png',fullPage:true});
  assert.equal(await page.evaluate(()=>document.documentElement.scrollWidth>window.innerWidth),false,'Mobile horizontal overflow');
  const mobileComposer=await page.locator('.agent-composer').boundingBox();assert.ok(mobileComposer.y+mobileComposer.height<=845,'Mobile composer visible');
- await page.getByRole('button',{name:'Conversas',exact:true}).click();await page.getByLabel('Buscar conversa').waitFor();await page.keyboard.press('Escape');
+ await page.getByRole('button',{name:'Histórico do agente',exact:true}).click();await page.getByLabel('Buscar conversa').waitFor();await page.keyboard.press('Escape');
  assert.equal(await page.locator('.agent-conversations').count(),0);
  await page.evaluate(()=>{document.documentElement.dataset.theme='dark';window.scrollTo(0,0);});await page.screenshot({path:'.db-validation/agent-dark.png',fullPage:true});
  await page.setViewportSize({width:1440,height:1000});await page.getByRole('button',{name:'Configurações',exact:true}).click();await page.getByRole('button',{name:'IA',exact:true}).click();
  const runsBefore=tables.torre_agent_runs.length,tasksBefore=JSON.stringify(tables.torre_tasks);
- await page.getByRole('button',{name:'Testar agente gratuito'}).click();await page.getByText('Modelo gratuito validado: test/model:free. Nenhum registro foi criado.',{exact:true}).waitFor();
- testFails=true;await page.getByRole('button',{name:'Testar agente gratuito'}).click();await page.getByRole('alert').filter({hasText:'A política de dados da conta'}).waitFor();
+ await page.getByRole('button',{name:'Testar modelo padrão'}).click();await page.getByText('Modelo padrão validado: test/model:free. Nenhum registro foi criado.',{exact:true}).waitFor();
+ testFails=true;await page.getByRole('button',{name:'Testar modelo padrão'}).click();await page.getByRole('alert').filter({hasText:'A política de dados da conta'}).waitFor();
  assert.equal(tables.torre_agent_runs.length,runsBefore);assert.equal(JSON.stringify(tables.torre_tasks),tasksBefore);assert.equal(tables.torre_labels.length,0);assert.equal(calls.length,10);
  await page.screenshot({path:'.db-validation/agent-settings-test.png',fullPage:true});
  const visualId=crypto.randomUUID();tables.torre_agent_runs.push({id:crypto.randomUUID(),conversation_id:visualId,message:'Quais tarefas precisam de atenção?',mode:'analyze',requested_model:'google/gemini-2.5-flash',state:'answered',response:'## Estas são suas prioridades\n\nEncontrei 3 tarefas que merecem atenção agora.\n\n| Tarefa | Prioridade | Status |\n| --- | --- | --- |\n| Revisar proposta | Alta | A fazer |\n| Retornar ao cliente | Alta | Aguardando |\n| Concluir relatório | Média | Em andamento |\n\n### Por onde começar\n\nComece pela proposta e depois confira o retorno do cliente.',model:'google/gemini-2.5-flash',error:null,operations:[],created_at:new Date().toISOString()});
  await page.evaluate(({uid,visualId})=>{localStorage.setItem(`torre:${uid}:page`,JSON.stringify('Modo IA'));localStorage.setItem(`torre:${uid}:agent-conversation`,visualId);localStorage.setItem(`torre:${uid}:agent-model`,'google/gemini-2.5-flash');},{uid,visualId});
  await page.reload();await page.getByRole('heading',{name:'Estas são suas prioridades'}).waitFor();await page.locator('.agent-history').evaluate(e=>e.scrollTop=0);
  await page.screenshot({path:'.db-validation/agent-qa-collapsed.png'});
- await page.getByRole('button',{name:'Conversas',exact:true}).click();await page.getByLabel('Buscar conversa').waitFor();await page.screenshot({path:'.db-validation/agent-qa-open.png'});await page.keyboard.press('Escape');
+ await page.getByRole('button',{name:'Histórico do agente',exact:true}).click();await page.getByLabel('Buscar conversa').waitFor();await page.screenshot({path:'.db-validation/agent-qa-open.png'});await page.keyboard.press('Escape');
  assert.deepEqual(errors,[]);console.log('PASS: Markdown, analysis/CRUD/undo, free default, paid selector, persisted choice, original model and conversation on retry, separate conversations, search, collapsed menu/history, anchored composer, mobile and synthetic test without writes');
 }finally{await browser.close();}

@@ -3,7 +3,7 @@ import {pathToFileURL} from 'node:url';
 import {spawn} from 'node:child_process';
 const server=process.env.TORRE_TEST_URL?null:spawn(process.execPath,['node_modules/vite/bin/vite.js','--host','127.0.0.1','--port','5183','--strictPort'],{windowsHide:true,stdio:'ignore'});
 if(server)for(let i=0;i<30;i++){try{if((await fetch('http://127.0.0.1:5183/')).ok)break;}catch{}await new Promise(r=>setTimeout(r,200));}
-const {chromium}=await import(pathToFileURL('C:/Users/samue/.cache/codex-runtimes/codex-primary-runtime/dependencies/node/node_modules/playwright/index.mjs').href);
+const {chromium}=await import(process.env.PLAYWRIGHT_MODULE?pathToFileURL(process.env.PLAYWRIGHT_MODULE).href:'playwright');
 const browser=await chromium.launch({channel:'msedge',headless:true});
 const uid='10000000-0000-4000-8000-000000000001',person='10000000-0000-4000-8000-000000000002';
 const user={id:uid,email:'test@example.com',aud:'authenticated',role:'authenticated',app_metadata:{},user_metadata:{},created_at:'2026-10-08T00:00:00Z'};
@@ -25,11 +25,11 @@ await context.addInitScript(({user,uid})=>{const token=btoa(JSON.stringify({alg:
 const page=await context.newPage();page.on('pageerror',e=>errors.push(e.message));
 try{
  await page.goto(process.env.TORRE_TEST_URL??'http://127.0.0.1:5183/');await page.getByRole('button',{name:'Caixa de entrada',exact:true}).click();await page.keyboard.press('Control+k');
- const model=page.getByLabel('Modelo desta captura');await model.waitFor();assert.equal(await model.inputValue(),'free');await model.selectOption('luna');assert.equal(calls.length,0);
+ await page.getByRole('button',{name:'Opções de processamento'}).click();const model=page.getByLabel('Modelo desta captura');await model.waitFor();assert.equal(await model.inputValue(),'free');await model.selectOption('luna');assert.equal(calls.length,0);
  await page.locator('.quick-capture-dialog select').nth(1).selectOption('free');await page.getByLabel('O que você quer guardar?').fill('Enviei proposta e aguardo Ana Costa, acompanhar sexta; entregar até 12/10/2026');
  await page.screenshot({path:'.db-validation/capture-model-desktop.png',fullPage:true});await page.getByRole('button',{name:'Salvar na caixa de entrada',exact:true}).click();await page.getByRole('button',{name:'Ver processadas',exact:true}).click();await page.getByRole('button',{name:'Aguardar Ana',exact:true}).waitFor();assert.equal(tables.torre_captures[0].ai_profile,'luna');assert.equal(preferred,'luna');assert(calls.some(c=>c.action==='triage'));
  await page.getByRole('button',{name:'Aguardar Ana',exact:true}).click();await page.getByLabel('Nome ou equipe').waitFor();assert.equal(await page.getByLabel('Cadastro',{exact:true}).inputValue(),person);await page.getByLabel('Cadastro',{exact:true}).selectOption('');await page.getByLabel('Nome ou equipe').fill('Equipe externa');await page.getByRole('button',{name:'Salvar alterações',exact:true}).click();await page.getByText('Alterações salvas.',{exact:true}).waitFor();assert.equal(tables.torre_task_people[0].person_id,null);await page.getByRole('button',{name:'Fechar detalhes',exact:true}).click();
- await page.keyboard.press('Control+k');assert.equal(await model.inputValue(),'luna');await page.setViewportSize({width:390,height:844});await page.screenshot({path:'.db-validation/capture-model-mobile.png',fullPage:true});assert(await page.evaluate(()=>document.documentElement.scrollWidth<=innerWidth));await page.getByRole('button',{name:'Fechar captura',exact:true}).click();
+ await page.keyboard.press('Control+k');await page.getByRole('button',{name:'Opções de processamento'}).click();assert.equal(await model.inputValue(),'luna');await page.setViewportSize({width:390,height:844});await page.screenshot({path:'.db-validation/capture-model-mobile.png',fullPage:true});assert(await page.evaluate(()=>document.documentElement.scrollWidth<=innerWidth));await page.getByRole('button',{name:'Fechar captura',exact:true}).click();
  assert.deepEqual(errors,[]);console.log('PASS: per-capture models, no call on selection, persistence, dates/people, free name editing and mobile layout');
 }finally{await browser.close();server?.kill();}
 

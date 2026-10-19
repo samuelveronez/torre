@@ -7,3 +7,10 @@
 - [x] 4. `AGENTS.md` + `CLAUDE.md` (inclui regras de organização e de trabalho paralelo com o Codex)
 - [x] 5. `ci.yml` (verde no GitHub), `npm run publish:docs`, `docs/assets` podado
 - [ ] Opcional: Prettier em massa; quebrar `src/main.tsx` aos poucos
+
+# Migração de UI shadcn (plano: `docs-internas/revisao_ui/PLANO_UI_UNIFICADO.md`)
+Branch `ui/shadcn-layout`.
+- [x] Etapa 0 — rede de segurança (2026-10-18)
+  - `scripts/ui-smoke.mjs`: abre as 7 páginas em 1440/390 px, claro/escuro, e falha se houver erro de console ou rolagem horizontal. Precisa de `PLAYWRIGHT_MODULE` (playwright-core fora do repo) e `TORRE_TEST_URL` (dev server).
+  - Os 6 Playwright manuais (`supabase/tests/*_ui.mjs`) passam de novo. Corrigidos mocks e seletores desatualizados: tabelas novas nos mocks, `ai-default`, histórico do Modo IA ("Histórico do agente"), "Testar modelo padrão", "Opções de processamento" (Captura rápida), menu de ações da tarefa ("Reservar horário"), RPC `torre_save_task`, aba "Agenda" no mobile. Rodar com `PLAYWRIGHT_MODULE` e `TORRE_TEST_URL`.
+  - Capturas "antes" (fora do repo): `%TEMP%\torre-scratch\antes\`.
