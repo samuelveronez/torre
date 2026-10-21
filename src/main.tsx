@@ -76,6 +76,7 @@ function App({userId,email,account}:{userId:string;email:string;account:React.Re
  const clearFilters=()=>{setQuery('');setArea('Tudo');setLabelFilter([]);};const matchingTasks=filteredTasks.filter(t=>matchesTask(t,area,query));const detailTask=tasks.find(t=>t.id===detailId);
  const [showDeclined,setShowDeclined]=useState(false),[planDay,setPlanDay]=useState(today),[planTime,setPlanTime]=useState('19:00');
  const [modal,setModal]=useState<'new'|'plan'|null>(null);const [selected,setSelected]=useState('');const [message,setMessage]=useState('');
+ useEffect(()=>{void features.load().catch(()=>{});},[page,detailId,modal]);
  const [newTaskArea,setNewTaskArea]=useState<Area>('Pessoal'),[newTaskLabelIds,setNewTaskLabelIds]=useState<string[]>([]);
  function openNewTask(){setNewTaskArea(page==='Tarefas'&&area==='Profissional'?'Profissional':'Pessoal');setNewTaskLabelIds(page==='Tarefas'?labelFilter.filter(id=>id!=='none'&&features.labels.some(label=>label.id===id&&!label.archived)):[]);setMessage('');setModal('new');}
  const [undoEntries,setUndoEntries]=useState<{before?:Task;after:Task;keys:(keyof Task)[]}[]|null>(null),[undoBusy,setUndoBusy]=useState(false);const latestTasks=useRef(tasks);latestTasks.current=tasks;

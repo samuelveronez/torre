@@ -2,6 +2,7 @@ import {useEffect,useRef,useState} from 'react';
 import {MessageSquare,Plus,Sparkles,ExternalLink,Pencil,Trash2} from 'lucide-react';
 import {supabase} from './supabase';
 import type {Task} from './task';
+import {TaskPersonField} from './TaskPeopleEditor';
 import {conversationToday,emptyAgreement,weekAfter,type Agreement,type ConversationContent} from '../supabase/functions/_shared/conversationModel';
 type Person={id:string;name:string};
 type Conversation=ConversationContent&{id:string;person_id:string;conversation_date:string;version:number;state:'draft'|'saved';created_at?:string;updated_at?:string};
@@ -166,7 +167,7 @@ export function Conversations({userId,tasks,aiEnabled,onOpenTask,onRefresh}:{use
           <label className="f"><span className="lab">Quem age?</span><select className="inp" value={a.owner} onChange={e=>{const owner=e.target.value as Agreement['owner'];updateAgreement(a.id,{owner,createTask:owner!=='unknown',followUp:owner==='other'?(a.followUp||weekAfter(current.conversation_date)):'',followUpSuggested:owner==='other'&&!a.followUp});}}><option value="unknown">Responsável a confirmar</option><option value="me">Minha ação</option><option value="other">Ação do outro / Aguardando</option></select></label>
           <label className="f"><span className="lab">Prazo (opcional)</span><input className="inp" type="date" value={a.due} onChange={e=>updateAgreement(a.id,{due:e.target.value})}/></label>
           {a.owner==='other'
-           ? <><label className="f"><span className="lab">De quem depende?</span><input className="inp" maxLength={180} value={a.person} onChange={e=>updateAgreement(a.id,{person:e.target.value})}/></label>
+           ? <><TaskPersonField label="De quem depende?" required allowNew={false} people={people} value={a.person} onChange={value=>updateAgreement(a.id,{person:value})}/>
               <label className="f"><span className="lab">Quando acompanhar?</span><input className="inp" type="date" aria-label="Quando acompanhar?" value={a.followUp} onChange={e=>updateAgreement(a.id,{followUp:e.target.value,followUpSuggested:false})}/>{a.followUpSuggested&&<small className="desc">Data sugerida: uma semana após a conversa.</small>}{a.followUp&&a.followUp<conversationToday()&&<small className="conversation-warning" style={{color:'var(--tc-warn)',fontSize:12}}>Acompanhamento vencido. Revise a data.</small>}</label></>
            : <label className="f"><span className="lab">Duração (minutos)</span><input className="inp" type="number" min={5} max={480} step={5} value={a.minutes} onChange={e=>updateAgreement(a.id,{minutes:Number(e.target.value)})}/></label>}
           <label className="conversation-checkbox" style={{gridColumn:'1 / -1',display:'flex',flexDirection:'row',alignItems:'center',gap:8,fontSize:13}}><input className="cb" type="checkbox" checked={a.createTask} onChange={e=>updateAgreement(a.id,{createTask:e.target.checked})}/> Criar na Torre</label>
