@@ -92,6 +92,18 @@ export function peopleBlocks(tasks:PTask[],day:number):PersonBlock[]{
  }).sort((a,b)=>b.sum-a.sum);
 }
 
+export function chargePrompt(person:PersonBlock,day:number){
+ const lines=person.tasks.map(task=>{
+  const age=Math.max(0,day-(task.date??task.created));
+  return `- ${task.title} (parada há ${age} ${age===1?'dia':'dias'})`;
+ });
+ return [
+  `Redija uma mensagem curta e objetiva para ${person.name} cobrando o retorno destas ${person.tasks.length===1?'tarefa':'tarefas'}:`,
+  ...lines,
+  'Sugira uma nova data de retorno. Não altere nenhuma tarefa; quero só o texto para eu enviar.',
+ ].join('\n');
+}
+
 export type ThemeGroup={name:string;color:string;tasks:PTask[];overdue:number};
 export function themeGroups(tasks:PTask[],labels:Label[],day:number):ThemeGroup[]{
  const colors=new Map(labels.map(l=>[l.name,l.color]));

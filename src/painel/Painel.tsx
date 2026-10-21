@@ -10,7 +10,7 @@ import {Scoreboard} from './Scoreboard';
 import {Scrubber} from './Scrubber';
 import {SidePanel} from './SidePanel';
 import {ThemesView} from './ThemesView';
-import {dayLabel,focusList,NO_THEME,NO_THEME_COLOR,overdueTrend,peopleBlocks,scrubberDays,snapshot,themeGroups,timeline,toPainelTasks,todayNumber,WINDOW_DAYS} from './painelModel';
+import {chargePrompt,dayLabel,focusList,NO_THEME,NO_THEME_COLOR,overdueTrend,peopleBlocks,scrubberDays,snapshot,themeGroups,timeline,toPainelTasks,todayNumber,WINDOW_DAYS} from './painelModel';
 import './painel.css';
 
 type View='prazos'|'bloqueios'|'temas';
@@ -32,9 +32,10 @@ type Props={
  onOpen:(id:string)=>void;
  onComplete:(id:string)=>void;
  onPlan:(id:string)=>void;
+ onCharge:(prompt:string)=>void;
 };
 
-export function Painel({userId,tasks,labels,labelFilter,theme,syncing,onTheme,onLabel,onOpen,onComplete,onPlan}:Props){
+export function Painel({userId,tasks,labels,labelFilter,theme,syncing,onTheme,onLabel,onOpen,onComplete,onPlan,onCharge}:Props){
  const root=useRef<HTMLDivElement>(null);
  const today=useMemo(todayNumber,[]);
  const [view,setView]=useState<View>('prazos');
@@ -133,7 +134,7 @@ export function Painel({userId,tasks,labels,labelFilter,theme,syncing,onTheme,on
    <section className="pn-panel pn-center" aria-label={current.title}>
     <div className="pn-hd"><h2>{current.title}</h2><span className="pn-hint pn-mono">{current.hint}</span></div>
     {view==='prazos'&&<RadarView tasks={data.all} undated={data.undated.length} day={day} selected={selectedId} onSelect={select}/>}
-    {view==='bloqueios'&&<BlocksView people={people} day={day} selected={selectedId} onSelect={select}/>}
+    {view==='bloqueios'&&<BlocksView people={people} day={day} selected={selectedId} onSelect={select} onCharge={person=>onCharge(chargePrompt(person,day))}/>}
     {view==='temas'&&<ThemesView groups={groups} day={day} selected={selectedId} onSelect={select}/>}
    </section>
    <SidePanel people={people} events={events} colors={colors} selected={selected} day={day} onSelect={select} onClose={()=>setSelectedId('')} onOpen={onOpen} onComplete={onComplete} onPlan={onPlan}/>

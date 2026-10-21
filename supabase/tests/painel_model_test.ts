@@ -1,4 +1,4 @@
-import {dayNumber,toPainelTasks,snapshot,focusList,peopleBlocks,themeGroups,scrubberDays,overdueTrend,timeline} from '../../src/painel/painelModel.ts';
+import {chargePrompt,dayNumber,toPainelTasks,snapshot,focusList,peopleBlocks,themeGroups,scrubberDays,overdueTrend,timeline} from '../../src/painel/painelModel.ts';
 import type {Task} from '../../src/task.ts';
 import type {Label} from '../../src/features.ts';
 const task=(id:string,fields:Partial<Task>={}):Task=>({id,title:id,area:'Profissional',minutes:30,due:'',source:'Torre',done:false,createdAt:'2026-10-01T12:00:00',...fields});
@@ -100,4 +100,19 @@ Deno.test('Painel timeline lists new and overdue/return events up to the selecte
  ],[]);
  const events=timeline(rows,today,9);
  equal(events.map(e=>[e.task.id,e.kind]),[['new','Nova'],['ret','Retorno Iran:'],['over','Venceu:'],['later','Nova'],['over','Nova'],['ret','Nova']]);
+});
+
+Deno.test('Painel charge prompt lists the person tasks with days waiting and asks only for text',()=>{
+ const rows=toPainelTasks([
+  task('Sindicância',{situation:'waiting',waitingFor:'Iran',followUp:'2026-10-07'}),
+  task('Norma',{situation:'waiting',waitingFor:'Iran',followUp:'2026-10-19'}),
+ ],[]);
+ const [person]=peopleBlocks(rows,today);
+ const prompt=chargePrompt(person,today);
+ equal(prompt.split('\n'),[
+  'Redija uma mensagem curta e objetiva para Iran cobrando o retorno destas tarefas:',
+  '- Sindicância (parada há 13 dias)',
+  '- Norma (parada há 1 dia)',
+  'Sugira uma nova data de retorno. Não altere nenhuma tarefa; quero só o texto para eu enviar.',
+ ]);
 });

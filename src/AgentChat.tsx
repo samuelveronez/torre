@@ -9,7 +9,7 @@ import {AgentComposer} from './agent/AgentComposer';
 import {AgentConversationMenu} from './agent/AgentConversationMenu';
 import {conversationKey,type Conversation,type ModelChoice,type Run} from './agent/types';
 
-export function AgentChat({userId,features,onRefresh,onTask,onLabel,onSettings,onSchedule}:{userId:string;features:Features;onRefresh:()=>void;onTask:(id:string)=>void;onLabel:(id:string)=>void;onSettings:()=>void;onSchedule?:(id:string)=>void}){
+export function AgentChat({userId,features,onRefresh,onTask,onLabel,onSettings,onSchedule,draft,onDraftUsed}:{draft?:{key:number;text:string};onDraftUsed?:()=>void;userId:string;features:Features;onRefresh:()=>void;onTask:(id:string)=>void;onLabel:(id:string)=>void;onSettings:()=>void;onSchedule?:(id:string)=>void}){
  const [runs,setRuns]=useState<Run[]>([]),[text,setText]=useState(''),[busy,setBusy]=useState(''),[error,setError]=useState(''),[loading,setLoading]=useState(true);
  const [conversations,setConversations]=useState<Conversation[]>([]),[selected,setSelected]=useState(''),[historyOpen,setHistoryOpen]=useState(false),[search,setSearch]=useState(''),[moreConversations,setMoreConversations]=useState(false),[moreRuns,setMoreRuns]=useState(false),[olderBusy,setOlderBusy]=useState(false),[listBusy,setListBusy]=useState(false),[dismissed,setDismissed]=useState<string[]>([]),[showArchived,setShowArchived]=useState(false),[renaming,setRenaming]=useState(false),[renameText,setRenameText]=useState('');
  const [phone,setPhone]=useState(()=>window.matchMedia('(max-width: 767px)').matches);
@@ -27,6 +27,8 @@ export function AgentChat({userId,features,onRefresh,onTask,onLabel,onSettings,o
 useEffect(()=>{if(!selected)return;void list(0,search,showArchived).catch(()=>setError('Não foi possível carregar as conversas.'));},[showArchived]);
  useEffect(()=>{if(!selected)return;const timer=setTimeout(()=>{void list(0,search).catch(()=>setError('Não foi possível buscar as conversas.'));},250);return()=>clearTimeout(timer);},[search]);
  useEffect(()=>{if(!olderBusy)bottom.current?.scrollIntoView({block:'nearest',behavior:'smooth'});},[runs.length,busy,loading]);
+ const usedDraft=useRef(0);
+ useEffect(()=>{if(!draft||loading||!selected||usedDraft.current===draft.key)return;usedDraft.current=draft.key;if(!locked.current)newConversation();setText(draft.text);onDraftUsed?.();},[draft?.key,loading,selected]);
  useEffect(()=>{if(historyOpen)panel.current?.querySelector<HTMLInputElement>('input')?.focus();},[historyOpen]);
  function closeHistory(){setHistoryOpen(false);historyButton.current?.focus();}
  async function action(kind:'agent-chat'|'agent-apply'|'agent-undo',run:Run){
