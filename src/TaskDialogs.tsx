@@ -6,7 +6,8 @@ import {Seg} from './ui-kit/Seg';
 import {priorities,type Priority} from './priority';
 import {dateKey} from './taskView';
 import type {Label} from './features';
-import type {Task} from './task';
+import {composePeople,type Task} from './task';
+import {TaskPersonField} from './TaskPeopleEditor';
 
 type Area=Task['area'];
 export const durationOptions=[5,10,15,20,30,45,60,90,120,180,240];
@@ -28,9 +29,10 @@ function ModalShell({title,description,onClose,children,footer,formId,onSubmit,h
  </Dialog>;
 }
 
-type NewTaskProps={labels:Label[];defaultArea:Area;defaultLabelIds:string[];message:string;onClose:()=>void;onCreate:(task:Task)=>Promise<boolean>};
+type NewTaskProps={labels:Label[];people:{id:string;name:string}[];ensurePerson:(name:string)=>Promise<{id:string;name:string}>;defaultArea:Area;defaultLabelIds:string[];message:string;onClose:()=>void;onCreate:(task:Task)=>Promise<boolean>};
 
-export function NewTaskDialog({labels,defaultArea,defaultLabelIds,message,onClose,onCreate}:NewTaskProps){
+export function NewTaskDialog({labels,people,ensurePerson,defaultArea,defaultLabelIds,message,onClose,onCreate}:NewTaskProps){
+ const [personName,setPersonName]=useState('');
  const [area,setArea]=useState<Area>(defaultArea);
  const [labelIds,setLabelIds]=useState<string[]>(defaultLabelIds);
  const [situation,setSituation]=useState<'todo'|'waiting'>('todo');
@@ -44,7 +46,10 @@ export function NewTaskDialog({labels,defaultArea,defaultLabelIds,message,onClos
   const waiting=situation==='waiting';
   setSaving(true);
   try{
+   const name=personName.trim();
+   const person=name?await ensurePerson(name):null;
    await onCreate({
+    people:composePeople(person&&{name:person.name,personId:person.id},waiting,[]),
     id:crypto.randomUUID(),
     title:String(data.get('title')).trim(),
     area,
@@ -55,7 +60,7 @@ export function NewTaskDialog({labels,defaultArea,defaultLabelIds,message,onClos
     description:String(data.get('description')||''),
     link:String(data.get('link')||'').trim(),
     situation,
-    waitingFor:waiting?String(data.get('waitingFor')).trim():'',
+    waitingFor:waiting&&person?person.name:'',
     followUp:waiting?String(data.get('followUp')):'',
     focusDate:data.get('focus')?dateKey(new Date()):'',
     source:'Torre',
@@ -93,8 +98,8 @@ export function NewTaskDialog({labels,defaultArea,defaultLabelIds,message,onClos
      <div className="f"><label className="lab" htmlFor="nt-sit">Situação</label>
       <select id="nt-sit" className="inp" value={situation} onChange={e=>setSituation(e.target.value as 'todo'|'waiting')}><option value="todo">A fazer</option><option value="waiting">Aguardando retorno</option></select>
      </div>
-     <div className="f"><label className="lab" htmlFor="nt-wait">De quem depende</label><input id="nt-wait" className="inp" name="waitingFor" disabled={situation!=='waiting'} required={situation==='waiting'} placeholder="Nome ou equipe"/></div>
     </div>
+    <TaskPersonField value={personName} onChange={setPersonName} people={people} required={situation==='waiting'} label={situation==='waiting'?'De quem depende':'Pessoa envolvida'}/>
     {situation==='waiting'&&<div className="f"><label className="lab" htmlFor="nt-follow">Acompanhar em</label><input id="nt-follow" className="inp" name="followUp" type="date" required/></div>}
     <label style={{display:'flex',alignItems:'center',gap:8}}><input className="cb" type="checkbox" name="focus"/>Marcar como foco do dia</label>
    </div>

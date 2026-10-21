@@ -25,7 +25,7 @@ export function BulkActions({tasks,features,onClear,onApply,onClassify}:{tasks:T
    {action==='situation'&&<>
     {field('situation','Situação',id=><select id={id} className="inp" value={situation} onChange={e=>setSituation(e.target.value as 'todo'|'waiting')}><option value="todo">A fazer</option><option value="waiting">Aguardando retorno</option></select>)}
     {situation==='waiting'&&<>
-     {field('waitingFor','De quem depende?',id=><input id={id} className="inp" required maxLength={180} value={waitingFor} onChange={e=>setWaitingFor(e.target.value)}/>)}
+     {field('waitingFor','De quem depende?',id=><><input id={id} className="inp" required maxLength={180} list={`${id}-list`} autoComplete="off" value={waitingFor} onChange={e=>setWaitingFor(e.target.value)}/><datalist id={`${id}-list`}>{features.people.map(p=><option key={p.id} value={p.name}/>)}</datalist></>)}
      {field('followUp','Acompanhar em',id=><input id={id} className="inp" required type="date" value={followUp} onChange={e=>setFollowUp(e.target.value)}/>)}
     </>}
    </>}

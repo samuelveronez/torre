@@ -2,6 +2,17 @@ import assert from 'node:assert/strict';
 const tests=[];
 globalThis.Deno={test:(name,run)=>tests.push({name,run})};
 for(const file of ['task_view_test','scheduling_test','calendar_test','task_drag_test','label_area_test','painel_model_test','functional_test'])await import(`./${file}.ts`);
+const {primaryPerson,composePeople}=await import('../../src/task.ts');
+tests.push({name:'Pessoa única da tarefa: prioriza quem se aguarda, converte nome antigo e preserva demais vínculos',run(){
+ const ana={name:'Ana',personId:'p1',role:'involved'},rui={name:'Rui',personId:null,role:'waiting_for'};
+ assert.deepEqual(primaryPerson({people:[ana,rui]}),{primary:rui,others:[ana]});
+ assert.deepEqual(primaryPerson({people:[ana]}),{primary:ana,others:[]});
+ assert.deepEqual(primaryPerson({waitingFor:' Cardia '}),{primary:{name:'Cardia',personId:null,role:'waiting_for'},others:[]});
+ assert.deepEqual(primaryPerson({}),{primary:null,others:[]});
+ assert.deepEqual(composePeople({name:'Cardia',personId:'p2'},true,[ana]),[{name:'Cardia',personId:'p2',role:'waiting_for'},ana]);
+ assert.deepEqual(composePeople({name:'ana',personId:'p1'},false,[ana]),[{name:'ana',personId:'p1',role:'involved'}]);
+ assert.deepEqual(composePeople(null,false,[]),[]);
+}});
 const {hiddenReservationCount}=await import('../../src/reservationVisibility.ts');
 tests.push({name:'Aviso considera período, filtros, tarefas concluídas e reservas atravessando meia-noite',run(){
  const task=(id,at,extra={})=>({id,at,minutes:30,done:false,...extra});

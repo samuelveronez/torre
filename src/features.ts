@@ -23,6 +23,22 @@ export function useFeatures(userId:string,start:Date,onTasks:()=>void){
  async function load(){const tables=['torre_labels','torre_captures','torre_attachments','torre_calendars','torre_calendar_events','torre_google_lists','torre_google_status','torre_ai_settings','torre_people','torre_task_people'];const values=await Promise.all(tables.map(table=>supabase.from(table).select('*').eq('user_id',userId)));for(const value of values)if(value.error)throw value.error;
  setLabels(values[0].data??[]);setCaptures(values[1].data??[]);setAttachments(values[2].data??[]);setCalendars(values[3].data??[]);setEvents(values[4].data??[]);setLists(values[5].data??[]);const g=values[6].data?.[0]??null;setGoogle(g);googleRef.current=g;setAi(values[7].data?.[0]??null);setPeople(values[8].data??[]);setTaskPeople(values[9].data??[]);}
  async function run(action:()=>Promise<unknown>){if(lock.current)return false;lock.current=true;setWorking(true);setError('');try{await action();await load();tasksRefresh.current();return true;}catch(e){setError((e as Error).message??'Não foi possível salvar.');await load().catch(()=>{});return false;}finally{lock.current=false;setWorking(false);if(syncQueued.current){syncQueued.current=false;void latestSync.current();}}}
+ async function ensurePerson(name:string){
+  const clean=name.trim();
+  const key=clean.toLocaleLowerCase('pt-BR');
+  const existing=people.find(p=>p.name.trim().toLocaleLowerCase('pt-BR')===key);
+  if(existing)return existing;
+  const inserted=await supabase.from('torre_people').insert({user_id:userId,name:clean}).select('id,name').single();
+  if(inserted.error){
+   const again=await supabase.from('torre_people').select('id,name').eq('user_id',userId);
+   const match=again.data?.find(p=>p.name.trim().toLocaleLowerCase('pt-BR')===key);
+   if(!match)throw inserted.error;
+   setPeople(again.data??[]);
+   return match;
+  }
+  setPeople(prev=>[...prev,inserted.data]);
+  return inserted.data;
+ }
  async function archiveLabel(id:string){return run(async()=>{await ensure(supabase.from('torre_labels').update({archived:true}).eq('user_id',userId).eq('id',id).select('id').single());});}
  async function saveLabel(value:Pick<Label,'name'|'description'|'color'|'area'>,id?:string){
  return run(async()=>{const row={name:value.name.trim(),description:value.description,color:value.color,area:value.area??'both'};if(!row.name||row.name.length>60)throw new Error('Digite um nome de até 60 caracteres.');
@@ -51,7 +67,7 @@ export function useFeatures(userId:string,start:Date,onTasks:()=>void){
  async function triageCapture(id:string,profile?:CaptureProfile){if(lock.current)return;setTriaging(id);try{await run(()=>invoke('triage',{captureId:id,...(profile?{profile}:{})}));}finally{setTriaging(null);}}
  useEffect(()=>{const refresh=()=>void load().catch(()=>{});window.addEventListener('focus',refresh);return()=>window.removeEventListener('focus',refresh);},[userId]);
  const fresh=!!google?.calendar_synced_at&&!google.error&&Date.now()-Date.parse(google.calendar_synced_at)<300000&&!!google.range_start&&!!google.range_end&&Date.parse(google.range_start)<=Date.parse(from)&&Date.parse(google.range_end)>=Date.parse(to);
- return {people,taskPeople,archiveLabel,saveLabel,labels,captures,attachments,calendars,events,lists,google,ai,error,working,triaging,run,load,sync,fresh,capture,upload,
+ return {people,taskPeople,ensurePerson,archiveLabel,saveLabel,labels,captures,attachments,calendars,events,lists,google,ai,error,working,triaging,run,load,sync,fresh,capture,upload,
  triage:triageCapture,
  convert:(id:string,title:string,labelIds:string[])=>run(()=>ensure(supabase.rpc('torre_convert_capture',{p_capture:id,p_title:title,p_labels:labelIds}))),
  undo:(id:string)=>run(()=>ensure(supabase.rpc('torre_undo_capture',{p_capture:id}))),

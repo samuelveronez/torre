@@ -2,7 +2,7 @@ import {useEffect,useRef,useState} from 'react';
 import {X,ExternalLink,MoreHorizontal} from 'lucide-react';
 import {Dialog,DialogContent,DialogTitle,DialogDescription} from './components/ui/dialog';
 import {Sheet,SheetContent,SheetTitle,SheetDescription} from './components/ui/sheet';
-import {TaskPeopleEditor} from './TaskPeopleEditor';
+import {TaskPersonField} from './TaskPeopleEditor';
 import {AttachmentList} from './FeatureUI';
 import {LabelChips} from './ui-kit/LabelChips';
 import {Seg} from './ui-kit/Seg';
@@ -10,14 +10,16 @@ import {Sw} from './ui-kit/Sw';
 import {priorities,type Priority} from './priority';
 import {durationOptions} from './TaskDialogs';
 import {dateKey} from './taskView';
-import {type Task,safeLink} from './task';
+import {type Task,safeLink,primaryPerson,composePeople} from './task';
 import type {Features} from './features';
 
 type Props={features:Features;task:Task;onClose:()=>void;onSave:(task:Task)=>Promise<boolean>;onComplete:(id:string)=>void;onReopen:(id:string)=>void;onPlan:(id:string)=>void;onUnplan:(id:string)=>void};
 type Area=Task['area'];
 
 export function TaskDetails({features,task,onClose,onSave,onComplete,onReopen,onPlan,onUnplan}:Props){
- const [taskPeople,setTaskPeople]=useState(task.people??[]);
+ const initial=primaryPerson(task);
+ const others=initial.others;
+ const [personName,setPersonName]=useState(initial.primary?.name??'');
  const [labelIds,setLabelIds]=useState(task.labelIds??[]);
  const [area,setArea]=useState<Area>(task.area);
  const [situation,setSituation]=useState(task.situation||'todo');
@@ -52,9 +54,11 @@ export function TaskDetails({features,task,onClose,onSave,onComplete,onReopen,on
   setSaving(true);
   setError('');
   try{
+   const name=personName.trim();
+   const person=name?await features.ensurePerson(name):null;
    const ok=await onSave({
     ...task,
-    people:taskPeople,
+    people:composePeople(person&&{name:person.name,personId:person.id},waiting,others),
     labelIds,
     title,
     priority:String(data.get('priority')||'none') as Priority,
@@ -64,7 +68,7 @@ export function TaskDetails({features,task,onClose,onSave,onComplete,onReopen,on
     description:String(data.get('description')||''),
     link:link.trim(),
     situation,
-    waitingFor:waiting?String(data.get('waitingFor')).trim():'',
+    waitingFor:waiting&&person?person.name:'',
     followUp:waiting?String(data.get('followUp')):'',
     at:task.at,
     focusDate,
@@ -110,12 +114,9 @@ export function TaskDetails({features,task,onClose,onSave,onComplete,onReopen,on
      <Sw checked={!!focusDate} label="Foco do dia" onChange={on=>{setFocusDate(on?(focusDate||dateKey(new Date())):'');touch();}}/>
     </div>
     <hr className="sep"/>
-    <div className="tc-grid2">
-     <div className="f"><label className="lab" htmlFor="td-wait">De quem depende</label><input id="td-wait" className="inp" name="waitingFor" disabled={!waiting} required={waiting} defaultValue={task.waitingFor||''} placeholder="Nome ou equipe"/></div>
-     <div className="f"><label className="lab" htmlFor="td-follow">Acompanhar em</label><input id="td-follow" className="inp" name="followUp" type="date" disabled={!waiting} required={waiting} defaultValue={task.followUp||''}/></div>
-    </div>
+    <TaskPersonField value={personName} onChange={value=>{setPersonName(value);touch();}} people={features.people} required={waiting} label={waiting?'De quem depende':'Pessoa envolvida'} extras={others.length}/>
+    <div className="f"><label className="lab" htmlFor="td-follow">Acompanhar em</label><input id="td-follow" className="inp" name="followUp" type="date" disabled={!waiting} required={waiting} defaultValue={task.followUp||''}/></div>
     {waiting&&<p className="desc">Você poderá manter o horário como lembrete sem ocupar disponibilidade, ou retirar a reserva.</p>}
-    <TaskPeopleEditor value={taskPeople} onChange={value=>{setTaskPeople(value);touch();}} people={features.people}/>
     {task.captureId&&<AttachmentList features={features} items={features.attachments.filter(a=>a.capture_id===task.captureId)}/>}
     {task.googleTaskId&&<p className="desc">Importada do Google. Alterações e conclusão ficam somente na Torre.</p>}
    </form>

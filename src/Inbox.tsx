@@ -125,7 +125,7 @@ function CreatedTask({task:t,features:f,onOpen}:{task:Task;features:Features;onO
     {t.priority==='low'&&<span className="badge">Baixa</span>}
     {labels.map(l=><span key={l.id} style={{display:'inline-flex',alignItems:'center',gap:4}}><span className="dot" style={{background:l.color}}/>{l.name}</span>)}
     {waiting&&<span>Aguardando · {t.waitingFor} · acompanhar {t.followUp?new Date(t.followUp+'T12:00').toLocaleDateString('pt-BR'):'nos detalhes'}</span>}
-    {people.map((p,i)=><span key={i}>Pessoa · {p.person_id?f.people.find(x=>x.id===p.person_id)?.name??p.name:p.name} · {p.person_id?'cadastrada':'nome livre'}</span>)}
+    {people.map((p,i)=><span key={i}>Pessoa · {p.person_id?f.people.find(x=>x.id===p.person_id)?.name??p.name:p.name}</span>)}
    </div>
   </div>
   <InlinePriority task={t}/>
