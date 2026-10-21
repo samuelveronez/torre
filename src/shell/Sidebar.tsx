@@ -16,6 +16,7 @@ type Props={
  labelFilter:string[];
  labelsBusy:boolean;
  labelError:string;
+ phone?:boolean;
  onPage:(page:string)=>void;
  onLabel:(id:string)=>void;
  onDropLabel:(taskIds:string[],labelId:string)=>void;
@@ -25,7 +26,7 @@ type Props={
 
 const iconSize=16;
 
-export function Sidebar({userId,page,area,counts,labels,labelFilter,labelsBusy,labelError,onPage,onLabel,onDropLabel,onSaveLabel,onArchiveLabel}:Props){
+export function Sidebar({userId,page,area,counts,labels,labelFilter,labelsBusy,labelError,phone,onPage,onLabel,onDropLabel,onSaveLabel,onArchiveLabel}:Props){
  const [labelOrder,setLabelOrder]=usePreference<string[]>(userId,'sidebar-label-order',[]);
  const [dropLabel,setDropLabel]=useState('');
  const [draggingLabel,setDraggingLabel]=useState('');
@@ -72,7 +73,7 @@ export function Sidebar({userId,page,area,counts,labels,labelFilter,labelsBusy,l
    </div>
   </div>
   <nav aria-label="Principal" className="tc-navlist">
-   {navItems.filter(i=>i.group==='main').map(item=>navButton(item,countFor(item.key)))}
+   {navItems.filter(i=>i.group==='main'&&!(phone&&i.key==='Painel')).map(item=>navButton(item,countFor(item.key)))}
   </nav>
   <div>
    <div className="glab tc-c-hide">Assistente</div>

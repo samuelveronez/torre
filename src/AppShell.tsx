@@ -56,7 +56,7 @@ export function AppShell(props:Props){
  useEffect(()=>{setMenuOpen(false);},[page,narrow]);
 
  const choose=(next:string)=>{onPage(next);setMenuOpen(false);};
- const sidebar=<Sidebar userId={userId} page={page} area={area} counts={counts} labels={labels} labelFilter={labelFilter} labelsBusy={labelsBusy} labelError={labelError}
+ const sidebar=<Sidebar userId={userId} page={page} area={area} counts={counts} labels={labels} labelFilter={labelFilter} labelsBusy={labelsBusy} labelError={labelError} phone={phone}
   onPage={choose} onLabel={onLabel} onDropLabel={onDropLabel} onSaveLabel={onSaveLabel} onArchiveLabel={onArchiveLabel}/>;
 
  return <div className={'app-shell tc'+(agentPage?' agent-focus':'')+(compact?' menu-compact':'')} onKeyDown={e=>{if(e.key==='Escape')setMenuOpen(false);}}>

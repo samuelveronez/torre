@@ -1,7 +1,7 @@
 import assert from 'node:assert/strict';
 const tests=[];
 globalThis.Deno={test:(name,run)=>tests.push({name,run})};
-for(const file of ['task_view_test','scheduling_test','calendar_test','task_drag_test','label_area_test','functional_test'])await import(`./${file}.ts`);
+for(const file of ['task_view_test','scheduling_test','calendar_test','task_drag_test','label_area_test','painel_model_test','functional_test'])await import(`./${file}.ts`);
 const {hiddenReservationCount}=await import('../../src/reservationVisibility.ts');
 tests.push({name:'Aviso considera período, filtros, tarefas concluídas e reservas atravessando meia-noite',run(){
  const task=(id,at,extra={})=>({id,at,minutes:30,done:false,...extra});
