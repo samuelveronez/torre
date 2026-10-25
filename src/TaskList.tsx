@@ -87,7 +87,7 @@ export function TaskList(props:Props){
 
  const subtitle=`${open.length} abertas · ${late.length} atrasadas · ${waiting.length} aguardando retorno`;
 
- return <section className="task-list tc" style={{maxWidth:1240,width:'100%',display:'flex',flexDirection:'column',gap:16}}>
+ return <section className="task-list tc" style={{width:'100%',display:'flex',flexDirection:'column',gap:16}}>
   <div style={{display:'flex',flexWrap:'wrap',alignItems:'flex-end',justifyContent:'space-between',gap:12}}>
    <div>
     <h1 style={{margin:0,fontSize:24,lineHeight:1.2,fontWeight:600}}>Tarefas</h1>

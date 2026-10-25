@@ -84,7 +84,7 @@ export function Conversations({userId,tasks,aiEnabled,onOpenTask,onRefresh}:{use
  const pendingFor=(personId:string)=>records.filter(c=>c.person_id===personId&&c.id!==current?.id).flatMap(c=>c.agreements).filter(a=>a.taskId&&tasks.some(t=>t.id===a.taskId&&!t.done)).length;
  const lastFor=(personId:string)=>records.filter(c=>c.person_id===personId).sort(recentFirst)[0];
 
- return <div className={`conversations tc ${peopleView?'people-view':'detail-view'}`} style={{maxWidth:1240,width:'100%',display:'flex',flexDirection:'column',gap:20}}>
+ return <div className={`conversations tc ${peopleView?'people-view':'detail-view'}`} style={{width:'100%',display:'flex',flexDirection:'column',gap:20}}>
   <div className="conversation-page-heading">
    <h1 style={{margin:0,fontSize:24,lineHeight:1.2,fontWeight:600}}>Pessoas e conversas</h1>
    <p className="desc" style={{marginTop:4,fontSize:14}}>Atas privadas de 1:1 e combinados que viram tarefas.</p>

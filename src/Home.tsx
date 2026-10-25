@@ -43,7 +43,7 @@ export default function Home({filters,hours,onFocus,allTasks,onClearFilters,show
  const ordered=(rows:Task[])=>focusOrder==='priority'?[...rows].sort((a,b)=>priorityRank(a.priority)-priorityRank(b.priority)):rows;
  const freshText=features.google?.connected?(features.fresh?'● Agenda atualizada':'● Agenda desatualizada'):'Reservas locais';
 
- return <div className="tc tc-day" style={{maxWidth:1240,width:'100%',display:'flex',flexDirection:'column',gap:20}}>
+ return <div className="tc tc-day" style={{width:'100%',display:'flex',flexDirection:'column',gap:20}}>
   <div style={{display:'flex',flexWrap:'wrap',alignItems:'flex-end',justifyContent:'space-between',gap:12}}>
    <div>
     <h1 style={{margin:0,fontSize:24,lineHeight:1.2,fontWeight:600}}>Meu dia</h1>
