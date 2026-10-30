@@ -1,17 +1,24 @@
 import {useMemo,useState} from 'react';
-import {Search} from 'lucide-react';
+import {Plus,Search} from 'lucide-react';
 import {primaryPerson,type Task} from '@/task';
 import type {Label} from '@/features';
 import {Sw} from '@/ui-kit/Sw';
 import {RadarDetail,type NewAction} from './RadarDetail';
+import {NewThemeDialog} from './NewThemeDialog';
 import {useRadar} from './useRadar';
-import {filterThemes,isRadarTheme,noFilters,radarCounters,radarLabelId,reviewPending,sortThemes,temperatureNames,type RadarFilters,type RadarRecord,type RadarTheme,type Temperature} from './radarModel';
+import {filterThemes,isRadarTheme,noFilters,radarCounters,radarLabelId,reviewPending,sortThemes,temperatureNames,type RadarFilters,type ThemeDraft,type RadarRecord,type RadarTheme,type Temperature} from './radarModel';
 
 type Props={
  userId:string;
  tasks:Task[];
  labels:Label[];
+ people:{id:string;name:string}[];
+ ensurePerson:(name:string)=>Promise<{id:string;name:string}>;
+ defaultArea:Task['area'];
+ onRefresh:()=>Promise<void>;
  onOpenTask:(id:string)=>void;
+ onSaveTask:(taskId:string,fields:Pick<ThemeDraft,'title'|'description'|'area'|'personName'>)=>Promise<boolean>;
+ onCreated:()=>void;
  onCreateAction:(theme:Task,action:NewAction)=>Promise<boolean>;
  onClose:(themeId:string)=>Promise<boolean>;
 };
@@ -28,12 +35,13 @@ function reviewText(record:RadarRecord,pending:boolean){
  return `Próxima revisão ${longDate(record.nextReview!)}`;
 }
 
-export function Radar({userId,tasks,labels,onOpenTask,onCreateAction,onClose}:Props){
+export function Radar({userId,tasks,labels,people,ensurePerson,defaultArea,onRefresh,onOpenTask,onSaveTask,onCreated,onCreateAction,onClose}:Props){
  const radarId=radarLabelId(labels);
  const themeTasks=useMemo(()=>tasks.filter(t=>isRadarTheme(t,radarId)),[tasks,radarId]);
  const radar=useRadar(userId,useMemo(()=>themeTasks.map(t=>t.id),[themeTasks]));
  const [filters,setFilters]=useState<RadarFilters>(noFilters);
  const [openId,setOpenId]=useState('');
+ const [creating,setCreating]=useState(false);
  const themes:RadarTheme[]=themeTasks.flatMap(task=>radar.records[task.id]?[{task,record:radar.records[task.id]}]:[]);
  const counters=radarCounters(themes,radar.today);
  const shown=sortThemes(filterThemes(themes,filters,radar.today),radar.today);
@@ -41,9 +49,12 @@ export function Radar({userId,tasks,labels,onOpenTask,onCreateAction,onClose}:Pr
  const filtered=!!filters.query||filters.temperature!=='todas'||filters.pendingOnly;
 
  return <div className="radar tc" style={{maxWidth:920,width:'100%',display:'flex',flexDirection:'column',gap:16}}>
-  <div>
-   <h1 style={{margin:0,fontSize:24,lineHeight:1.2,fontWeight:600}}>Radar</h1>
-   <p className="desc" style={{marginTop:4,fontSize:14}}>Temas para acompanhar de perto. O Radar monitora; a tarefa executa. Temas não entram no planejamento da semana.</p>
+  <div style={{display:'flex',flexWrap:'wrap',alignItems:'flex-start',gap:12}}>
+   <div style={{flex:'1 1 280px'}}>
+    <h1 style={{margin:0,fontSize:24,lineHeight:1.2,fontWeight:600}}>Radar</h1>
+    <p className="desc" style={{marginTop:4,fontSize:14}}>Temas para acompanhar de perto. O Radar monitora; a tarefa executa. Temas não entram no planejamento da semana.</p>
+   </div>
+   <button type="button" className="btn btn-p" onClick={()=>setCreating(true)}><Plus size={16} aria-hidden="true"/>Novo tema</button>
   </div>
   <div className="tc-summary">
    <div className="tc-card-s" style={{padding:'12px 16px'}}><div className="desc">Monitorados</div><div style={{fontSize:24,fontWeight:600}}>{counters.monitored}</div></div>
@@ -68,7 +79,7 @@ export function Radar({userId,tasks,labels,onOpenTask,onCreateAction,onClose}:Pr
   {!radar.ready&&<p className="desc" role="status">Carregando o Radar…</p>}
   {radar.ready&&!shown.length&&<section className="tc-card-s" style={{padding:24}}>
    <h2 style={{margin:0,fontSize:16,fontWeight:600}}>{filtered?'Nenhum tema com esses filtros':'Nenhum tema no Radar'}</h2>
-   <p className="desc" style={{marginTop:4}}>{filtered?'Ajuste a busca ou os filtros.':'Aplique a label Radar a uma tarefa para acompanhá-la aqui.'}</p>
+   <p className="desc" style={{marginTop:4}}>{filtered?'Ajuste a busca ou os filtros.':'Use “Novo tema” para criar o primeiro, ou aplique a label Radar a uma tarefa.'}</p>
   </section>}
   {shown.map(({task,record})=>{
    const pending=reviewPending(record,radar.today);
@@ -87,6 +98,7 @@ export function Radar({userId,tasks,labels,onOpenTask,onCreateAction,onClose}:Pr
     </span>
    </button>;
   })}
-  {open&&<RadarDetail key={open.task.id} theme={open} tasks={tasks} radar={radar} onClose={()=>setOpenId('')} onEditTask={onOpenTask} onCreateAction={onCreateAction} onEnd={async()=>{const ok=await onClose(open.task.id);if(ok)setOpenId('');return ok;}}/>}
+  {open&&<RadarDetail key={open.task.id} theme={open} tasks={tasks} radar={radar} people={people} onSaveTask={onSaveTask} onClose={()=>setOpenId('')} onEditTask={onOpenTask} onCreateAction={onCreateAction} onEnd={async()=>{const ok=await onClose(open.task.id);if(ok)setOpenId('');return ok;}}/>}
+ {creating&&<NewThemeDialog people={people} defaultArea={defaultArea} onClose={()=>setCreating(false)} onCreate={async draft=>{const result=await radar.createTheme(draft,ensurePerson,onRefresh);if('error' in result)return result.error;setCreating(false);setOpenId(result.id);onCreated();return '';}}/>}
  </div>;
 }

@@ -79,5 +79,48 @@ begin
  if not exists(select 1 from public.torre_radar where task_id='bbf30100-0000-4000-8000-000000000001' and notes='contexto') then raise exception 'Archive lost radar row'; end if;
  if not exists(select 1 from public.torre_tasks where id='bbf30100-0000-4000-8000-000000000002' and radar_task_id='bbf30100-0000-4000-8000-000000000001') then raise exception 'Archive lost linked action'; end if;
 end $$;
+-- "Novo tema": cria tarefa, etiqueta, registro e pessoas de uma vez, sem prazo (RF11, CA11).
+do $$
+begin
+ perform public.torre_create_radar_theme('bbf30100-0000-4000-8000-000000000030',
+  jsonb_build_object('title','  Tema novo ','description','Contexto','area','personal'),
+  jsonb_build_object('temperature','atencao','review_interval_days',7,'next_review_date','2026-12-01','notes','Notas'),
+  jsonb_build_array(jsonb_build_object('name','Marina','personId',null,'role','involved')));
+ if not exists(select 1 from public.torre_tasks where id='bbf30100-0000-4000-8000-000000000030' and title='Tema novo' and description='Contexto' and area='personal' and due_date is null and status='todo') then raise exception 'New theme task wrong'; end if;
+ if not exists(select 1 from public.torre_radar where task_id='bbf30100-0000-4000-8000-000000000030' and temperature='atencao' and review_interval_days=7 and next_review_date='2026-12-01' and notes='Notas') then raise exception 'New theme radar row wrong'; end if;
+ if not exists(select 1 from public.torre_radar_themes where task_id='bbf30100-0000-4000-8000-000000000030') then raise exception 'New theme not in predicate'; end if;
+ if (select count(*) from public.torre_labels where lower(btrim(name))='radar')<>1 then raise exception 'Radar label duplicated'; end if;
+ if not exists(select 1 from public.torre_task_people where task_id='bbf30100-0000-4000-8000-000000000030' and name='Marina') then raise exception 'New theme person missing'; end if;
+ -- Padrões: observar, 15 dias, próxima revisão = hoje + 15
+ perform public.torre_create_radar_theme('bbf30100-0000-4000-8000-000000000031',jsonb_build_object('title','Padrao','area','professional'),'{}'::jsonb);
+ if not exists(select 1 from public.torre_radar where task_id='bbf30100-0000-4000-8000-000000000031' and temperature='observar' and review_interval_days=15 and next_review_date=(now() at time zone 'America/Sao_Paulo')::date+15) then raise exception 'New theme defaults wrong'; end if;
+ -- Falha em qualquer parte desfaz tudo (nada de tarefa etiquetada sem registro)
+ begin
+  perform public.torre_create_radar_theme('bbf30100-0000-4000-8000-000000000032',jsonb_build_object('title','Invalido','area','personal'),jsonb_build_object('temperature','quente'),'[]'::jsonb);
+  raise exception 'Invalid temperature accepted';
+ exception when check_violation then null; end;
+ begin
+  perform public.torre_create_radar_theme('bbf30100-0000-4000-8000-000000000033',jsonb_build_object('title','Pessoa ruim','area','personal'),'{}'::jsonb,jsonb_build_array(jsonb_build_object('name','','role','involved')));
+  raise exception 'Invalid person accepted';
+ exception when others then if sqlerrm='Invalid person accepted' then raise; end if; end;
+ begin
+  perform public.torre_create_radar_theme('bbf30100-0000-4000-8000-000000000034',jsonb_build_object('title','   ','area','personal'),'{}'::jsonb);
+  raise exception 'Blank title accepted';
+ exception when others then if sqlerrm='Blank title accepted' then raise; end if; end;
+ if exists(select 1 from public.torre_tasks where id in ('bbf30100-0000-4000-8000-000000000032','bbf30100-0000-4000-8000-000000000033','bbf30100-0000-4000-8000-000000000034')) then raise exception 'Failed create left a task behind'; end if;
+ if exists(select 1 from public.torre_radar where task_id in ('bbf30100-0000-4000-8000-000000000032','bbf30100-0000-4000-8000-000000000033')) then raise exception 'Failed create left a radar row behind'; end if;
+end $$;
+
+-- Usuário sem etiqueta Radar: a função cria a dele, sem tocar na de outro usuário.
+reset role;
+insert into auth.users(id) values ('aaf30100-0000-4000-8000-000000000003');
+set local role authenticated;
+select set_config('request.jwt.claim.sub','aaf30100-0000-4000-8000-000000000003',true);
+do $$
+begin
+ perform public.torre_create_radar_theme('bbf30100-0000-4000-8000-000000000040',jsonb_build_object('title','Primeiro tema','area','professional'),'{}'::jsonb);
+ if (select count(*) from public.torre_labels where lower(btrim(name))='radar')<>1 then raise exception 'Radar label not created for new user'; end if;
+ if (select count(*) from public.torre_radar_themes)<>1 then raise exception 'New user theme not isolated'; end if;
+end $$;
 reset role;
 rollback;

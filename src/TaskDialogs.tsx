@@ -12,7 +12,7 @@ import {TaskPersonField} from './TaskPeopleEditor';
 type Area=Task['area'];
 export const durationOptions=[5,10,15,20,30,45,60,90,120,180,240];
 
-function ModalShell({title,description,onClose,children,footer,formId,onSubmit,hint}:{title:string;description:ReactNode;onClose:()=>void;children:ReactNode;footer:ReactNode;formId:string;onSubmit:(e:React.FormEvent<HTMLFormElement>)=>void;hint?:ReactNode}){
+export function ModalShell({title,description,onClose,children,footer,formId,onSubmit,hint}:{title:string;description:ReactNode;onClose:()=>void;children:ReactNode;footer:ReactNode;formId:string;onSubmit:(e:React.FormEvent<HTMLFormElement>)=>void;hint?:ReactNode}){
  return <Dialog open onOpenChange={value=>{if(!value)onClose();}}>
   <DialogContent showCloseButton={false} className="tc tc-modal" onOpenAutoFocus={e=>{e.preventDefault();(e.currentTarget as HTMLElement).querySelector<HTMLElement>('[data-autofocus]')?.focus();}}>
    <button type="button" className="btn btn-g tc-modal-x" onClick={onClose} aria-label="Fechar"><X size={16} aria-hidden="true"/></button>
