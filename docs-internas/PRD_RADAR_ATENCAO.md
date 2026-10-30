@@ -3,7 +3,7 @@
 **Produto:** Torre de Controle Executiva  
 **Versão:** 1.2 — MVP simplificado (revisado após avaliação)  
 **Data:** 30/10/2026  
-**Status:** Proposto para desenvolvimento — não implementado  
+**Status:** Implementado no código (30/10/2026); migration e deploy pendentes do dono — ver `PROGRESSO.md`  
 **Repositório:** `samuelveronez/torre`  
 **Banco:** Supabase — projeto Torre de Controle (`nvxwqrpztecrvrxoddxf`)
 

@@ -1,7 +1,7 @@
 import assert from 'node:assert/strict';
 const tests=[];
 globalThis.Deno={test:(name,run)=>tests.push({name,run})};
-for(const file of ['task_view_test','scheduling_test','calendar_test','task_drag_test','label_area_test','painel_model_test','functional_test'])await import(`./${file}.ts`);
+for(const file of ['task_view_test','scheduling_test','calendar_test','task_drag_test','label_area_test','painel_model_test','radar_model_test','functional_test'])await import(`./${file}.ts`);
 const {primaryPerson,composePeople}=await import('../../src/task.ts');
 tests.push({name:'Pessoa única da tarefa: prioriza quem se aguarda, converte nome antigo e preserva demais vínculos',run(){
  const ana={name:'Ana',personId:'p1',role:'involved'},rui={name:'Rui',personId:null,role:'waiting_for'};

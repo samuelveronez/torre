@@ -1,6 +1,7 @@
 import {db,checked,secret} from './google.ts';
 import {propose} from './planning.ts';
 import {selectedAiModel} from './aiSettings.ts';
+import {radarThemeIds} from './radar.ts';
 export async function preparePlan(uid:string,input:any){
  const ids=input.taskIds,start=Date.parse(input.start),end=Date.parse(input.end);
  if(!Array.isArray(ids)||ids.length<1||ids.length>20||new Set(ids).size!==ids.length||ids.some(x=>typeof x!=='string'||!/^[0-9a-f-]{36}$/i.test(x)))throw new Error('Selecione de 1 a 20 tarefas.');
@@ -8,6 +9,7 @@ export async function preparePlan(uid:string,input:any){
  if(typeof input.instruction!=='string'||input.instruction.length>1000)throw new Error('Orientação de até mil caracteres.');
  const key=await secret(uid,'ai');if(!key)throw new Error('Cadastre sua chave OpenRouter.');
  const {data:snapshot}=await checked(db.rpc('torre_plan_snapshot',{p_user:uid,p_tasks:ids}));
+ if((await radarThemeIds(db,uid)).some(id=>ids.includes(id)))throw new Error('Temas do Radar não entram na programação semanal.');
  if(snapshot.tasks.length!==ids.length||snapshot.tasks.some((t:any)=>t.archived_at||t.status!=='todo'||snapshot.blocks.some((b:any)=>b.task_id===t.id)))throw new Error('Selecione somente pendências sem reserva.');
  const model=await selectedAiModel(db,uid),proposal=await propose(snapshot,new Date(start).toISOString(),new Date(end).toISOString(),input.instruction,key,model);
  const {data:saved}=await checked(db.from('torre_week_proposals').insert({user_id:uid,task_ids:ids,range_start:new Date(start).toISOString(),range_end:new Date(end).toISOString(),snapshot,placements:proposal.placements}).select('id,expires_at').single());

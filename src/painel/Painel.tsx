@@ -5,7 +5,7 @@ import type {Task} from '../task';
 import {usePreference} from '../uiState';
 import {BlocksView} from './BlocksView';
 import {FocusList} from './FocusList';
-import {RadarView} from './RadarView';
+import {DeadlineView} from './DeadlineView';
 import {Scoreboard} from './Scoreboard';
 import {Scrubber} from './Scrubber';
 import {SidePanel} from './SidePanel';
@@ -133,7 +133,7 @@ export function Painel({userId,tasks,labels,labelFilter,theme,syncing,onTheme,on
    <FocusList focus={focus} trend={trend} day={day} today={today} selected={selectedId} onSelect={select}/>
    <section className="pn-panel pn-center" aria-label={current.title}>
     <div className="pn-hd"><h2>{current.title}</h2><span className="pn-hint pn-mono">{current.hint}</span></div>
-    {view==='prazos'&&<RadarView tasks={data.all} undated={data.undated.length} day={day} selected={selectedId} onSelect={select}/>}
+    {view==='prazos'&&<DeadlineView tasks={data.all} undated={data.undated.length} day={day} selected={selectedId} onSelect={select}/>}
     {view==='bloqueios'&&<BlocksView people={people} day={day} selected={selectedId} onSelect={select} onCharge={person=>onCharge(chargePrompt(person,day))}/>}
     {view==='temas'&&<ThemesView groups={groups} day={day} selected={selectedId} onSelect={select}/>}
    </section>

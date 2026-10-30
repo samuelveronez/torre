@@ -14,6 +14,8 @@ Deno.test('digest uses owner-scoped snapshots, private keys stay out of prompts,
    if(url.pathname.endsWith('/torre_ai_settings'))return reply({default_model:paid?'google/gemini-2.5-flash':'openrouter/free'});
    if(url.pathname.endsWith('/torre_telegram_settings'))return reply({chat_id:123,enabled:!changed});
    if(url.pathname.endsWith('/torre_google_status'))return reply({connected:true,calendar_synced_at:'2026-10-01T12:00:00Z',range_start:'2026-10-01T00:00:00Z',range_end:'2026-10-02T00:00:00Z',error:null});
+   if(url.pathname.endsWith('/torre_radar_themes'))return reply([{task_id:'theme-1'}]);
+   if(url.pathname.endsWith('/torre_tasks')){assert(url.searchParams.get('id')==='not.in.(theme-1)','Radar themes are excluded from the digest');}
    if(url.pathname.endsWith('/torre_tasks'))return reply(url.searchParams.has('completed_at')?[{title:'Tarefa feita',completed_at:'2026-10-07T12:00:00Z'}]:[{id:'private-id',title:'Pendência',status:'waiting',follow_up_date:'2026-10-08'}]);
    if(url.pathname.endsWith('/torre_calendar_events')){assert(url.searchParams.get('torre_calendars.selected')==='eq.true','only selected calendars');assert(url.searchParams.get('or')?.includes('response_status.is.null'),'unknown response stays visible');return reply([{title:'Ocupado',torre_calendars:{selected:true}}]);}
    return reply([]);

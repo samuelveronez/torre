@@ -1,6 +1,7 @@
 import {selectedAiModel,assertModelResponse} from './aiSettings.ts';
 import {createClient} from 'npm:@supabase/supabase-js@2.117.2';
 import {digestDates,summaryInstructions} from './telegramDigest.ts';
+import {radarThemeIds,notInThemes} from './radar.ts';
 export const db=createClient(Deno.env.get('SUPABASE_URL')!,Deno.env.get('SUPABASE_SERVICE_ROLE_KEY')!);
 export async function checked(p:PromiseLike<any>){const r=await p;if(r.error)throw new Error('Não foi possível acessar os dados da Torre.');return r.data;}
 export async function secret(uid:string,kind:string,value:string|null=null,remove=false){return await checked(db.rpc('torre_secret',{p_user:uid,p_kind:kind,p_value:value,p_delete:remove})) as string|null;}
@@ -16,9 +17,11 @@ export async function summary(uid:string,date?:string){
  const dates=digestDates(date?new Date(date+'T12:00:00-03:00'):new Date());
  const selectedModel=await selectedAiModel(db,uid);
  const key=await secret(uid,'ai');if(!key)throw new Error('Cadastre a chave OpenRouter em Configurações → IA.');
+ const themes=await radarThemeIds(db,uid);
+ const executable=(query:any)=>themes.length?query.not('id','in',notInThemes(themes)):query;
  const [completed,active,blocks,events,busy,google]=await Promise.all([
-  checked(db.from('torre_tasks').select('title,area,completed_at').eq('user_id',uid).is('archived_at',null).gte('completed_at',dates.start).lt('completed_at',dates.end).order('completed_at').limit(101)),
-  checked(db.from('torre_tasks').select('id,title,area,due_date,status,waiting_for,follow_up_date,priority,duration_minutes').eq('user_id',uid).is('archived_at',null).neq('status','completed').order('due_date',{nullsFirst:false}).limit(201)),
+  checked(executable(db.from('torre_tasks').select('title,area,completed_at').eq('user_id',uid).is('archived_at',null)).gte('completed_at',dates.start).lt('completed_at',dates.end).order('completed_at').limit(101)),
+  checked(executable(db.from('torre_tasks').select('id,title,area,due_date,status,waiting_for,follow_up_date,priority,duration_minutes').eq('user_id',uid).is('archived_at',null)).neq('status','completed').order('due_date',{nullsFirst:false}).limit(201)),
   checked(db.from('torre_scheduled_blocks').select('task_id,start_at,end_at,torre_tasks(title,status)').eq('user_id',uid).lt('start_at',dates.nextEnd).gt('end_at',dates.start).order('start_at').limit(101)),
   checked(db.from('torre_calendar_events').select('title,start_at,end_at,all_day,response_status,torre_calendars!inner(selected)').eq('user_id',uid).eq('torre_calendars.selected',true).lt('start_at',dates.nextEnd).gt('end_at',dates.start).or('response_status.is.null,response_status.neq.declined').order('start_at').limit(101)),
   checked(db.from('torre_busy_blocks').select('start_at,end_at').eq('user_id',uid).eq('source','manual').lt('start_at',dates.nextEnd).gt('end_at',dates.start).order('start_at').limit(101)),
