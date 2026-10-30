@@ -1,8 +1,8 @@
 # PRD — Radar de Atenção
 
 **Produto:** Torre de Controle Executiva  
-**Versão:** 1.1 — MVP simplificado  
-**Data:** 29/10/2026  
+**Versão:** 1.2 — MVP simplificado (revisado após avaliação)  
+**Data:** 30/10/2026  
 **Status:** Proposto para desenvolvimento — não implementado  
 **Repositório:** `samuelveronez/torre`  
 **Banco:** Supabase — projeto Torre de Controle (`nvxwqrpztecrvrxoddxf`)
@@ -25,7 +25,7 @@ Atualmente temas com a tag Radar coexistem em `torre_tasks` com tarefas executá
 
 **Objetivo:** uma página leve de Radar com temperatura, revisão, anotações atuais e vínculo com ações, sem desfigurar o fluxo atual de tarefas.
 
-**Não objetivos no MVP:** IA preditiva, alertas automáticos externos, linha do tempo, versões de notas, tabela de updates, dashboard avançado, novo sistema de projetos.
+**Não objetivos no MVP:** IA editando notas ou temperatura, resumo do Telegram com revisões pendentes, IA preditiva, alertas automáticos externos, linha do tempo, versões de notas, tabela de updates, dashboard avançado, novo sistema de projetos.
 
 ## 3. Estado atual verificado em 29/10/2026
 
@@ -61,7 +61,9 @@ No momento da consulta: **11 itens ativos** com tag Radar; 9 em `todo` e 2 em `w
 | RF05 | Criação de tarefa executável vinculada ao tema Radar | P0 |
 | RF06 | Filtros por temperatura e revisão pendente | P1 |
 | RF07 | Exibição opcional de pessoas ligadas ao tema pela estrutura existente | P1 |
-| RF08 | Exibição de tarefas vinculadas e seus status | P1 |
+| RF08 | Exibição de tarefas vinculadas e seus status | P0 |
+| RF09 | Ação “Encerrar tema”: arquiva o tema, preservando notas e configuração | P1 |
+| RF10 | Renomear o gráfico de prazos atual (`RadarView`, view `prazos`) para “Prazos”, liberando o nome Radar | P0 |
 
 **Removidos em v1.1:** histórico automático de atualizações, tabela `torre_radar_updates`, timeline, controle de versões das notas.
 
@@ -103,7 +105,15 @@ No momento da consulta: **11 itens ativos** com tag Radar; 9 em `todo` e 2 em `w
 
 **RN08 — Preservação de dados.** Migração não deve excluir, concluir ou renomear registros e etiquetas existentes. Fazer backfill idempotente.
 
-**RN09 — Google Tasks.** Tema Radar não deve ser enviado ou reprogramado como uma tarefa executável por automações; avaliar impacto sobre registros previamente sincronizados e não excluir itens remotos automaticamente.
+**RN09 — Google Tasks (somente importação, conforme `ESCOPO.md`).** A importação ignora itens que seriam temas Radar: não os cria nem os atualiza. Temas já existentes não são alterados nem apagados por reimportação, e nada é excluído no Google.
+
+**RN11 — Predicado único de tema Radar.** “É tema Radar” = tarefa ativa com a etiqueta Radar. Existe uma única definição (função/view no banco e um helper único no frontend), usada por: distribuição semanal, atrasadas, Meu dia, foco, sugestões de agenda, Modo IA e resumo do Telegram, que passam a excluir temas Radar. Tarefas vinculadas (`radar_task_id`) continuam executáveis. O predicado usa a etiqueta, não a existência de linha em `torre_radar`.
+
+**RN12 — Criação do registro.** A página Radar cria, ao abrir, o registro `torre_radar` (padrões: `observar`, 15 dias, notas vazias) de cada tema que ainda não tem, de forma idempotente. Até o registro existir, o tema já é excluído das métricas de execução (RN11).
+
+**RN13 — Notas: último a salvar vence.** Sem controle de concorrência no MVP; risco de sobrescrita entre dispositivos aceito pelo dono.
+
+**RN14 — Encerrar tema.** Arquiva a tarefa-tema (`archived_at`), preserva `torre_radar` e as ações vinculadas, e remove o tema da lista. Tema Radar não é “concluído”.
 
 **RN10 — Isolamento.** Todas as operações respeitam usuário proprietário e RLS.
 
@@ -136,9 +146,9 @@ Adicionar `radar_task_id uuid null` em `torre_tasks`, com FK para o registro pai
 
 1. Criar tabela e coluna de vínculo, constraints, índices e RLS;
 2. Identificar itens pela etiqueta Radar, respeitando usuário e itens não arquivados;
-3. Criar `torre_radar` idempotentemente, com temperatura `observar`, revisão padrão de 15 dias e notas vazias; preservar a descrição preexistente em `torre_tasks.description`;
-4. Avaliar `due_date` preexistente antes de remover: separar datas indevidas de compromissos reais; não apagar prazos sem checagem;
-5. Ajustar seletores de organização semanal, vencidos, métricas de conclusão e sincronização para excluir temas Radar (mas não tarefas-filhas executáveis);
+3. Criar `torre_radar` idempotentemente, com temperatura `observar`, revisão padrão de 15 dias, `next_review_date` = data do backfill + 15 dias e notas vazias; preservar a descrição preexistente em `torre_tasks.description`. Registros de temas novos nascem pela RN12;
+4. **Não alterar `due_date` no backfill.** Temas com prazo preexistente continuam visíveis como tarefas até o dono revisar manualmente; nenhum prazo é apagado ou movido;
+5. Aplicar o predicado único (RN11) em organização semanal, vencidos, Meu dia, foco, sugestões, Modo IA, Telegram, métricas de conclusão e importação do Google Tasks (RN09), sem excluir tarefas-filhas executáveis;
 6. Manter status/aguardando existentes, `follow_up_date` e as etiquetas;
 7. Verificar contagens antes/depois e executar testes de regressão.
 
@@ -197,7 +207,11 @@ Dada uma ação vinculada, quando consultar o tema, então o relacionamento pert
 
 **Decidido:** notas em campo único, sem histórico; Radar sem prazo por padrão; revisão separada de vencimento; tema pode gerar várias ações; reuso da tag atual e da tabela `torre_tasks`.
 
-**Validar na implementação:** comportamento dos itens Radar já associados ao Google Tasks, UX de salvamento, forma de tratamento de um prazo de entrega explicitamente informado em tema Radar e política para retirada da tag Radar.
+**Decidido em 30/10/2026:** importação não traz temas Radar (RN09); predicado único (RN11); criação do registro pelo frontend (RN12); backfill não toca `due_date`; último a salvar vence (RN13); nome Radar fica com a nova página e o gráfico vira “Prazos”; “Encerrar tema” = arquivar (RN14); IA, captura e Telegram fora do MVP além da exclusão das métricas.
+
+**Validar na implementação:** UX de salvamento, tratamento de prazo de entrega explicitamente informado em tema Radar, política ao retirar e recolocar a tag Radar (preferir restaurar a configuração preservada), fórmula da próxima revisão (a partir da data da confirmação), data de revisão em America/Sao_Paulo, e estados vazio/carregando/erro, 390 px e modo escuro conforme o kit `ui-kit.css`.
+
+**Testes obrigatórios:** teste SQL de isolamento entre usuários para `torre_radar` e `radar_task_id`; teste da regra de revisão; teste de regressão do predicado único nos seletores do frontend. **Rollback:** migration aditiva; reverter = ocultar a página (nada é removido). Publicar a migration antes de qualquer Edge Function que dependa dela.
 
 ---
 
