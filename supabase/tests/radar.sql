@@ -111,6 +111,40 @@ begin
  if exists(select 1 from public.torre_radar where task_id in ('bbf30100-0000-4000-8000-000000000032','bbf30100-0000-4000-8000-000000000033')) then raise exception 'Failed create left a radar row behind'; end if;
 end $$;
 
+-- Vincular tarefa existente: muda só radar_task_id e respeita as regras do RN15.
+do $$
+declare before_row public.torre_tasks; after_row public.torre_tasks;
+begin
+ perform public.torre_save_task('bbf30100-0000-4000-8000-000000000041',jsonb_build_object('title','Ja feita','status','completed','completed_at',now()));
+ select * into before_row from public.torre_tasks where id='bbf30100-0000-4000-8000-000000000003';
+ perform public.torre_link_task_to_radar('bbf30100-0000-4000-8000-000000000003','bbf30100-0000-4000-8000-000000000030');
+ select * into after_row from public.torre_tasks where id='bbf30100-0000-4000-8000-000000000003';
+ if after_row.radar_task_id is distinct from 'bbf30100-0000-4000-8000-000000000030'::uuid then raise exception 'Link not saved'; end if;
+ if (after_row.title,after_row.due_date,after_row.priority,after_row.status,after_row.area,after_row.description) is distinct from (before_row.title,before_row.due_date,before_row.priority,before_row.status,before_row.area,before_row.description) then raise exception 'Link changed other task fields'; end if;
+ if exists(select 1 from public.torre_radar_themes where task_id='bbf30100-0000-4000-8000-000000000003') then raise exception 'Linked task became a theme'; end if;
+ if exists(select 1 from public.torre_task_labels where task_id='bbf30100-0000-4000-8000-000000000003') then raise exception 'Linked task inherited a label'; end if;
+ -- Mover para outro tema
+ perform public.torre_link_task_to_radar('bbf30100-0000-4000-8000-000000000003','bbf30100-0000-4000-8000-000000000031');
+ if (select radar_task_id from public.torre_tasks where id='bbf30100-0000-4000-8000-000000000003')<>'bbf30100-0000-4000-8000-000000000031' then raise exception 'Link not moved'; end if;
+ -- Recusas
+ begin perform public.torre_link_task_to_radar('bbf30100-0000-4000-8000-000000000030','bbf30100-0000-4000-8000-000000000030'); raise exception 'Self link accepted';
+ exception when others then if sqlerrm='Self link accepted' then raise; end if; end;
+ begin perform public.torre_link_task_to_radar('bbf30100-0000-4000-8000-000000000031','bbf30100-0000-4000-8000-000000000030'); raise exception 'Theme as action accepted';
+ exception when others then if sqlerrm='Theme as action accepted' then raise; end if; end;
+ begin perform public.torre_link_task_to_radar('bbf30100-0000-4000-8000-000000000041','bbf30100-0000-4000-8000-000000000030'); raise exception 'Completed task accepted';
+ exception when others then if sqlerrm='Completed task accepted' then raise; end if; end;
+ begin perform public.torre_link_task_to_radar('bbf30100-0000-4000-8000-000000000003','bbf30100-0000-4000-8000-000000000011'); raise exception 'Other user theme accepted';
+ exception when others then if sqlerrm='Other user theme accepted' then raise; end if; end;
+ begin perform public.torre_link_task_to_radar('bbf30100-0000-4000-8000-000000000003','bbf30100-0000-4000-8000-000000000001'); raise exception 'Archived theme accepted';
+ exception when others then if sqlerrm='Archived theme accepted' then raise; end if; end;
+ begin perform public.torre_link_task_to_radar('bbf30100-0000-4000-8000-000000000011','bbf30100-0000-4000-8000-000000000030'); raise exception 'Other user task accepted';
+ exception when others then if sqlerrm='Other user task accepted' then raise; end if; end;
+ if (select radar_task_id from public.torre_tasks where id='bbf30100-0000-4000-8000-000000000003')<>'bbf30100-0000-4000-8000-000000000031' then raise exception 'Rejected link changed data'; end if;
+ -- Desvincular preserva a tarefa
+ perform public.torre_link_task_to_radar('bbf30100-0000-4000-8000-000000000003',null);
+ if not exists(select 1 from public.torre_tasks where id='bbf30100-0000-4000-8000-000000000003' and radar_task_id is null and archived_at is null) then raise exception 'Unlink failed'; end if;
+end $$;
+
 -- Usuário sem etiqueta Radar: a função cria a dele, sem tocar na de outro usuário.
 reset role;
 insert into auth.users(id) values ('aaf30100-0000-4000-8000-000000000003');

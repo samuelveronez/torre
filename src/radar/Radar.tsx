@@ -98,7 +98,7 @@ export function Radar({userId,tasks,labels,people,ensurePerson,defaultArea,onRef
     </span>
    </button>;
   })}
-  {open&&<RadarDetail key={open.task.id} theme={open} tasks={tasks} radar={radar} people={people} onSaveTask={onSaveTask} onClose={()=>setOpenId('')} onEditTask={onOpenTask} onCreateAction={onCreateAction} onEnd={async()=>{const ok=await onClose(open.task.id);if(ok)setOpenId('');return ok;}}/>}
+  {open&&<RadarDetail key={open.task.id} theme={open} tasks={tasks} radar={radar} people={people} radarId={radarId} onRefresh={onRefresh} onSaveTask={onSaveTask} onClose={()=>setOpenId('')} onEditTask={onOpenTask} onCreateAction={onCreateAction} onEnd={async()=>{const ok=await onClose(open.task.id);if(ok)setOpenId('');return ok;}}/>}
  {creating&&<NewThemeDialog people={people} defaultArea={defaultArea} onClose={()=>setCreating(false)} onCreate={async draft=>{const result=await radar.createTheme(draft,ensurePerson,onRefresh);if('error' in result)return result.error;setCreating(false);setOpenId(result.id);onCreated();return '';}}/>}
  </div>;
 }

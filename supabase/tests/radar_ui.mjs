@@ -62,6 +62,12 @@ await context.route('https://nvxwqrpztecrvrxoddxf.supabase.co/**',async route=>{
   tables.torre_radar.push({task_id:body.p_task,user_id:uid,last_reviewed_at:null,updated_at:'2026-10-30T12:00:00Z',temperature:body.p_radar.temperature,review_interval_days:body.p_radar.review_interval_days,next_review_date:body.p_radar.next_review_date,notes:body.p_radar.notes});
   return reply(null);
  }
+ if(url.pathname.endsWith('/rpc/torre_link_task_to_radar')){
+  const body=req.postDataJSON();
+  writes.push({rpc:'torre_link_task_to_radar',body});
+  tables.torre_tasks.find(row=>row.id===body.p_task).radar_task_id=body.p_theme;
+  return reply(null);
+ }
  if(url.pathname.includes('/rpc/'))return reply(null);
  const table=url.pathname.split('/').pop();
  const filters=[...url.searchParams].filter(([,value])=>value.startsWith('eq.'));
@@ -145,10 +151,29 @@ try{
  await page.getByPlaceholder('O que precisa ser feito?').fill('Cobrar cronograma');
  await page.getByLabel('Vencimento da tarefa').fill(day(5));
  await page.getByRole('button',{name:'Criar tarefa',exact:true}).click();
- await page.getByRole('button',{name:/Cobrar cronograma/}).waitFor();
+ await page.getByRole('button',{name:/^Cobrar cronograma/}).waitFor();
  const created=tables.torre_tasks.find(row=>row.title==='Cobrar cronograma');
  assert.equal(created.radar_task_id,themeA);
  assert.equal(tables.torre_task_labels.some(row=>row.task_id===created.id),false);
+
+ // CA13/CA14: vincular tarefa já existente muda só o vínculo; temas e tarefas ligadas não são oferecidos.
+ const plainRow=tables.torre_tasks.find(row=>row.id===plain);
+ const plainBefore=JSON.stringify({...plainRow,radar_task_id:null});
+ await page.getByRole('button',{name:'Vincular tarefa existente'}).click();
+ const picker=page.getByRole('group',{name:'Vincular tarefa existente'});
+ await picker.getByRole('button',{name:/Enviar relatório/}).waitFor();
+ assert.equal(await picker.getByRole('button',{name:/Orçamento 2027|Programa de integração|Cobrar cronograma/}).count(),0);
+ await picker.getByLabel('Buscar tarefa para vincular').fill('relatorio');
+ await picker.getByRole('button',{name:/Enviar relatório/}).click();
+ await page.getByText('Tarefa vinculada ao tema.').waitFor();
+ await page.getByRole('button',{name:/^Enviar relatório/}).first().waitFor();
+ assert.equal(plainRow.radar_task_id,themeA);
+ assert.equal(JSON.stringify({...plainRow,radar_task_id:null}),plainBefore);
+ assert.equal(tables.torre_task_labels.some(row=>row.task_id===plain),false);
+ await page.getByRole('button',{name:'Desvincular Enviar relatório'}).click();
+ await page.getByText('Tarefa desvinculada.').waitFor();
+ assert.equal(plainRow.radar_task_id,null);
+ assert.equal(JSON.stringify(plainRow),plainBefore);
 
  // CA11/CA12: "Novo tema" cria tudo de uma vez (RPC), sem prazo, e o tema aparece na lista.
  await page.keyboard.press('Escape');
@@ -203,7 +228,7 @@ try{
  assert.equal(await page.getByText('Mudança de escola').count(),0);
 
  assert.deepEqual(errors,[]);
- console.log('PASS: Radar lista temas, filtra, edita o tema, revisa, cria tarefa vinculada, cria tema novo, encerra e mantém temas fora de Meu dia');
+ console.log('PASS: Radar lista temas, filtra, edita o tema, revisa, cria tarefa vinculada, vincula tarefa existente, cria tema novo, encerra e mantém temas fora de Meu dia');
 }finally{
  await browser.close();
  server?.kill();

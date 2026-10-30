@@ -123,3 +123,12 @@ export function newThemeArgs(taskId:string,draft:ThemeDraft,people:{name:string;
   p_people:people,
  };
 }
+
+/** Tarefas que podem virar ação do tema (RN15): abertas, que não são temas, nem já ligadas a este tema. */
+export function linkableTasks(tasks:Task[],themeId:string,radarId?:string,query=''){
+ const needle=fold(query.trim());
+ return tasks
+  .filter(t=>t.id!==themeId&&!t.done&&!isRadarTheme(t,radarId)&&t.radarTaskId!==themeId)
+  .filter(t=>!needle||fold(t.title).includes(needle))
+  .sort((a,b)=>a.title.localeCompare(b.title,'pt-BR'));
+}

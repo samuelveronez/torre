@@ -1,9 +1,9 @@
 # PRD — Radar de Atenção
 
 **Produto:** Torre de Controle Executiva  
-**Versão:** 1.4 — MVP simplificado (revisado após avaliação)  
+**Versão:** 1.5 — MVP simplificado (revisado após avaliação)  
 **Data:** 30/10/2026  
-**Status:** Implementado no código (30/10/2026); migration e deploy pendentes do dono — ver `PROGRESSO.md`  
+**Status:** v1.4 (Novo tema) implementada e publicada em 30/10/2026; v1.5 (vincular tarefa existente) implementada no código, migration e publicação pendentes do dono — ver `PROGRESSO.md`  
 **Repositório:** `samuelveronez/torre`  
 **Banco:** Supabase — projeto Torre de Controle (`nvxwqrpztecrvrxoddxf`)
 
@@ -52,6 +52,8 @@ No momento da consulta: **11 itens ativos** com tag Radar; 9 em `todo` e 2 em `w
 
 **Fluxo E — Criar tema (caminho principal):** página Radar → “Novo tema” → preencher o formulário → salvar. Um único salvamento cria a tarefa-tema em `torre_tasks`, vincula a etiqueta Radar e grava `torre_radar`, sem `due_date`. O tema aparece de imediato na lista.
 
+**Fluxo F — Vincular tarefa existente:** abrir tema → em “Ações vinculadas”, escolher “Vincular tarefa existente” → buscar e selecionar uma tarefa já criada → confirmar. A tarefa passa a aparecer nas ações do tema sem mudar prazo, prioridade, status, labels nem área. Para corrigir um engano, “Desvincular” na própria linha da ação.
+
 **Campos do formulário “Novo tema”** (os mesmos do detalhe, para criar e editar com a mesma tela):
 - Título (obrigatório);
 - Descrição (`torre_tasks.description`);
@@ -78,6 +80,8 @@ Fora do formulário, por regra: prazo (`due_date`), prioridade e duração, que 
 | RF08 | Exibição de tarefas vinculadas e seus status | P0 |
 | RF09 | Ação “Encerrar tema”: arquiva o tema, preservando notas e configuração | P1 |
 | RF10 | Renomear o gráfico de prazos atual (`RadarView`, view `prazos`) para “Prazos”, liberando o nome Radar | P0 |
+| RF12 | **“Vincular tarefa existente”** no detalhe do tema: busca entre as tarefas abertas já criadas (que não são temas) e grava o vínculo (`radar_task_id`) sem alterar nenhum outro campo da tarefa (Fluxo F) | P0 |
+| RF13 | **“Desvincular”** numa ação vinculada: remove só o vínculo; a tarefa permanece intacta | P1 |
 | RF11 | Botão **“Novo tema”** na página Radar: formulário com todos os campos do Radar (ver Fluxo E); é o caminho principal de criação | P0 |
 
 **Removidos em v1.1:** histórico automático de atualizações, tabela `torre_radar_updates`, timeline, controle de versões das notas.
@@ -125,6 +129,8 @@ Fora do formulário, por regra: prazo (`due_date`), prioridade e duração, que 
 **RN08 — Preservação de dados.** Migração não deve excluir, concluir ou renomear registros e etiquetas existentes. Fazer backfill idempotente.
 
 **RN09 — Google Tasks (somente importação, conforme `ESCOPO.md`).** A importação ignora itens que seriam temas Radar: não os cria nem os atualiza. Temas já existentes não são alterados nem apagados por reimportação, e nada é excluído no Google.
+
+**RN15 — Vínculo de tarefa existente.** Só se vincula tarefa ativa (não arquivada), não concluída e que não seja tema Radar (tem a etiqueta Radar) nem o próprio tema; o tema precisa ser um tema ativo do mesmo usuário. Vincular e desvincular alteram **apenas** `radar_task_id`: `due_date`, prioridade, status, labels, pessoas, área e reservas ficam como estão, e a tarefa não herda a etiqueta Radar (RN04). Cada tarefa tem no máximo um tema: vincular a outro tema move o vínculo, e a interface avisa quando a tarefa escolhida já pertence a outro tema. A operação é uma RPC atômica (`torre_link_task_to_radar`), porque `torre_save_task` só grava `radar_task_id` na criação.
 
 **RN11 — Predicado único de tema Radar.** “É tema Radar” = tarefa ativa com a etiqueta Radar. Existe uma única definição (função/view no banco e um helper único no frontend), usada por: distribuição semanal, atrasadas, Meu dia, foco, sugestões de agenda, Modo IA e resumo do Telegram, que passam a excluir temas Radar. Tarefas vinculadas (`radar_task_id`) continuam executáveis. O predicado usa a etiqueta, não a existência de linha em `torre_radar`.
 
@@ -211,13 +217,19 @@ Dado a página Radar, quando preencher o formulário “Novo tema” com título
 **CA12 — Formulário completo**
 Dado o formulário “Novo tema” ou o detalhe de um tema, então ambos expõem os mesmos campos (título, descrição, temperatura, periodicidade, próxima revisão, anotações, pessoas e área), e editar pelo detalhe não exige outra tela.
 
+**CA13 — Vincular existente**
+Dada uma tarefa aberta que não é tema, quando eu a vincular a um tema pelo detalhe, então ela aparece em “Ações vinculadas” desse tema, e `due_date`, prioridade, status, labels e área continuam iguais; a tarefa não vira tema e segue executável.
+
+**CA14 — Regras do vínculo**
+Dado o seletor de “Vincular tarefa existente”, então ele não oferece temas Radar, tarefas concluídas nem tarefas já vinculadas a esse tema; e o banco recusa vínculo com tema de outro usuário, consigo mesmo ou com tarefa-tema. “Desvincular” remove o vínculo e preserva a tarefa.
+
 ## 11. Entregas e etapas sugeridas
 
 1. **Schema e segurança:** tabela `torre_radar`, coluna `radar_task_id`, FK, RLS e índices;
 2. **Consulta e UI:** página Radar, botão “Novo tema” com formulário completo (RF11), temperatura, filtros e detalhe;
 3. **Edição:** campo único de notas e salvamento com feedback;
 4. **Revisão:** periodicidade, botão de revisão e estado pendente;
-5. **Ações:** criar tarefa vinculada e listar ações;
+5. **Ações:** criar tarefa vinculada, vincular tarefa existente (RF12) e desvincular (RF13), e listar ações;
 6. **Compatibilidade:** programação semanal, vencidos, métricas, integração Google Tasks;
 7. **Backfill e testes:** preservar 11 registros Radar observados na consulta inicial e validar comportamento da Torre.
 

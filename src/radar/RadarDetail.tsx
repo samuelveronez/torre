@@ -6,7 +6,7 @@ import {priorities,type Priority} from '@/priority';
 import {primaryPerson,type Task} from '@/task';
 import type {useRadar} from './useRadar';
 import {ThemeForm} from './ThemeForm';
-import {draftChanged,draftError,draftFromTheme,linkedActions,nextReviewDate,reviewPending,type RadarTheme,type ThemeDraft} from './radarModel';
+import {draftChanged,draftError,draftFromTheme,linkableTasks,linkedActions,nextReviewDate,reviewPending,type RadarTheme,type ThemeDraft} from './radarModel';
 
 export type NewAction={title:string;priority:Priority;due:string};
 type Props={
@@ -19,11 +19,13 @@ type Props={
  onSaveTask:(taskId:string,fields:Pick<ThemeDraft,'title'|'description'|'area'|'personName'>)=>Promise<boolean>;
  onCreateAction:(theme:Task,action:NewAction)=>Promise<boolean>;
  onEnd:()=>Promise<boolean>;
+ radarId?:string;
+ onRefresh:()=>Promise<void>;
 };
 
 const actionState=(t:Task)=>t.done?'Concluída':t.situation==='waiting'?'Aguardando':'A fazer';
 
-export function RadarDetail({theme,tasks,radar,people,onClose,onEditTask,onSaveTask,onCreateAction,onEnd}:Props){
+export function RadarDetail({theme,tasks,radar,people,radarId,onRefresh,onClose,onEditTask,onSaveTask,onCreateAction,onEnd}:Props){
  const {task,record}=theme;
  const saved=draftFromTheme(theme);
  const [draft,setDraft]=useState<ThemeDraft>(saved);
@@ -34,8 +36,12 @@ export function RadarDetail({theme,tasks,radar,people,onClose,onEditTask,onSaveT
  const [due,setDue]=useState('');
  const [confirmEnd,setConfirmEnd]=useState(false);
  const [busy,setBusy]=useState(false);
+ const [linking,setLinking]=useState(false);
+ const [search,setSearch]=useState('');
+ const [linkMessage,setLinkMessage]=useState('');
  const dirty=draftChanged(draft,saved);
  const actions=linkedActions(tasks,task.id);
+ const linkable=linking?linkableTasks(tasks,task.id,radarId,search):[];
  const pending=reviewPending(record,radar.today);
  const extraPeople=primaryPerson(task).others.length;
 
@@ -57,6 +63,14 @@ export function RadarDetail({theme,tasks,radar,people,onClose,onEditTask,onSaveT
  }
  async function confirmReview(){
   if(await radar.review(task.id,record.intervalDays))setDraft(current=>({...current,nextReview:nextReviewDate(new Date(),record.intervalDays)}));
+ }
+ async function link(taskId:string,themeId:string|null){
+  setBusy(true);
+  try{
+   const ok=await radar.linkTask(taskId,themeId,onRefresh);
+   setLinkMessage(ok?(themeId?'Tarefa vinculada ao tema.':'Tarefa desvinculada.'):'Não foi possível alterar o vínculo. Tente novamente.');
+   if(ok){setSearch('');setLinking(false);}
+  }finally{setBusy(false);}
  }
  async function addAction(e:React.FormEvent){
   e.preventDefault();
@@ -97,10 +111,27 @@ export function RadarDetail({theme,tasks,radar,people,onClose,onEditTask,onSaveT
     <hr className="sep"/>
     <div className="f"><span className="lab">Ações vinculadas</span>
      {!actions.length&&<span className="desc">Nenhuma ação criada para este tema.</span>}
-     {actions.map(a=><button key={a.id} type="button" className="btn btn-g btn-sm" style={{justifyContent:'space-between',width:'100%'}} onClick={()=>onEditTask(a.id)}>
-      <span style={{overflow:'hidden',textOverflow:'ellipsis',textDecoration:a.done?'line-through':undefined}}>{a.title}</span>
-      <span className="desc">{actionState(a)} · {formatDue(a.due)}</span>
-     </button>)}
+     {actions.map(a=><div key={a.id} style={{display:'flex',alignItems:'center',gap:4}}>
+      <button type="button" className="btn btn-g btn-sm" style={{justifyContent:'space-between',flex:1,minWidth:0}} onClick={()=>onEditTask(a.id)}>
+       <span style={{overflow:'hidden',textOverflow:'ellipsis',textDecoration:a.done?'line-through':undefined}}>{a.title}</span>
+       <span className="desc">{actionState(a)} · {formatDue(a.due)}</span>
+      </button>
+      <button type="button" className="btn btn-g btn-i" aria-label={`Desvincular ${a.title}`} title="Desvincular" disabled={busy} onClick={()=>void link(a.id,null)}><X size={14} aria-hidden="true"/></button>
+     </div>)}
+     {!linking&&<button type="button" className="btn btn-sm" style={{alignSelf:'flex-start'}} onClick={()=>{setLinking(true);setLinkMessage('');}}>Vincular tarefa existente</button>}
+     {linking&&<div className="f" role="group" aria-label="Vincular tarefa existente">
+      <input className="inp" type="search" aria-label="Buscar tarefa para vincular" placeholder="Buscar tarefa pelo título" autoFocus value={search} onChange={e=>setSearch(e.target.value)}/>
+      <div style={{display:'flex',flexDirection:'column',gap:2,maxHeight:220,overflowY:'auto'}}>
+       {linkable.slice(0,30).map(t=>{const other=t.radarTaskId?tasks.find(x=>x.id===t.radarTaskId):undefined;return <button key={t.id} type="button" className="btn btn-g btn-sm" style={{justifyContent:'space-between',width:'100%'}} disabled={busy} onClick={()=>void link(t.id,task.id)}>
+        <span style={{overflow:'hidden',textOverflow:'ellipsis'}}>{t.title}</span>
+        <span className="desc">{other?`Move de “${other.title}”`:formatDue(t.due)}</span>
+       </button>;})}
+       {!linkable.length&&<span className="desc">Nenhuma tarefa aberta encontrada.</span>}
+       {linkable.length>30&&<span className="desc" style={{fontSize:12}}>Mostrando 30 de {linkable.length}; refine a busca.</span>}
+      </div>
+      <button type="button" className="btn btn-g btn-sm" style={{alignSelf:'flex-start'}} onClick={()=>{setLinking(false);setSearch('');}}>Cancelar</button>
+     </div>}
+     {linkMessage&&<span className="desc" role="status" style={{fontSize:12}}>{linkMessage}</span>}
     </div>
     <form className="f" onSubmit={e=>void addAction(e)} aria-label="Criar tarefa vinculada">
      <label className="lab" htmlFor="radar-action-title">Criar tarefa vinculada</label>
