@@ -1,7 +1,7 @@
 # PRD — Radar de Atenção
 
 **Produto:** Torre de Controle Executiva  
-**Versão:** 1.3 — MVP simplificado (revisado após avaliação)  
+**Versão:** 1.4 — MVP simplificado (revisado após avaliação)  
 **Data:** 30/10/2026  
 **Status:** Proposto para desenvolvimento — não implementado  
 **Repositório:** `samuelveronez/torre`  
@@ -83,6 +83,10 @@ Fora do formulário, por regra: prazo (`due_date`), prioridade e duração, que 
 **Removidos em v1.1:** histórico automático de atualizações, tabela `torre_radar_updates`, timeline, controle de versões das notas.
 
 ## 6. Proposta de interface
+
+**Protótipo de referência:** [`PRD_RADAR_ATENCAO_prototipo.html`](PRD_RADAR_ATENCAO_prototipo.html) (abrir no navegador). Mostra a página Radar, a edição do tema e o “Novo tema”, com dados de exemplo. É referência de **estrutura, campos e comportamento**, não de estilo.
+
+> **Design system obrigatório.** O protótipo usa CSS próprio apenas para ser autônomo. Ao desenvolver, **respeitar o design system da Torre**: usar o kit `src/ui-kit.css` (escopo `.tc`: `.btn`, `.inp`, `.badge`, `.tbl`, `.seg`, `.tc-modal`, `.tc-panel` etc., tokens `--tc-*` e modo escuro), utilitários Tailwind ou tokens de `src/design-system.css`, conforme `docs-internas/DESIGN_SYSTEM.md` e o `AGENTS.md`. Não copiar o CSS do protótipo nem criar CSS global novo. Conferir a tela lado a lado com os mockups (claro, escuro e 390 px).
 
 ### Página Radar
 - Contadores: monitorados, em atenção/críticos, com revisão pendente;

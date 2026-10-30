@@ -1,0 +1,369 @@
+<!doctype html>
+<html lang="pt-BR">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<title>Protótipo Radar</title>
+<meta name="claude:viewport-fit-sides" content="cover">
+<style>
+/* Layout: lista de temas à esquerda, painel de edição à direita (tela cheia no celular). Tokens espelham o kit .tc da Torre. */
+:root{
+  --bg:#ffffff; --bg-soft:#fafafa; --fg:#18181b; --muted:#71717a; --line:#e4e4e7; --hover:#f4f4f5;
+  --primary:#015ba7; --primary-fg:#ffffff; --primary-soft:#eff6ff; --primary-line:#bfdbfe;
+  --obs-bg:#eff6ff; --obs-line:#bfdbfe; --obs-fg:#1e40af;
+  --atn-bg:#fffbeb; --atn-line:#fde68a; --atn-fg:#92400e;
+  --cri-bg:#fef2f2; --cri-line:#fecaca; --cri-fg:#b91c1c;
+  --ok-bg:#f0fdf4; --ok-line:#bbf7d0; --ok-fg:#166534;
+  --shadow:0 8px 30px #00000026;
+}
+@media (prefers-color-scheme:dark){:root:not([data-theme="light"]){
+  --bg:#09090b; --bg-soft:#111113; --fg:#fafafa; --muted:#a1a1aa; --line:#27272a; --hover:#202023;
+  --primary:#60a5fa; --primary-fg:#09090b; --primary-soft:#0b1b3d; --primary-line:#1e3a8a;
+  --obs-bg:#0b1b3d; --obs-line:#1e3a8a; --obs-fg:#bfdbfe;
+  --atn-bg:#2a1f05; --atn-line:#5c4410; --atn-fg:#fcd34d;
+  --cri-bg:#2a0d0d; --cri-line:#5c1d1d; --cri-fg:#fca5a5;
+  --ok-bg:#06210f; --ok-line:#14532d; --ok-fg:#86efac;
+  --shadow:0 8px 30px #000000b3; color-scheme:dark}}
+:root[data-theme="dark"]{
+  --bg:#09090b; --bg-soft:#111113; --fg:#fafafa; --muted:#a1a1aa; --line:#27272a; --hover:#202023;
+  --primary:#60a5fa; --primary-fg:#09090b; --primary-soft:#0b1b3d; --primary-line:#1e3a8a;
+  --obs-bg:#0b1b3d; --obs-line:#1e3a8a; --obs-fg:#bfdbfe;
+  --atn-bg:#2a1f05; --atn-line:#5c4410; --atn-fg:#fcd34d;
+  --cri-bg:#2a0d0d; --cri-line:#5c1d1d; --cri-fg:#fca5a5;
+  --ok-bg:#06210f; --ok-line:#14532d; --ok-fg:#86efac;
+  --shadow:0 8px 30px #000000b3; color-scheme:dark}
+
+*{box-sizing:border-box}
+body{background:var(--bg);color:var(--fg);font-family:Inter,system-ui,-apple-system,"Segoe UI",sans-serif;font-size:14px;line-height:1.45;padding-left:max(16px,env(safe-area-inset-left,0px));padding-right:max(16px,env(safe-area-inset-right,0px));padding-block:16px 40px}
+button,input,select,textarea{font:inherit;color:inherit}
+.wrap{max-width:1180px;margin:0 auto;display:flex;flex-direction:column;gap:16px}
+.proto-note{font-size:12px;color:var(--muted);border:1px dashed var(--line);border-radius:8px;padding:8px 12px}
+
+header.top{display:flex;flex-wrap:wrap;align-items:center;gap:12px;justify-content:space-between}
+h1{font-size:22px;font-weight:650;margin:0;letter-spacing:-.01em}
+.sub{margin:2px 0 0;color:var(--muted);font-size:13px}
+
+.btn{display:inline-flex;align-items:center;justify-content:center;gap:8px;height:36px;padding:0 14px;border:1px solid var(--line);border-radius:6px;background:var(--bg);font-weight:500;white-space:nowrap;cursor:pointer}
+.btn:hover{background:var(--hover)}
+.btn-p{background:var(--primary);border-color:var(--primary);color:var(--primary-fg)}
+.btn-p:hover{background:var(--primary);filter:brightness(1.08)}
+.btn-d{color:var(--cri-fg)}
+.btn-d:hover{background:var(--cri-bg)}
+.btn-sm{height:30px;padding:0 10px;font-size:13px}
+.btn:focus-visible,.inp:focus-visible,.row:focus-visible,.chip:focus-visible,.seg button:focus-visible{outline:2px solid var(--primary);outline-offset:2px}
+
+.stats{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:12px}
+.stat{border:1px solid var(--line);border-radius:8px;padding:12px 14px;display:flex;flex-direction:column;gap:2px;background:var(--bg)}
+.stat b{font-size:24px;font-weight:650;font-variant-numeric:tabular-nums;line-height:1.1}
+.stat span{font-size:12px;color:var(--muted)}
+
+.toolbar{display:flex;flex-wrap:wrap;gap:8px;align-items:center}
+.inp{height:36px;width:100%;border:1px solid var(--line);border-radius:6px;background:var(--bg);padding:0 12px;box-shadow:0 1px 2px #0000000a}
+textarea.inp{height:auto;padding:8px 12px;line-height:1.5;resize:vertical}
+.search{flex:1 1 220px;min-width:0}
+.seg{display:inline-flex;border:1px solid var(--line);border-radius:6px;overflow:hidden}
+.seg button{height:34px;padding:0 12px;border:0;background:var(--bg);cursor:pointer}
+.seg button+button{border-left:1px solid var(--line)}
+.seg button[aria-pressed=true]{background:var(--hover);font-weight:600}
+.chip{display:inline-flex;align-items:center;gap:6px;height:34px;padding:0 12px;border:1px solid var(--line);border-radius:6px;background:var(--bg);cursor:pointer;font-weight:500}
+.chip[aria-pressed=true]{background:var(--primary-soft);border-color:var(--primary);color:var(--primary)}
+
+.layout{display:grid;grid-template-columns:minmax(0,1fr) minmax(0,420px);gap:16px;align-items:start}
+.layout.nopanel{grid-template-columns:minmax(0,1fr)}
+.list{display:flex;flex-direction:column;gap:8px;min-width:0}
+.row{display:flex;flex-direction:column;gap:6px;text-align:left;width:100%;border:1px solid var(--line);border-radius:8px;background:var(--bg);padding:12px 14px;cursor:pointer}
+.row:hover{background:var(--bg-soft)}
+.row[aria-current=true]{border-color:var(--primary);box-shadow:0 0 0 1px var(--primary)}
+.row-h{display:flex;gap:8px;align-items:flex-start;justify-content:space-between}
+.row-t{font-weight:600;min-width:0;overflow-wrap:anywhere}
+.row-s{color:var(--muted);font-size:13px;display:-webkit-box;-webkit-line-clamp:2;-webkit-box-orient:vertical;overflow:hidden;overflow-wrap:anywhere}
+.row-f{display:flex;flex-wrap:wrap;gap:6px 10px;align-items:center;font-size:12px;color:var(--muted)}
+.badge{display:inline-flex;align-items:center;height:22px;padding:0 8px;border:1px solid var(--line);border-radius:6px;font-size:12px;font-weight:500;white-space:nowrap}
+.b-observar{background:var(--obs-bg);border-color:var(--obs-line);color:var(--obs-fg)}
+.b-atencao{background:var(--atn-bg);border-color:var(--atn-line);color:var(--atn-fg)}
+.b-critico{background:var(--cri-bg);border-color:var(--cri-line);color:var(--cri-fg)}
+.b-ok{background:var(--ok-bg);border-color:var(--ok-line);color:var(--ok-fg)}
+.b-pend{background:var(--atn-bg);border-color:var(--atn-line);color:var(--atn-fg)}
+.empty{border:1px dashed var(--line);border-radius:8px;padding:28px 16px;text-align:center;color:var(--muted)}
+
+.panel{border:1px solid var(--line);border-radius:8px;background:var(--bg);position:sticky;top:8px;max-height:calc(100dvh - 16px);overflow:auto}
+.panel-h{display:flex;align-items:center;justify-content:space-between;gap:8px;padding:12px 16px;border-bottom:1px solid var(--line);position:sticky;top:0;background:var(--bg);z-index:2}
+.panel-h h2{margin:0;font-size:15px;font-weight:650}
+.panel-b{padding:16px;display:flex;flex-direction:column;gap:16px}
+.panel-f{display:flex;flex-wrap:wrap;gap:8px;justify-content:space-between;padding:12px 16px;border-top:1px solid var(--line);position:sticky;bottom:0;background:var(--bg)}
+.f{display:flex;flex-direction:column;gap:6px;min-width:0}
+.f>label,.f>.lab{font-weight:500;font-size:13px}
+.hint{font-size:12px;color:var(--muted);margin:0}
+.two{display:grid;grid-template-columns:1fr 1fr;gap:12px}
+.tchips{display:flex;flex-wrap:wrap;gap:6px}
+.pchip{display:inline-flex;align-items:center;gap:4px;height:28px;padding:0 4px 0 10px;border:1px solid var(--line);border-radius:999px;background:var(--bg-soft);font-size:13px}
+.pchip button{border:0;background:transparent;width:22px;height:22px;border-radius:50%;cursor:pointer;color:var(--muted)}
+.pchip button:hover{background:var(--hover)}
+.review{display:flex;flex-wrap:wrap;gap:8px;align-items:center;justify-content:space-between;border:1px solid var(--line);border-radius:8px;background:var(--bg-soft);padding:10px 12px}
+.review.pend{background:var(--atn-bg);border-color:var(--atn-line)}
+.review small{display:block;color:var(--muted)}
+.tasks{display:flex;flex-direction:column;border:1px solid var(--line);border-radius:8px;overflow:hidden}
+.task{display:flex;gap:8px;align-items:center;justify-content:space-between;padding:8px 12px;border-top:1px solid var(--line)}
+.task:first-child{border-top:0}
+.task span{min-width:0;overflow-wrap:anywhere}
+.mini{display:grid;grid-template-columns:1fr 1fr;gap:8px;padding:12px;border:1px dashed var(--line);border-radius:8px}
+.mini .full{grid-column:1/-1}
+.sep{border:0;height:1px;background:var(--line);margin:0}
+
+.overlay{position:fixed;inset:0;background:#00000066;display:flex;align-items:flex-start;justify-content:center;padding:max(16px,env(safe-area-inset-top,0px)) 16px 16px;overflow:auto;z-index:50}
+.modal{width:100%;max-width:560px;background:var(--bg);border:1px solid var(--line);border-radius:10px;box-shadow:var(--shadow);margin:auto 0}
+.modal .panel-h,.modal .panel-f{position:static}
+.toast{position:fixed;left:50%;bottom:calc(20px + env(safe-area-inset-bottom,0px));transform:translateX(-50%);background:var(--fg);color:var(--bg);padding:10px 16px;border-radius:8px;font-weight:500;z-index:60;max-width:90vw}
+
+@media(max-width:860px){
+  .layout{grid-template-columns:minmax(0,1fr)}
+  .panel.inline{position:fixed;inset:0;max-height:none;border-radius:0;z-index:40;padding-top:env(safe-area-inset-top,0px)}
+  .stats{gap:8px}
+  .stat{padding:10px}
+  .stat b{font-size:20px}
+}
+@media(max-width:480px){.two{grid-template-columns:1fr}.mini{grid-template-columns:1fr}}
+@media(prefers-reduced-motion:reduce){*{transition:none!important}}
+</style>
+</head>
+<body>
+
+<div class="wrap">
+  <div class="proto-note">Protótipo navegável do Radar (PRD v1.3). Os 6 temas são exemplos, e nada é salvo. Clique num tema para editar ou em “Novo tema” para criar.</div>
+
+  <header class="top">
+    <div>
+      <h1>Radar</h1>
+      <p class="sub">Temas para acompanhar. Quem executa são as tarefas vinculadas.</p>
+    </div>
+    <button class="btn btn-p" id="btn-new" type="button">+ Novo tema</button>
+  </header>
+
+  <section class="stats" aria-label="Resumo">
+    <div class="stat"><b id="s-total">0</b><span>Monitorados</span></div>
+    <div class="stat"><b id="s-hot">0</b><span>Em atenção ou críticos</span></div>
+    <div class="stat"><b id="s-pend">0</b><span>Com revisão pendente</span></div>
+  </section>
+
+  <div class="toolbar">
+    <input class="inp search" id="q" type="search" placeholder="Buscar por título ou anotação" aria-label="Buscar">
+    <div class="seg" id="seg-temp" role="group" aria-label="Temperatura">
+      <button type="button" data-v="all" aria-pressed="true">Todos</button>
+      <button type="button" data-v="observar" aria-pressed="false">Observar</button>
+      <button type="button" data-v="atencao" aria-pressed="false">Atenção</button>
+      <button type="button" data-v="critico" aria-pressed="false">Crítico</button>
+    </div>
+    <button class="chip" id="chip-pend" type="button" aria-pressed="false">Revisão pendente</button>
+  </div>
+
+  <div class="layout" id="layout">
+    <div class="list" id="list"></div>
+    <div id="panel-slot"></div>
+  </div>
+</div>
+<div id="modal-slot"></div>
+<div id="toast-slot"></div>
+
+<script>
+(function(){
+  var DAY=86400000;
+  function iso(d){return d.getFullYear()+'-'+String(d.getMonth()+1).padStart(2,'0')+'-'+String(d.getDate()).padStart(2,'0');}
+  function addDays(s,n){var p=s.split('-');var d=new Date(+p[0],+p[1]-1,+p[2]);d.setDate(d.getDate()+n);return iso(d);}
+  var TODAY=iso(new Date());
+  function fmt(s){if(!s)return '—';var p=s.split('-');return p[2]+'/'+p[1]+'/'+p[0];}
+  function diff(s){var a=s.split('-'),b=TODAY.split('-');return Math.round((new Date(+a[0],+a[1]-1,+a[2])-new Date(+b[0],+b[1]-1,+b[2]))/DAY);}
+  var TEMP={observar:'Observar',atencao:'Atenção',critico:'Crítico'};
+  var AREAS=['Profissional','Pessoal','Família'];
+  var PRIO={none:'Sem prioridade',low:'Baixa',medium:'Média',high:'Alta'};
+
+  var uid=100;
+  var themes=[
+    {id:'t1',title:'Renovação do contrato com a oficina credenciada',desc:'Vigência termina em dezembro; jurídico ainda não retornou sobre reajuste.',temp:'critico',interval:7,next:addDays(TODAY,-3),last:addDays(TODAY,-10),notes:'30/10: jurídico pediu mais 5 dias.\n23/10: proposta de reajuste de 6% recebida.',people:['Marina Costa','Jurídico'],area:'Profissional',tasks:[{title:'Cobrar parecer do jurídico',prio:'high',due:addDays(TODAY,2),status:'todo'},{title:'Comparar proposta com contrato atual',prio:'medium',due:'',status:'completed'}]},
+    {id:'t2',title:'Piloto de vistoria remota por foto',desc:'Programa em testes com duas filiais.',temp:'atencao',interval:15,next:addDays(TODAY,0),last:addDays(TODAY,-15),notes:'Taxa de reenvio de fotos ainda alta. Aguardar relatório de novembro.',people:['Rafael Dias'],area:'Profissional',tasks:[{title:'Pedir relatório parcial ao Rafael',prio:'medium',due:addDays(TODAY,5),status:'waiting'}]},
+    {id:'t3',title:'Mudança de escola da Helena',desc:'Avaliar opções para 2027.',temp:'observar',interval:30,next:addDays(TODAY,12),last:addDays(TODAY,-18),notes:'Visitas só em fevereiro. Ver mensalidades até lá.',people:[],area:'Família',tasks:[]},
+    {id:'t4',title:'Reestruturação do time de regulação',desc:'',temp:'atencao',interval:15,next:addDays(TODAY,-1),last:addDays(TODAY,-16),notes:'',people:['Patrícia Lemos','Diego Nunes'],area:'Profissional',tasks:[{title:'Agendar 1:1 com Patrícia',prio:'high',due:addDays(TODAY,1),status:'todo'}]},
+    {id:'t5',title:'Ideia: resumo semanal por voz no Telegram',desc:'Possível evolução do resumo diário.',temp:'observar',interval:30,next:addDays(TODAY,21),last:'',notes:'Só pensar depois que o Radar estiver no ar.',people:[],area:'Pessoal',tasks:[]},
+    {id:'t6',title:'Regularização do imóvel de Atibaia',desc:'Escritura e IPTU em atraso.',temp:'critico',interval:15,next:addDays(TODAY,4),last:addDays(TODAY,-11),notes:'Cartório pediu certidão atualizada.',people:['Cartório'],area:'Pessoal',tasks:[{title:'Solicitar certidão atualizada',prio:'high',due:addDays(TODAY,3),status:'todo'}]}
+  ];
+  var PEOPLE=['Marina Costa','Rafael Dias','Patrícia Lemos','Diego Nunes','Jurídico','Cartório'];
+
+  var st={q:'',temp:'all',pend:false,sel:null,mode:null,draft:null,quick:{title:'',prio:'none',due:''},pickPerson:''};
+
+  function $(id){return document.getElementById(id);}
+  function esc(s){return String(s).replace(/[&<>"]/g,function(c){return {'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;'}[c];});}
+  function pending(t){return !!t.next&&diff(t.next)<=0;}
+  function find(id){return themes.filter(function(t){return t.id===id;})[0];}
+  function toast(msg){var s=$('toast-slot');s.innerHTML='<div class="toast" role="status">'+esc(msg)+'</div>';clearTimeout(toast.t);toast.t=setTimeout(function(){s.innerHTML='';},2200);}
+
+  function revBadge(t){
+    if(pending(t))return '<span class="badge b-pend">Revisão pendente</span>';
+    return '<span class="badge">Revisar em '+fmt(t.next)+'</span>';
+  }
+
+  function renderList(){
+    var q=st.q.trim().toLowerCase();
+    var items=themes.filter(function(t){
+      if(st.temp!=='all'&&t.temp!==st.temp)return false;
+      if(st.pend&&!pending(t))return false;
+      if(q&&(t.title+' '+t.notes+' '+t.desc).toLowerCase().indexOf(q)<0)return false;
+      return true;
+    }).sort(function(a,b){
+      var o={critico:0,atencao:1,observar:2};
+      return (pending(b)-pending(a))||(o[a.temp]-o[b.temp])||String(a.next).localeCompare(String(b.next));
+    });
+    $('s-total').textContent=themes.length;
+    $('s-hot').textContent=themes.filter(function(t){return t.temp!=='observar';}).length;
+    $('s-pend').textContent=themes.filter(pending).length;
+    var html='';
+    items.forEach(function(t){
+      var open=t.tasks.filter(function(x){return x.status!=='completed';}).length;
+      html+='<button type="button" class="row" data-open="'+t.id+'" aria-current="'+(st.sel===t.id&&st.mode==='edit')+'">'+
+        '<div class="row-h"><span class="row-t">'+esc(t.title)+'</span><span class="badge b-'+t.temp+'">'+TEMP[t.temp]+'</span></div>'+
+        (t.notes||t.desc?'<div class="row-s">'+esc(t.notes||t.desc)+'</div>':'<div class="row-s">Sem anotações ainda.</div>')+
+        '<div class="row-f">'+revBadge(t)+
+        (t.people.length?'<span>'+esc(t.people.join(', '))+'</span>':'')+
+        '<span>'+open+(open===1?' ação aberta':' ações abertas')+'</span></div></button>';
+    });
+    if(!items.length){
+      html='<div class="empty">'+(themes.length?'Nenhum tema com esses filtros.<br><button class="btn btn-sm" id="clear" type="button" style="margin-top:10px">Limpar filtros</button>':'Nenhum tema no Radar ainda.<br>Use “Novo tema” para criar o primeiro.')+'</div>';
+    }
+    $('list').innerHTML=html;
+  }
+
+  function formHtml(d,isNew){
+    var h='';
+    h+='<div class="f"><label for="f-title">Título</label><input class="inp" id="f-title" value="'+esc(d.title)+'" placeholder="Ex.: Renovação do contrato"></div>';
+    h+='<div class="f"><label for="f-desc">Descrição</label><textarea class="inp" id="f-desc" rows="2" placeholder="Do que se trata este tema">'+esc(d.desc)+'</textarea></div>';
+    h+='<div class="two"><div class="f"><span class="lab">Temperatura</span><div class="seg" id="f-temp" role="group" aria-label="Temperatura">'+
+      ['observar','atencao','critico'].map(function(k){return '<button type="button" data-temp="'+k+'" aria-pressed="'+(d.temp===k)+'">'+TEMP[k]+'</button>';}).join('')+'</div></div>'+
+      '<div class="f"><span class="lab">Revisar a cada</span><div class="seg" id="f-int" role="group" aria-label="Periodicidade">'+
+      [7,15,30].map(function(k){return '<button type="button" data-int="'+k+'" aria-pressed="'+(d.interval===k)+'">'+k+' dias</button>';}).join('')+'</div></div></div>';
+    if(isNew){
+      h+='<div class="f"><label for="f-next">Próxima revisão</label><input class="inp" type="date" id="f-next" value="'+esc(d.next)+'"><p class="hint">Padrão: hoje + periodicidade. Você pode alterar.</p></div>';
+    }else{
+      h+='<div class="review'+(pending(d)?' pend':'')+'"><div><b>'+(pending(d)?'Revisão pendente':'Próxima revisão: '+fmt(d.next))+'</b><small>Última revisão: '+(d.last?fmt(d.last.slice(0,10)):'nunca')+'</small></div>'+
+        '<div style="display:flex;gap:8px;align-items:center;flex-wrap:wrap"><input class="inp" type="date" id="f-next" value="'+esc(d.next)+'" style="width:150px" aria-label="Próxima revisão"><button class="btn btn-sm" type="button" id="btn-rev">Marcar como revisado</button></div></div>';
+    }
+    h+='<div class="f"><label for="f-notes">Anotações e contexto atual</label><textarea class="inp" id="f-notes" rows="6" placeholder="Escreva o contexto e atualize quando precisar. Salvar substitui o texto anterior.">'+esc(d.notes)+'</textarea><p class="hint">Campo único, sem histórico. Se quiser registro cronológico, escreva a data no texto.</p></div>';
+    h+='<div class="two"><div class="f"><label for="f-area">Área</label><select class="inp" id="f-area">'+AREAS.map(function(a){return '<option'+(d.area===a?' selected':'')+'>'+a+'</option>';}).join('')+'</select></div>'+
+      '<div class="f"><label for="f-person">Pessoas</label><select class="inp" id="f-person"><option value="">Adicionar…</option>'+PEOPLE.filter(function(p){return d.people.indexOf(p)<0;}).map(function(p){return '<option>'+esc(p)+'</option>';}).join('')+'</select></div></div>';
+    if(d.people.length)h+='<div class="tchips">'+d.people.map(function(p,i){return '<span class="pchip">'+esc(p)+'<button type="button" data-rmp="'+i+'" aria-label="Remover '+esc(p)+'">✕</button></span>';}).join('')+'</div>';
+    return h;
+  }
+
+  function tasksHtml(d){
+    var h='<hr class="sep"><div class="f"><span class="lab">Tarefas vinculadas</span>';
+    if(d.tasks.length){
+      h+='<div class="tasks">'+d.tasks.map(function(x){
+        var lab={todo:'A fazer',waiting:'Aguardando',completed:'Concluída'}[x.status];
+        var cls=x.status==='completed'?'b-ok':'';
+        return '<div class="task"><span>'+esc(x.title)+'<br><small style="color:var(--muted)">'+PRIO[x.prio]+' · '+(x.due?'vence '+fmt(x.due):'sem prazo')+'</small></span><span class="badge '+cls+'">'+lab+'</span></div>';
+      }).join('')+'</div>';
+    }else h+='<p class="hint">Nenhuma tarefa vinculada ainda.</p>';
+    h+='<div class="mini"><div class="f full"><label for="q-title">Criar tarefa vinculada</label><input class="inp" id="q-title" placeholder="O que precisa ser feito" value="'+esc(st.quick.title)+'"></div>'+
+      '<div class="f"><label for="q-prio">Prioridade</label><select class="inp" id="q-prio">'+Object.keys(PRIO).map(function(k){return '<option value="'+k+'"'+(st.quick.prio===k?' selected':'')+'>'+PRIO[k]+'</option>';}).join('')+'</select></div>'+
+      '<div class="f"><label for="q-due">Vencimento</label><input class="inp" type="date" id="q-due" value="'+esc(st.quick.due)+'"></div>'+
+      '<div class="full" style="display:flex;justify-content:space-between;gap:8px;align-items:center;flex-wrap:wrap"><p class="hint" style="flex:1 1 180px">A tarefa vai para “A fazer” e não herda a etiqueta Radar.</p><button class="btn btn-sm" type="button" id="btn-task">Criar tarefa</button></div></div></div>';
+    return h;
+  }
+
+  function renderPanel(){
+    var slotP=$('panel-slot'),slotM=$('modal-slot');
+    var lay=$('layout');
+    slotP.innerHTML='';slotM.innerHTML='';
+    lay.className='layout'+(st.mode==='edit'?'':' nopanel');
+    if(st.mode==='edit'&&st.draft){
+      slotP.innerHTML='<aside class="panel inline" aria-label="Editar tema"><div class="panel-h"><h2>Editar tema</h2><button class="btn btn-sm" type="button" id="btn-close">Fechar</button></div><div class="panel-b">'+formHtml(st.draft,false)+tasksHtml(st.draft)+'</div>'+
+        '<div class="panel-f"><button class="btn btn-d btn-sm" type="button" id="btn-end">Encerrar tema</button><div style="display:flex;gap:8px"><button class="btn btn-sm" type="button" id="btn-close2">Cancelar</button><button class="btn btn-p btn-sm" type="button" id="btn-save">Salvar</button></div></div></aside>';
+    }
+    if(st.mode==='new'&&st.draft){
+      slotM.innerHTML='<div class="overlay" id="ov"><div class="modal" role="dialog" aria-modal="true" aria-label="Novo tema"><div class="panel-h"><h2>Novo tema</h2><button class="btn btn-sm" type="button" id="btn-close">Fechar</button></div><div class="panel-b">'+formHtml(st.draft,true)+
+        '<p class="hint" id="err" style="color:var(--cri-fg)" hidden>Informe um título para criar o tema.</p></div><div class="panel-f" style="justify-content:flex-end"><button class="btn btn-sm" type="button" id="btn-close2">Cancelar</button><button class="btn btn-p btn-sm" type="button" id="btn-create">Criar tema</button></div></div></div>';
+    }
+  }
+
+  function render(){renderList();renderPanel();}
+
+  function blank(){
+    return {id:null,title:'',desc:'',temp:'observar',interval:15,next:addDays(TODAY,15),last:'',notes:'',people:[],area:'Profissional',tasks:[]};
+  }
+  function clone(t){return JSON.parse(JSON.stringify(t));}
+  function readFields(){
+    var d=st.draft;if(!d)return;
+    var g=function(id){var e=$(id);return e?e.value:null;};
+    if(g('f-title')!==null)d.title=g('f-title');
+    if(g('f-desc')!==null)d.desc=g('f-desc');
+    if(g('f-notes')!==null)d.notes=g('f-notes');
+    if(g('f-area')!==null)d.area=g('f-area');
+    if(g('f-next')!==null)d.next=g('f-next');
+    if(g('q-title')!==null){st.quick.title=g('q-title');st.quick.prio=g('q-prio');st.quick.due=g('q-due');}
+  }
+  function openEdit(id){st.sel=id;st.mode='edit';st.draft=clone(find(id));st.quick={title:'',prio:'none',due:''};render();}
+  function openNew(){st.sel=null;st.mode='new';st.draft=blank();st.quick={title:'',prio:'none',due:''};render();var e=$('f-title');if(e)e.focus();}
+  function closeAll(){st.mode=null;st.draft=null;st.sel=null;render();}
+
+  document.addEventListener('click',function(e){
+    var el=e.target.closest('button,[data-open]');
+    if(!el){return;}
+    if(el.id==='btn-new'){openNew();return;}
+    if(el.dataset.open){openEdit(el.dataset.open);return;}
+    if(el.id==='clear'){st.q='';st.temp='all';st.pend=false;$('q').value='';syncFilters();render();return;}
+    if(el.closest('#seg-temp')){st.temp=el.dataset.v;syncFilters();renderList();return;}
+    if(el.id==='chip-pend'){st.pend=!st.pend;syncFilters();renderList();return;}
+    if(el.id==='btn-close'||el.id==='btn-close2'){closeAll();return;}
+    if(!st.draft)return;
+    if(el.dataset.temp){readFields();st.draft.temp=el.dataset.temp;renderPanel();return;}
+    if(el.dataset.int){
+      readFields();st.draft.interval=+el.dataset.int;
+      if(st.mode==='new')st.draft.next=addDays(TODAY,st.draft.interval);
+      renderPanel();return;
+    }
+    if(el.dataset.rmp!==undefined){readFields();st.draft.people.splice(+el.dataset.rmp,1);renderPanel();return;}
+    if(el.id==='btn-rev'){
+      readFields();st.draft.last=TODAY;st.draft.next=addDays(TODAY,st.draft.interval);
+      var t=find(st.sel);t.last=TODAY;t.next=st.draft.next;
+      renderList();renderPanel();toast('Revisão registrada. Próxima em '+fmt(st.draft.next)+'.');return;
+    }
+    if(el.id==='btn-task'){
+      readFields();
+      if(!st.quick.title.trim()){toast('Informe o título da tarefa.');return;}
+      var nt={title:st.quick.title.trim(),prio:st.quick.prio,due:st.quick.due,status:'todo'};
+      st.draft.tasks.push(nt);find(st.sel).tasks.push(clone(nt));
+      st.quick={title:'',prio:'none',due:''};
+      render();toast('Tarefa criada em “A fazer”.');return;
+    }
+    if(el.id==='btn-save'){
+      readFields();
+      if(!st.draft.title.trim()){toast('O título não pode ficar vazio.');return;}
+      var i=themes.indexOf(find(st.sel));themes[i]=clone(st.draft);
+      render();toast('Tema salvo.');return;
+    }
+    if(el.id==='btn-end'){
+      var tt=find(st.sel);themes.splice(themes.indexOf(tt),1);
+      closeAll();toast('Tema encerrado. Notas preservadas.');return;
+    }
+    if(el.id==='btn-create'){
+      readFields();
+      if(!st.draft.title.trim()){$('err').hidden=false;$('f-title').focus();return;}
+      var nd=clone(st.draft);nd.id='t'+(++uid);nd.title=nd.title.trim();
+      themes.push(nd);st.sel=nd.id;st.mode='edit';st.draft=clone(nd);
+      render();toast('Tema criado, sem prazo de execução.');return;
+    }
+  });
+  document.addEventListener('change',function(e){
+    if(e.target.id==='f-person'&&e.target.value&&st.draft){readFields();st.draft.people.push(e.target.value);renderPanel();}
+  });
+  document.addEventListener('input',function(e){
+    if(e.target.id==='q'){st.q=e.target.value;renderList();}
+  });
+  document.addEventListener('keydown',function(e){if(e.key==='Escape'&&st.mode)closeAll();});
+
+  function syncFilters(){
+    [].forEach.call(document.querySelectorAll('#seg-temp button'),function(b){b.setAttribute('aria-pressed',String(b.dataset.v===st.temp));});
+    $('chip-pend').setAttribute('aria-pressed',String(st.pend));
+  }
+  render();
+})();
+</script>
+</body>
+</html>
