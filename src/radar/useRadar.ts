@@ -62,8 +62,16 @@ export function useRadar(userId:string,themeIds:string[]){
    return {error:message(failure)};
   }
  }
+ /** Vincula (themeId) ou desvincula (null) uma tarefa existente; só `radar_task_id` muda (RN15). */
+ async function linkTask(taskId:string,themeId:string|null,refresh:()=>Promise<void>){
+  const {error:failure}=await supabase.rpc('torre_link_task_to_radar',{p_task:taskId,p_theme:themeId});
+  if(failure){setError(message(failure));return false;}
+  setError('');
+  await refresh();
+  return true;
+ }
  return {
-  records,ready,error,createTheme,
+  records,ready,error,createTheme,linkTask,
   /** Grava a configuração do tema sem tocar na revisão confirmada (RN06). */
   saveSettings:(taskId:string,draft:Pick<ThemeDraft,'temperature'|'intervalDays'|'nextReview'|'notes'>)=>update(taskId,{temperature:draft.temperature,review_interval_days:draft.intervalDays,next_review_date:draft.nextReview||null,notes:draft.notes}),
   /** Confirma a revisão: grava a data e agenda a próxima a partir de hoje (RN06). */

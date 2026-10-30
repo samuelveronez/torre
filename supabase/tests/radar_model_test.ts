@@ -1,4 +1,4 @@
-import {radarLabelId,isRadarTheme,executableTasks,nextReviewDate,reviewPending,saoPauloDay,filterThemes,sortThemes,radarCounters,linkedActions,noFilters,emptyDraft,withInterval,draftError,newThemeArgs,draftFromTheme,draftChanged,type RadarTheme} from '../../src/radar/radarModel.ts';
+import {radarLabelId,isRadarTheme,executableTasks,nextReviewDate,reviewPending,saoPauloDay,filterThemes,sortThemes,radarCounters,linkedActions,noFilters,emptyDraft,linkableTasks,withInterval,draftError,newThemeArgs,draftFromTheme,draftChanged,type RadarTheme} from '../../src/radar/radarModel.ts';
 import {dayGroups} from '../../src/taskView.ts';
 import type {Task} from '../../src/task.ts';
 const task=(id:string,fields:Partial<Task>={}):Task=>({id,title:id,area:'Profissional',minutes:30,due:'',source:'Torre',done:false,createdAt:'2026-10-01T12:00:00',...fields});
@@ -90,4 +90,19 @@ Deno.test('Detalhe do tema: rascunho espelha tema e detecta alteração',()=>{
  equal([draft.title,draft.description,draft.notes,draft.nextReview,draft.personName],['t','d','n','2026-11-01','Ana']);
  equal(draftChanged(draft,draftFromTheme(t)),false);
  equal(draftChanged(draft,{...draft,notes:'outro'}),true);
+});
+
+Deno.test('Vincular existente: só tarefas abertas que não são temas nem já ligadas ao tema',()=>{
+ const tasks=[
+  task('theme',{title:'Tema',labelIds:['r']}),
+  task('other-theme',{title:'Outro tema',labelIds:['r']}),
+  task('b',{title:'Bolo'}),
+  task('a',{title:'Ação'}),
+  task('done',{title:'Feita',done:true}),
+  task('linked',{title:'Ja ligada',radarTaskId:'theme'}),
+  task('elsewhere',{title:'Em outro tema',radarTaskId:'other-theme'}),
+ ];
+ equal(linkableTasks(tasks,'theme','r').map(t=>t.id),['a','b','elsewhere']);
+ equal(linkableTasks(tasks,'theme','r','ACAO').map(t=>t.id),['a']);
+ equal(linkableTasks(tasks,'theme','r','zzz').length,0);
 });
