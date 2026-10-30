@@ -1,12 +1,12 @@
 import {useState} from 'react';
 import {X} from 'lucide-react';
 import {Sheet,SheetContent,SheetTitle,SheetDescription} from '@/components/ui/sheet';
-import {Seg} from '@/ui-kit/Seg';
 import {formatDue} from '@/ui-kit/format';
 import {priorities,type Priority} from '@/priority';
-import type {Task} from '@/task';
+import {primaryPerson,type Task} from '@/task';
 import type {useRadar} from './useRadar';
-import {intervalOptions,linkedActions,reviewPending,temperatureNames,type Interval,type RadarTheme,type Temperature} from './radarModel';
+import {ThemeForm} from './ThemeForm';
+import {draftChanged,draftError,draftFromTheme,linkedActions,nextReviewDate,reviewPending,type RadarTheme,type ThemeDraft} from './radarModel';
 
 export type NewAction={title:string;priority:Priority;due:string};
 type Props={
@@ -15,34 +15,48 @@ type Props={
  radar:ReturnType<typeof useRadar>;
  onClose:()=>void;
  onEditTask:(id:string)=>void;
+ people:{id:string;name:string}[];
+ onSaveTask:(taskId:string,fields:Pick<ThemeDraft,'title'|'description'|'area'|'personName'>)=>Promise<boolean>;
  onCreateAction:(theme:Task,action:NewAction)=>Promise<boolean>;
  onEnd:()=>Promise<boolean>;
 };
 
-const temperatureOptions=(Object.keys(temperatureNames) as Temperature[]).map(value=>({value,label:temperatureNames[value]}));
-const intervalChoices=intervalOptions.map(value=>({value:String(value),label:`${value} dias`}));
 const actionState=(t:Task)=>t.done?'Concluída':t.situation==='waiting'?'Aguardando':'A fazer';
 
-export function RadarDetail({theme,tasks,radar,onClose,onEditTask,onCreateAction,onEnd}:Props){
+export function RadarDetail({theme,tasks,radar,people,onClose,onEditTask,onSaveTask,onCreateAction,onEnd}:Props){
  const {task,record}=theme;
- const [notes,setNotes]=useState(record.notes);
+ const saved=draftFromTheme(theme);
+ const [draft,setDraft]=useState<ThemeDraft>(saved);
  const [status,setStatus]=useState<'idle'|'saving'|'saved'|'error'>('idle');
+ const [problem,setProblem]=useState('');
  const [title,setTitle]=useState('');
  const [priority,setPriority]=useState<Priority>('none');
  const [due,setDue]=useState('');
  const [confirmEnd,setConfirmEnd]=useState(false);
  const [busy,setBusy]=useState(false);
- const dirty=notes!==record.notes;
+ const dirty=draftChanged(draft,saved);
  const actions=linkedActions(tasks,task.id);
  const pending=reviewPending(record,radar.today);
+ const extraPeople=primaryPerson(task).others.length;
 
  function requestClose(){
-  if(dirty&&!window.confirm('Há anotações não salvas. Fechar mesmo assim?'))return;
+  if(dirty&&!window.confirm('Há alterações não salvas. Fechar mesmo assim?'))return;
   onClose();
  }
- async function saveNotes(){
+ async function save(){
+  const invalid=draftError(draft);
+  if(invalid){setProblem(invalid);return;}
+  setProblem('');
+  setDraft(current=>({...current,title:current.title.trim(),description:current.description.trim()}));
   setStatus('saving');
-  setStatus(await radar.saveNotes(task.id,notes)?'saved':'error');
+  const taskChanged=(['title','description','area','personName'] as const).some(key=>draft[key]!==saved[key]);
+  const radarChanged=(['temperature','intervalDays','nextReview','notes'] as const).some(key=>draft[key]!==saved[key]);
+  const taskOk=!taskChanged||await onSaveTask(task.id,{title:draft.title.trim(),description:draft.description.trim(),area:draft.area,personName:draft.personName});
+  const radarOk=taskOk&&(!radarChanged||await radar.saveSettings(task.id,draft));
+  setStatus(taskOk&&radarOk?'saved':'error');
+ }
+ async function confirmReview(){
+  if(await radar.review(task.id,record.intervalDays))setDraft(current=>({...current,nextReview:nextReviewDate(new Date(),record.intervalDays)}));
  }
  async function addAction(e:React.FormEvent){
   e.preventDefault();
@@ -61,32 +75,24 @@ export function RadarDetail({theme,tasks,radar,onClose,onEditTask,onCreateAction
   <SheetContent showCloseButton={false} className="tc tc-panel" onEscapeKeyDown={e=>{e.preventDefault();requestClose();}} onPointerDownOutside={e=>{e.preventDefault();requestClose();}}>
    <div className="tc-panel-head">
     <div className="f">
-     <SheetTitle style={{margin:0,fontSize:16,fontWeight:600,lineHeight:1.3,color:'var(--foreground)'}}>{task.title}</SheetTitle>
-     <SheetDescription className="desc">{(task.description??'').trim()||'Sem descrição.'}</SheetDescription>
+     <SheetTitle style={{margin:0,fontSize:16,fontWeight:600,lineHeight:1.3,color:'var(--foreground)'}}>Editar tema</SheetTitle>
+     <SheetDescription className="desc">{task.title}</SheetDescription>
     </div>
     <button type="button" className="btn btn-g btn-i" aria-label="Fechar tema" onClick={requestClose}><X size={16} aria-hidden="true"/></button>
    </div>
    <hr className="sep"/>
    <div className="tc-panel-body">
-    <div className="f"><span className="lab">Temperatura</span>
-     <Seg label="Temperatura" value={record.temperature} options={temperatureOptions} onChange={value=>void radar.setTemperature(task.id,value)}/>
-    </div>
-    <div className="f"><span className="lab">Revisar a cada</span>
-     <Seg label="Periodicidade da revisão" value={String(record.intervalDays)} options={intervalChoices} onChange={value=>void radar.setInterval(task.id,Number(value) as Interval)}/>
+    <ThemeForm draft={draft} onChange={value=>{setDraft(value);setStatus('idle');setProblem('');}} people={people} extraPeople={extraPeople}/>
+    <div className="f">
      <div style={{display:'flex',flexWrap:'wrap',alignItems:'center',gap:8}}>
       <span className="desc" style={{color:pending?'var(--tc-danger)':undefined}}>{pending?'Revisão pendente':`Próxima revisão em ${formatDue(record.nextReview)}`}</span>
-      <button type="button" className="btn btn-sm" onClick={()=>void radar.review(task.id,record.intervalDays)}>Revisado</button>
+      <button type="button" className="btn btn-sm" disabled={dirty} title={dirty?'Salve as alterações antes de marcar como revisado':undefined} onClick={()=>void confirmReview()}>Revisado</button>
      </div>
      {record.lastReviewedAt&&<span className="desc" style={{fontSize:12}}>Última revisão em {new Date(record.lastReviewedAt).toLocaleDateString('pt-BR')}</span>}
     </div>
-    <div className="f">
-     <label className="lab" htmlFor="radar-notes">Anotações e contexto atual</label>
-     <textarea id="radar-notes" className="inp" rows={8} value={notes} onChange={e=>{setNotes(e.target.value);setStatus('idle');}}/>
-     <div style={{display:'flex',alignItems:'center',gap:8}}>
-      <button type="button" className="btn btn-p btn-sm" disabled={!dirty||status==='saving'} onClick={()=>void saveNotes()}>Salvar anotações</button>
-      <span className="desc" role="status">{status==='saving'?'Salvando…':status==='saved'&&!dirty?'Anotações salvas.':status==='error'?'Não foi possível salvar. Tente novamente.':dirty?'● Alterações não salvas':''}</span>
-     </div>
-     <span className="desc" style={{fontSize:12}}>Salvar substitui o texto anterior; não há histórico.</span>
+    <div style={{display:'flex',alignItems:'center',gap:8}}>
+     <button type="button" className="btn btn-p btn-sm" disabled={!dirty||status==='saving'} onClick={()=>void save()}>Salvar</button>
+     <span className="desc" role="status" style={{color:problem||status==='error'?'var(--tc-danger)':undefined}}>{problem||(status==='saving'?'Salvando…':status==='saved'&&!dirty?'Tema salvo.':status==='error'?'Não foi possível salvar. Tente novamente.':dirty?'● Alterações não salvas':'')}</span>
     </div>
     <hr className="sep"/>
     <div className="f"><span className="lab">Ações vinculadas</span>
@@ -111,7 +117,7 @@ export function RadarDetail({theme,tasks,radar,onClose,onEditTask,onCreateAction
    </div>
    <hr className="sep"/>
    <div className="tc-panel-foot">
-    <button type="button" className="btn btn-sm" onClick={()=>onEditTask(task.id)}>Editar tema</button>
+    <button type="button" className="btn btn-sm" onClick={()=>onEditTask(task.id)}>Abrir como tarefa</button>
     <span style={{flex:1}}/>
     {!confirmEnd&&<button type="button" className="btn btn-d btn-sm" onClick={()=>setConfirmEnd(true)}>Encerrar tema</button>}
     {confirmEnd&&<>

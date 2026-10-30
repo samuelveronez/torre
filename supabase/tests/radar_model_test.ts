@@ -1,4 +1,4 @@
-import {radarLabelId,isRadarTheme,executableTasks,nextReviewDate,reviewPending,saoPauloDay,filterThemes,sortThemes,radarCounters,linkedActions,noFilters,type RadarTheme} from '../../src/radar/radarModel.ts';
+import {radarLabelId,isRadarTheme,executableTasks,nextReviewDate,reviewPending,saoPauloDay,filterThemes,sortThemes,radarCounters,linkedActions,noFilters,emptyDraft,withInterval,draftError,newThemeArgs,draftFromTheme,draftChanged,type RadarTheme} from '../../src/radar/radarModel.ts';
 import {dayGroups} from '../../src/taskView.ts';
 import type {Task} from '../../src/task.ts';
 const task=(id:string,fields:Partial<Task>={}):Task=>({id,title:id,area:'Profissional',minutes:30,due:'',source:'Torre',done:false,createdAt:'2026-10-01T12:00:00',...fields});
@@ -69,4 +69,25 @@ Deno.test('Radar order and counters: critical first, then pending review; counte
  ];
  equal(sortThemes(rows,today).map(t=>t.task.id),['d-critico','c-atencao','a-observar-pendente','b-observar']);
  equal(radarCounters(rows,today),{monitored:4,attention:2,pending:1});
+});
+
+Deno.test('Novo tema: padrões, mudança de periodicidade e argumentos sem prazo',()=>{
+ const draft=emptyDraft('2026-10-30','Pessoal');
+ equal([draft.temperature,draft.intervalDays,draft.nextReview,draft.area],['observar',15,'2026-11-14','Pessoal']);
+ equal(withInterval(draft,7,'2026-10-30').nextReview,'2026-11-06');
+ equal(withInterval({...draft,nextReview:'2026-12-01'},30,'2026-10-30').nextReview,'2026-12-01');
+ equal(draftError(draft),'Informe um título para o tema.');
+ equal(draftError({...draft,title:'  Contrato  '}),'');
+ const filled={...draft,title:' Contrato ',description:'x',notes:'n',temperature:'critico' as const};
+ const args=newThemeArgs('id-1',filled,[{name:'Ana',personId:null,role:'involved'}]);
+ equal(args.p_fields,{title:'Contrato',description:'x',area:'personal'});
+ equal(args.p_radar,{temperature:'critico',review_interval_days:15,next_review_date:'2026-11-14',notes:'n'});
+ equal('due_date' in args.p_fields,false);
+});
+Deno.test('Detalhe do tema: rascunho espelha tema e detecta alteração',()=>{
+ const t=theme('t',{notes:'n',nextReview:'2026-11-01'},{description:'d',people:[{name:'Ana',personId:'p',role:'involved'}]});
+ const draft=draftFromTheme(t);
+ equal([draft.title,draft.description,draft.notes,draft.nextReview,draft.personName],['t','d','n','2026-11-01','Ana']);
+ equal(draftChanged(draft,draftFromTheme(t)),false);
+ equal(draftChanged(draft,{...draft,notes:'outro'}),true);
 });

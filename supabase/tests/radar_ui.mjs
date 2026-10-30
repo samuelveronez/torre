@@ -54,6 +54,14 @@ await context.route('https://nvxwqrpztecrvrxoddxf.supabase.co/**',async route=>{
   if(!existing)tables.torre_tasks.push(task(body.p_task,body.p_fields.title,{due_date:body.p_fields.due_date,priority:body.p_fields.priority,radar_task_id:body.p_fields.radar_task_id}));
   return reply(null);
  }
+ if(url.pathname.endsWith('/rpc/torre_create_radar_theme')){
+  const body=req.postDataJSON();
+  writes.push({rpc:'torre_create_radar_theme',body});
+  tables.torre_tasks.push(task(body.p_task,body.p_fields.title,{description:body.p_fields.description,area:body.p_fields.area}));
+  tables.torre_task_labels.push({user_id:uid,task_id:body.p_task,label_id:radarLabel});
+  tables.torre_radar.push({task_id:body.p_task,user_id:uid,last_reviewed_at:null,updated_at:'2026-10-30T12:00:00Z',temperature:body.p_radar.temperature,review_interval_days:body.p_radar.review_interval_days,next_review_date:body.p_radar.next_review_date,notes:body.p_radar.notes});
+  return reply(null);
+ }
  if(url.pathname.includes('/rpc/'))return reply(null);
  const table=url.pathname.split('/').pop();
  const filters=[...url.searchParams].filter(([,value])=>value.startsWith('eq.'));
@@ -107,18 +115,19 @@ try{
  assert.equal(await page.getByText('Orçamento 2027').count(),0);
  await page.getByLabel('Temperatura',{exact:true}).selectOption('todas');
 
- // CA02/CA03: salvar notas, mudar temperatura e periodicidade preserva o texto.
+ // CA02/CA03/CA12: o detalhe edita tudo numa tela; mudar temperatura e periodicidade preserva o texto.
  await page.getByText('Programa de integração').click();
  const notes=page.getByLabel('Anotações e contexto atual');
  await notes.waitFor();
  assert.equal(await notes.inputValue(),'Contexto inicial');
+ for(const label of ['Título','Descrição','Próxima revisão','Área','Temperatura','Revisar a cada'])assert.ok(await page.getByText(label,{exact:true}).first().isVisible(),label);
+ await page.getByLabel('Pessoa relacionada').waitFor();
  await notes.fill('Contexto atualizado em reunião');
- await page.getByRole('button',{name:'Salvar anotações'}).click();
- await page.getByText('Anotações salvas.').waitFor();
- assert.equal(tables.torre_radar.find(row=>row.task_id===themeA).notes,'Contexto atualizado em reunião');
  await page.getByRole('group',{name:'Temperatura'}).getByRole('button',{name:'Atenção'}).click();
  await page.getByRole('group',{name:'Periodicidade da revisão'}).getByRole('button',{name:'30 dias'}).click();
- await page.waitForFunction(()=>true);
+ await page.getByText('● Alterações não salvas').waitFor();
+ await page.getByRole('button',{name:'Salvar',exact:true}).click();
+ await page.getByText('Tema salvo.').waitFor();
  const recordA=tables.torre_radar.find(row=>row.task_id===themeA);
  assert.equal(recordA.temperature,'atencao');
  assert.equal(recordA.review_interval_days,30);
@@ -141,6 +150,36 @@ try{
  assert.equal(created.radar_task_id,themeA);
  assert.equal(tables.torre_task_labels.some(row=>row.task_id===created.id),false);
 
+ // CA11/CA12: "Novo tema" cria tudo de uma vez (RPC), sem prazo, e o tema aparece na lista.
+ await page.keyboard.press('Escape');
+ await page.getByRole('button',{name:'Novo tema'}).click();
+ const dialog=page.getByRole('dialog',{name:'Novo tema'});
+ await dialog.waitFor();
+ await dialog.getByRole('button',{name:'Criar tema'}).click();
+ await dialog.getByText('Informe um título para o tema.').waitFor();
+ assert.equal(writes.some(w=>w.rpc==='torre_create_radar_theme'),false);
+ await dialog.getByLabel('Título').fill('Mudança de escola');
+ await dialog.getByLabel('Descrição').fill('Avaliar opções para 2027');
+ await dialog.getByLabel('Anotações e contexto atual').fill('Visitas em fevereiro');
+ await dialog.getByRole('group',{name:'Temperatura'}).getByRole('button',{name:'Crítico'}).click();
+ await dialog.getByRole('group',{name:'Periodicidade da revisão'}).getByRole('button',{name:'7 dias'}).click();
+ assert.equal(await dialog.getByLabel('Próxima revisão').inputValue(),day(7));
+ await dialog.getByRole('group',{name:'Área'}).getByRole('button',{name:'Pessoal'}).click();
+ await dialog.getByRole('button',{name:'Criar tema'}).click();
+ await page.getByText('Mudança de escola').first().waitFor();
+ const call=writes.find(w=>w.rpc==='torre_create_radar_theme').body;
+ assert.deepEqual(call.p_fields,{title:'Mudança de escola',description:'Avaliar opções para 2027',area:'personal'});
+ assert.deepEqual(call.p_radar,{temperature:'critico',review_interval_days:7,next_review_date:day(7),notes:'Visitas em fevereiro'});
+ assert.equal('due_date' in call.p_fields,false);
+ const newTheme=tables.torre_tasks.find(row=>row.title==='Mudança de escola');
+ assert.equal(newTheme.due_date,null);
+ assert.ok(tables.torre_task_labels.some(row=>row.task_id===newTheme.id&&row.label_id===radarLabel));
+ assert.equal(tables.torre_radar.filter(row=>row.task_id===newTheme.id).length,1);
+ // O detalhe do tema recém-criado abre direto, com os mesmos campos.
+ await page.getByLabel('Anotações e contexto atual').waitFor();
+ assert.equal(await page.getByLabel('Anotações e contexto atual').inputValue(),'Visitas em fevereiro');
+ await page.keyboard.press('Escape');
+
  // Mobile: sem rolagem horizontal.
  await page.keyboard.press('Escape');
  await page.setViewportSize({width:390,height:844});
@@ -161,9 +200,10 @@ try{
  await page.getByRole('button',{name:'Meu dia',exact:true}).click();
  await page.getByText('Enviar relatório').waitFor();
  assert.equal(await page.getByText('Programa de integração').count(),0);
+ assert.equal(await page.getByText('Mudança de escola').count(),0);
 
  assert.deepEqual(errors,[]);
- console.log('PASS: Radar lista temas, filtra, salva notas sem histórico, revisa, cria tarefa vinculada, encerra e mantém temas fora de Meu dia');
+ console.log('PASS: Radar lista temas, filtra, edita o tema, revisa, cria tarefa vinculada, cria tema novo, encerra e mantém temas fora de Meu dia');
 }finally{
  await browser.close();
  server?.kill();

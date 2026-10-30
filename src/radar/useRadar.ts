@@ -1,6 +1,6 @@
 import {useCallback,useEffect,useMemo,useState} from 'react';
 import {supabase} from '@/supabase';
-import {defaultInterval,nextReviewDate,saoPauloDay,type Interval,type RadarRecord,type Temperature} from './radarModel';
+import {defaultInterval,newThemeArgs,nextReviewDate,saoPauloDay,type Interval,type RadarRecord,type Temperature,type ThemeDraft} from './radarModel';
 
 type Row={task_id:string;temperature:Temperature;review_interval_days:Interval;next_review_date:string|null;last_reviewed_at:string|null;notes:string};
 const toRecord=(row:Row):RadarRecord=>({taskId:row.task_id,temperature:row.temperature,intervalDays:row.review_interval_days,nextReview:row.next_review_date,lastReviewedAt:row.last_reviewed_at,notes:row.notes});
@@ -48,13 +48,24 @@ export function useRadar(userId:string,themeIds:string[]){
   await load();
   return true;
  }
+ /** Cria tarefa-tema, etiqueta, registro e pessoa numa única RPC (RF11, CA11). Devolve o id do tema ou a mensagem de erro. */
+ async function createTheme(draft:ThemeDraft,ensurePerson:(name:string)=>Promise<{id:string;name:string}>,refresh:()=>Promise<void>):Promise<{id:string}|{error:string}>{
+  try{
+   const name=draft.personName.trim();
+   const person=name?await ensurePerson(name):null;
+   const id=crypto.randomUUID();
+   const {error:failure}=await supabase.rpc('torre_create_radar_theme',newThemeArgs(id,draft,person?[{name:person.name,personId:person.id,role:'involved'}]:[]));
+   if(failure)return {error:message(failure)};
+   await Promise.all([refresh(),load()]);
+   return {id};
+  }catch(failure){
+   return {error:message(failure)};
+  }
+ }
  return {
-  records,ready,error,
-  /** Temperatura e periodicidade nunca tocam nas notas (CA03). */
-  setTemperature:(taskId:string,temperature:Temperature)=>update(taskId,{temperature}),
-  setInterval:(taskId:string,interval:Interval)=>update(taskId,{review_interval_days:interval}),
-  /** Salvar substitui o texto anterior e não confirma revisão (RN05, RN06). */
-  saveNotes:(taskId:string,notes:string)=>update(taskId,{notes}),
+  records,ready,error,createTheme,
+  /** Grava a configuração do tema sem tocar na revisão confirmada (RN06). */
+  saveSettings:(taskId:string,draft:Pick<ThemeDraft,'temperature'|'intervalDays'|'nextReview'|'notes'>)=>update(taskId,{temperature:draft.temperature,review_interval_days:draft.intervalDays,next_review_date:draft.nextReview||null,notes:draft.notes}),
   /** Confirma a revisão: grava a data e agenda a próxima a partir de hoje (RN06). */
   review:(taskId:string,interval:Interval)=>update(taskId,{last_reviewed_at:new Date().toISOString(),next_review_date:nextReviewDate(new Date(),interval)}),
   today:saoPauloDay(),

@@ -1,4 +1,4 @@
-import type {Task} from '../task';
+import {primaryPerson,type Task} from '../task';
 import type {Label} from '../features';
 
 export type Temperature='observar'|'atencao'|'critico';
@@ -78,4 +78,48 @@ export function radarCounters(themes:RadarTheme[],today=saoPauloDay()){
 /** Ações executáveis ligadas ao tema (RF08). */
 export function linkedActions(tasks:Task[],themeId:string){
  return tasks.filter(t=>t.radarTaskId===themeId);
+}
+
+/** Campos do formulário de tema: os mesmos em "Novo tema" e no detalhe (CA12). Prazo, prioridade e duração ficam nas tarefas vinculadas. */
+export type ThemeDraft={
+ title:string;
+ description:string;
+ area:Task['area'];
+ temperature:Temperature;
+ intervalDays:Interval;
+ nextReview:string;
+ notes:string;
+ personName:string;
+};
+export function emptyDraft(today=saoPauloDay(),area:Task['area']='Profissional'):ThemeDraft{
+ return {title:'',description:'',area,temperature:'observar',intervalDays:defaultInterval,nextReview:addDays(today,defaultInterval),notes:'',personName:''};
+}
+export function draftFromTheme({task,record}:RadarTheme):ThemeDraft{
+ return {
+  title:task.title,description:task.description??'',area:task.area,
+  temperature:record.temperature,intervalDays:record.intervalDays,nextReview:record.nextReview??'',notes:record.notes,
+  personName:primaryPerson(task).primary?.name??'',
+ };
+}
+export function draftChanged(a:ThemeDraft,b:ThemeDraft){
+ return (Object.keys(a) as (keyof ThemeDraft)[]).some(key=>a[key]!==b[key]);
+}
+/** Mudar a periodicidade reagenda a revisão só enquanto a data ainda é a sugerida (hoje + periodicidade). */
+export function withInterval(draft:ThemeDraft,intervalDays:Interval,today=saoPauloDay()):ThemeDraft{
+ const suggested=draft.nextReview===addDays(today,draft.intervalDays);
+ return {...draft,intervalDays,nextReview:suggested?addDays(today,intervalDays):draft.nextReview};
+}
+export function draftError(draft:ThemeDraft){
+ if(!draft.title.trim())return 'Informe um título para o tema.';
+ if(draft.title.trim().length>180)return 'O título aceita até 180 caracteres.';
+ return '';
+}
+/** Argumentos da RPC `torre_create_radar_theme`: o tema nasce sem `due_date` (RN01). */
+export function newThemeArgs(taskId:string,draft:ThemeDraft,people:{name:string;personId:string|null;role:'involved'}[]){
+ return {
+  p_task:taskId,
+  p_fields:{title:draft.title.trim(),description:draft.description.trim(),area:draft.area==='Pessoal'?'personal':'professional'},
+  p_radar:{temperature:draft.temperature,review_interval_days:draft.intervalDays,next_review_date:draft.nextReview||null,notes:draft.notes},
+  p_people:people,
+ };
 }
