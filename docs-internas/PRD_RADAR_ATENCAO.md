@@ -1,7 +1,7 @@
 # PRD — Radar de Atenção
 
 **Produto:** Torre de Controle Executiva  
-**Versão:** 1.2 — MVP simplificado (revisado após avaliação)  
+**Versão:** 1.4 — MVP simplificado (revisado após avaliação)  
 **Data:** 30/10/2026  
 **Status:** Implementado no código (30/10/2026); migration e deploy pendentes do dono — ver `PROGRESSO.md`  
 **Repositório:** `samuelveronez/torre`  
@@ -50,6 +50,20 @@ No momento da consulta: **11 itens ativos** com tag Radar; 9 em `todo` e 2 em `w
 
 **Fluxo D — Organizar semana:** considerar apenas tarefas executáveis. Tema com Radar não recebe vencimento ou bloco de execução automático. Uma tarefa vinculada ao Radar **não herda** automaticamente a tag Radar.
 
+**Fluxo E — Criar tema (caminho principal):** página Radar → “Novo tema” → preencher o formulário → salvar. Um único salvamento cria a tarefa-tema em `torre_tasks`, vincula a etiqueta Radar e grava `torre_radar`, sem `due_date`. O tema aparece de imediato na lista.
+
+**Campos do formulário “Novo tema”** (os mesmos do detalhe, para criar e editar com a mesma tela):
+- Título (obrigatório);
+- Descrição (`torre_tasks.description`);
+- Temperatura: Observar / Atenção / Crítico (padrão Observar);
+- Periodicidade de revisão: 7 / 15 / 30 dias (padrão 15);
+- Próxima revisão (`next_review_date`): padrão hoje + periodicidade, editável;
+- Anotações e contexto atual (`notes`);
+- Pessoas relacionadas (estrutura `torre_task_people`);
+- Área (campo existente da tarefa).
+
+Fora do formulário, por regra: prazo (`due_date`), prioridade e duração, que pertencem às tarefas vinculadas. Aguardando (`waiting_for`, `follow_up_date`) segue só no fluxo atual de tarefas, para o tema legado (RN07).
+
 ## 5. Requisitos funcionais
 
 | ID | Requisito | Prioridade |
@@ -64,10 +78,15 @@ No momento da consulta: **11 itens ativos** com tag Radar; 9 em `todo` e 2 em `w
 | RF08 | Exibição de tarefas vinculadas e seus status | P0 |
 | RF09 | Ação “Encerrar tema”: arquiva o tema, preservando notas e configuração | P1 |
 | RF10 | Renomear o gráfico de prazos atual (`RadarView`, view `prazos`) para “Prazos”, liberando o nome Radar | P0 |
+| RF11 | Botão **“Novo tema”** na página Radar: formulário com todos os campos do Radar (ver Fluxo E); é o caminho principal de criação | P0 |
 
 **Removidos em v1.1:** histórico automático de atualizações, tabela `torre_radar_updates`, timeline, controle de versões das notas.
 
 ## 6. Proposta de interface
+
+**Protótipo de referência:** [`PRD_RADAR_ATENCAO_prototipo.html`](PRD_RADAR_ATENCAO_prototipo.html) (abrir no navegador). Mostra a página Radar, a edição do tema e o “Novo tema”, com dados de exemplo. É referência de **estrutura, campos e comportamento**, não de estilo.
+
+> **Design system obrigatório.** O protótipo usa CSS próprio apenas para ser autônomo. Ao desenvolver, **respeitar o design system da Torre**: usar o kit `src/ui-kit.css` (escopo `.tc`: `.btn`, `.inp`, `.badge`, `.tbl`, `.seg`, `.tc-modal`, `.tc-panel` etc., tokens `--tc-*` e modo escuro), utilitários Tailwind ou tokens de `src/design-system.css`, conforme `docs-internas/DESIGN_SYSTEM.md` e o `AGENTS.md`. Não copiar o CSS do protótipo nem criar CSS global novo. Conferir a tela lado a lado com os mockups (claro, escuro e 390 px).
 
 ### Página Radar
 - Contadores: monitorados, em atenção/críticos, com revisão pendente;
@@ -109,7 +128,7 @@ No momento da consulta: **11 itens ativos** com tag Radar; 9 em `todo` e 2 em `w
 
 **RN11 — Predicado único de tema Radar.** “É tema Radar” = tarefa ativa com a etiqueta Radar. Existe uma única definição (função/view no banco e um helper único no frontend), usada por: distribuição semanal, atrasadas, Meu dia, foco, sugestões de agenda, Modo IA e resumo do Telegram, que passam a excluir temas Radar. Tarefas vinculadas (`radar_task_id`) continuam executáveis. O predicado usa a etiqueta, não a existência de linha em `torre_radar`.
 
-**RN12 — Criação do registro.** A página Radar cria, ao abrir, o registro `torre_radar` (padrões: `observar`, 15 dias, notas vazias) de cada tema que ainda não tem, de forma idempotente. Até o registro existir, o tema já é excluído das métricas de execução (RN11).
+**RN12 — Criação do registro.** Pelo “Novo tema” (RF11) o registro nasce junto com a tarefa-tema, de forma atômica (uma RPC ou transação; não pode ficar tarefa etiquetada sem registro nem o contrário). Como rede de segurança para temas etiquetados por outros caminhos, a página Radar cria, ao abrir, o registro `torre_radar` (padrões: `observar`, 15 dias, notas vazias) de cada tema que ainda não tem, de forma idempotente. Até o registro existir, o tema já é excluído das métricas de execução (RN11).
 
 **RN13 — Notas: último a salvar vence.** Sem controle de concorrência no MVP; risco de sobrescrita entre dispositivos aceito pelo dono.
 
@@ -186,10 +205,16 @@ Dado um usuário autenticado, quando consultar ou alterar Radar, então só cons
 **CA10 — Integridade**  
 Dada uma ação vinculada, quando consultar o tema, então o relacionamento pertence ao mesmo usuário e não aponta para si próprio.
 
+**CA11 — Novo tema**
+Dado a página Radar, quando preencher o formulário “Novo tema” com título e demais campos e salvar, então existem a tarefa-tema com a etiqueta Radar e o registro `torre_radar` com os valores informados, sem `due_date`; o tema aparece na lista e não aparece em atrasadas, semana nem Meu dia. Se qualquer parte falhar, nada é criado.
+
+**CA12 — Formulário completo**
+Dado o formulário “Novo tema” ou o detalhe de um tema, então ambos expõem os mesmos campos (título, descrição, temperatura, periodicidade, próxima revisão, anotações, pessoas e área), e editar pelo detalhe não exige outra tela.
+
 ## 11. Entregas e etapas sugeridas
 
 1. **Schema e segurança:** tabela `torre_radar`, coluna `radar_task_id`, FK, RLS e índices;
-2. **Consulta e UI:** página Radar, temperatura, filtros e detalhe;
+2. **Consulta e UI:** página Radar, botão “Novo tema” com formulário completo (RF11), temperatura, filtros e detalhe;
 3. **Edição:** campo único de notas e salvamento com feedback;
 4. **Revisão:** periodicidade, botão de revisão e estado pendente;
 5. **Ações:** criar tarefa vinculada e listar ações;
