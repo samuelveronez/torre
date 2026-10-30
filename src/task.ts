@@ -1,6 +1,6 @@
 import type {Priority} from './priority';
 export type TaskPerson={name:string;personId:string|null;role:'involved'|'waiting_for'};
-export type Task={people?:TaskPerson[];priority?:Priority;id:string;createdAt?:string;capturePosition?:number;title:string;area:'Pessoal'|'Profissional';minutes:number;due:string;source:string;done:boolean;at?:string;focusDate?:string;reservationKind?:'execution'|'reminder';description?:string;link?:string;situation?:'todo'|'waiting';waitingFor?:string;followUp?:string;labelIds?:string[];captureId?:string;googleTaskId?:string;completionPending?:boolean;syncError?:string};
+export type Task={radarTaskId?:string;people?:TaskPerson[];priority?:Priority;id:string;createdAt?:string;capturePosition?:number;title:string;area:'Pessoal'|'Profissional';minutes:number;due:string;source:string;done:boolean;at?:string;focusDate?:string;reservationKind?:'execution'|'reminder';description?:string;link?:string;situation?:'todo'|'waiting';waitingFor?:string;followUp?:string;labelIds?:string[];captureId?:string;googleTaskId?:string;completionPending?:boolean;syncError?:string};
 /** Pessoa principal da tarefa: a de quem se aguarda retorno, senão a primeira; tarefas antigas só com `waitingFor` viram pessoa. */
 export function primaryPerson(task:Pick<Task,'people'|'waitingFor'>):{primary:TaskPerson|null;others:TaskPerson[]}{
  const people=task.people??[];

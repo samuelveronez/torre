@@ -27,6 +27,7 @@ globalThis.__agentServiceTest={db:{from:table=>new Query(table),rpc:async(name,a
 const source=(await readFile(new URL('../functions/_shared/agentService.ts',import.meta.url),'utf8'))
  .replace("import {preparePlan} from './planService.ts';","const preparePlan=async()=>{throw new Error('Planning is outside this context test');};")
  .replace("import {db,checked,secret} from './google.ts';","const {db,checked,secret}=globalThis.__agentServiceTest;")
+ .replace("import {radarThemeIds,notInThemes} from './radar.ts';","const radarThemeIds=async()=>globalThis.__radarThemes??[],notInThemes=ids=>`(${ids.join(',')})`;")
  .replace("from './aiSettings.ts'",`from '${new URL('../functions/_shared/aiSettings.ts',import.meta.url).href}'`)
  .replace("from './agent.ts'",`from '${new URL('../functions/_shared/agent.ts',import.meta.url).href}'`);
 const js=ts.transpileModule(source,{compilerOptions:{module:ts.ModuleKind.ESNext,target:ts.ScriptTarget.ES2022}}).outputText;
@@ -53,8 +54,15 @@ try{
  assert.deepEqual(pages.map(p=>[p.total,p.items.length,p.offset,p.hasMore]),[[51,50,0,true],[51,1,50,false]]);
  assert.ok(pages.flatMap(p=>p.items).every(t=>t.area==='professional'));
  assert.ok(!pages.flatMap(p=>p.items).some(t=>tasks.find(row=>row.id===t.id).user_id===other));
+ const theme=tasks[0].id;globalThis.__radarThemes=[theme];round=1;
+ await agentAction(uid,{action:'agent-chat',runId:crypto.randomUUID(),message:'Avalie somente profissionais por label e prioridade, altas primeiro e depois prazo.',mode:'analyze',model:'openrouter/free',conversationId:fresh});
+ const withoutTheme=sent.messages.filter(m=>m.role==='tool').map(m=>JSON.parse(m.content));
+ assert.equal(withoutTheme[0].total,50,'Radar theme is not counted as an executable task');
+ assert.ok(!withoutTheme.flatMap(p=>p.items).some(t=>t.id===theme),'Radar theme is hidden from the default task query');
+ globalThis.__radarThemes=[];
  round=0;globalThis.fetch=async()=>new Response(JSON.stringify({model:'google/gemini-2.5-flash',choices:[{message:{role:'assistant',content:null,tool_calls:[{id:'bad-area',type:'function',function:{name:'query_tasks',arguments:JSON.stringify({area:'profissional'})}}]}}]}));
  await assert.rejects(()=>agentAction(uid,{action:'agent-chat',runId:crypto.randomUUID(),message:'Consulta',mode:'analyze',model:'openrouter/free',conversationId:fresh}),/Área inválida/);
  console.log('PASS: real service scopes the last six requests to conversation and owner, excludes errors/processing, isolates new/legacy context');
+ console.log('PASS: Radar themes are excluded from default agent task queries');
  console.log('PASS: Gemini area tool queries filter professional rows across pages, exclude personal/foreign/completed/archived rows and reject invalid areas');
 }finally{globalThis.fetch=originalFetch;delete globalThis.__agentServiceTest;}

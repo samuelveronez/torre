@@ -18,7 +18,7 @@ type Props={
  onSelect:(id:string)=>void;
 };
 
-export function RadarView({tasks,undated,day,selected,onSelect}:Props){
+export function DeadlineView({tasks,undated,day,selected,onSelect}:Props){
  const stack:Record<string,number>={};
  const dated=tasks.filter(t=>t.date!==null);
  const late=dated.filter(t=>t.date!<day);

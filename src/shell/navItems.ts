@@ -1,4 +1,4 @@
-import {Sun,LayoutDashboard,Inbox,ListChecks,CalendarDays,Users,Sparkles,Settings} from 'lucide-react';
+import {Sun,LayoutDashboard,Inbox,ListChecks,CalendarDays,Radar,Users,Sparkles,Settings} from 'lucide-react';
 
 // key é o valor salvo em `page` (não renomear); label é o texto exibido.
 export const navItems=[
@@ -6,6 +6,7 @@ export const navItems=[
  {key:'Painel',label:'Painel',icon:LayoutDashboard,group:'main'},
  {key:'Caixa de entrada',label:'Caixa de entrada',icon:Inbox,group:'main'},
  {key:'Tarefas',label:'Tarefas',icon:ListChecks,group:'main'},
+ {key:'Radar',label:'Radar',icon:Radar,group:'main'},
  {key:'Planejamento',label:'Agenda semanal',icon:CalendarDays,group:'main'},
  {key:'Conversas',label:'Pessoas e conversas',icon:Users,group:'main'},
  {key:'Modo IA',label:'Modo IA',icon:Sparkles,group:'assistant'},

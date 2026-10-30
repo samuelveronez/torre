@@ -1,6 +1,7 @@
 import {preparePlan} from './planService.ts';
 import {selectedAiModel} from './aiSettings.ts';
 import {db,checked,secret} from './google.ts';
+import {radarThemeIds,notInThemes} from './radar.ts';
 import {agentId,proposalKind,agentModel,validateAgentPatch,needsAgentReview,agentInstructions,callAgentModel,testAgentModel,type AgentOperation} from './agent.ts';
 
 export async function agentAction(uid:string,input:any){
@@ -28,6 +29,8 @@ export async function agentAction(uid:string,input:any){
   const offset=args.offset??0;if(!Number.isInteger(offset)||offset<0||offset>10000)throw new Error('Página inválida.');
   let q=db.from('torre_tasks').select('*,torre_task_labels(label_id)',{count:'exact'}).eq('user_id',uid);
   q=args.archived?q.not('archived_at','is',null):q.is('archived_at',null);
+  // Temas Radar não são tarefas executáveis: só aparecem quando a consulta pede a label Radar.
+  if(!args.label_id){const themes=await radarThemeIds(db,uid);if(themes.length)q=q.not('id','in',notInThemes(themes));}
   const status=args.status??'active';if(!['active','todo','waiting','completed','all'].includes(status))throw new Error('Situação inválida.');
   if(status==='active')q=q.neq('status','completed');else if(status!=='all')q=q.eq('status',status);
   if(args.area!==undefined){if(!['personal','professional'].includes(args.area))throw new Error('Área inválida.');q=q.eq('area',args.area);}

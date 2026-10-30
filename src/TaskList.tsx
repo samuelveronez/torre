@@ -3,6 +3,7 @@ import {Plus} from 'lucide-react';
 import {priorities,priorityRank} from './priority';
 import type {Features} from './features';
 import type {Task} from './task';
+import {isRadarTheme} from './radar/radarModel';
 import {TaskActionMenu} from './TaskActionMenu';
 import {dateKey,groupByPerson,matchesTask,newest} from './taskView';
 import {BulkActions,type BatchChange} from './BulkActions';
@@ -17,6 +18,7 @@ type Props={
  userId:string;
  features:Features;
  tasks:Task[];
+ radarId?:string;
  area:string;
  query:string;
  labelFilter:string[];
@@ -59,7 +61,7 @@ function dueText(task:Task,today:string){
 }
 
 export function TaskList(props:Props){
- const {onBatch,onClassify,userId,features,tasks,area,query,labelFilter,newIds,recentKey,onOpen,onClearFilters,onRemoveArea,onRemoveQuery,onRemoveLabel,onComplete,onReopen,onNew,onPlan}=props;
+ const {onBatch,onClassify,userId,features,tasks,radarId,area,query,labelFilter,newIds,recentKey,onOpen,onClearFilters,onRemoveArea,onRemoveQuery,onRemoveLabel,onComplete,onReopen,onNew,onPlan}=props;
  const [priorityFilter,setPriorityFilter]=useState('all');
  const [tab,setTab]=useState<Tab>('open');
  const [situation,setSituation]=useState<Situation>('all');
@@ -71,7 +73,7 @@ export function TaskList(props:Props){
 
  const matching=tasks.filter(t=>matchesTask(t,area,query));
  const open=matching.filter(t=>!t.done),waiting=open.filter(t=>t.situation==='waiting'),done=matching.filter(t=>t.done);
- const late=open.filter(t=>t.due&&dayDiff(t.due,today)<0);
+ const late=open.filter(t=>t.due&&!isRadarTheme(t,radarId)&&dayDiff(t.due,today)<0);
  const counts:Record<Tab,number>={open:open.length,waiting:waiting.length,done:done.length};
 
  const inTab=(t:Task)=>tab==='done'?t.done:tab==='waiting'?!t.done&&t.situation==='waiting':!t.done&&(situation==='all'||(situation==='todo'?t.situation!=='waiting':t.situation==='waiting'));
@@ -82,7 +84,7 @@ export function TaskList(props:Props){
  const selectedTasks=filtered.filter(t=>ids.includes(t.id));
  const byPerson=tab==='waiting';
  const grouped=byPerson||(tab==='open'&&sort==='Prazo');
- const groups=byPerson?groupByPerson(filtered).map(g=>({key:g.key||'none',label:g.label,items:g.items})):grouped?groupOrder.map(key=>({key,label:groupNames[key],items:filtered.filter(t=>groupOf(t,today)===key)})).filter(g=>g.items.length):[{key:'',label:'',items:filtered}];
+ const groups=byPerson?groupByPerson(filtered).map(g=>({key:g.key||'none',label:g.label,items:g.items})):grouped?groupOrder.map(key=>({key,label:groupNames[key],items:filtered.filter(t=>groupOf(isRadarTheme(t,radarId)?{...t,due:''}:t,today)===key)})).filter(g=>g.items.length):[{key:'',label:'',items:filtered}];
  const clear=()=>{onClearFilters();setTab('open');setSituation('all');setPriorityFilter('all');};
 
  const subtitle=`${open.length} abertas · ${late.length} atrasadas · ${waiting.length} aguardando retorno`;
@@ -132,7 +134,7 @@ export function TaskList(props:Props){
    <div onDragStart={e=>{const id=e.dataTransfer.getData('text/plain');if(ids.includes(id))writeTaskDrag(e.dataTransfer,ids);}}>
     {groups.map(group=><div key={group.key}>
      {grouped&&<div className="grk" style={{color:byPerson?undefined:groupColors[group.key]}}>{group.label}<span style={{fontWeight:500,color:'var(--muted-foreground)',marginLeft:4}}>{group.items.length}</span></div>}
-     {group.items.map(t=><TaskTableRow key={t.id} task={t} features={features} today={today} isNew={newIds.includes(t.id)} selecting={selecting} selected={ids.includes(t.id)} onToggle={toggle} onOpen={onOpen} onComplete={onComplete} onReopen={onReopen} onPlan={onPlan}/>)}
+     {group.items.map(t=><TaskTableRow key={t.id} task={t} features={features} today={today} theme={isRadarTheme(t,radarId)} isNew={newIds.includes(t.id)} selecting={selecting} selected={ids.includes(t.id)} onToggle={toggle} onOpen={onOpen} onComplete={onComplete} onReopen={onReopen} onPlan={onPlan}/>)}
     </div>)}
    </div>
    {!filtered.length&&<div className="list-empty" style={{padding:'40px 16px',textAlign:'center',display:'flex',flexDirection:'column',alignItems:'center',gap:8}}>
@@ -144,11 +146,11 @@ export function TaskList(props:Props){
  </section>;
 }
 
-type RowProps={task:Task;features:Features;today:string;isNew:boolean;selecting:boolean;selected:boolean;onToggle:(id:string)=>void;onOpen:(id:string)=>void;onComplete:(id:string)=>void;onReopen:(id:string)=>void;onPlan:(id:string)=>void};
+type RowProps={task:Task;features:Features;today:string;theme:boolean;isNew:boolean;selecting:boolean;selected:boolean;onToggle:(id:string)=>void;onOpen:(id:string)=>void;onComplete:(id:string)=>void;onReopen:(id:string)=>void;onPlan:(id:string)=>void};
 
-function TaskTableRow({task:t,features,today,isNew,selecting,selected,onToggle,onOpen,onComplete,onReopen,onPlan}:RowProps){
+function TaskTableRow({task:t,features,today,theme,isNew,selecting,selected,onToggle,onOpen,onComplete,onReopen,onPlan}:RowProps){
  const labels=(t.labelIds??[]).map(id=>features.labels.find(l=>l.id===id)).filter(Boolean) as Features['labels'];
- const overdue=!t.done&&!!t.due&&dayDiff(t.due,today)<0;
+ const overdue=!t.done&&!theme&&!!t.due&&dayDiff(t.due,today)<0;
  const priority=t.priority&&t.priority!=='none'?priorities.find(p=>p.value===t.priority)?.label:'';
  const priorityTone=t.priority==='high'?'b-r':t.priority==='medium'?'b-a':'';
  const due=dueText(t,today);
