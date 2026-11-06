@@ -5,12 +5,12 @@ import remarkGfm from 'remark-gfm';
 import {agentFieldNames as fieldNames,remarkAgentPresentation} from '@/agentPresentation';
 import type {Operation,Run} from './types';
 
-type Handlers={onTask:(id:string)=>void;onLabel:(id:string)=>void;onSchedule?:(id:string)=>void};
+type Handlers={onTask:(id:string)=>void;onLabel:(id:string)=>void;onSchedule?:(id:string)=>void;onRadar?:(id:string)=>void;onPerson?:(id:string)=>void};
 const proposalState={ready:['Aguardando','b-a'],applied:['Aplicada','b-g'],undone:['Desfeita','b-s']} as const;
 
-function AgentResponse({text,references,onTask,onLabel,onSchedule}:Handlers&{text:string;references:Record<string,string>}){
- return <div className="agent-response"><Markdown skipHtml remarkPlugins={[remarkGfm,[remarkAgentPresentation,{references}]]} urlTransform={url=>/^(task|label|schedule):[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i.test(url)?url:defaultUrlTransform(url)} components={{
-  a:({href,children})=>{const ref=/^(task|label|schedule):([0-9a-f-]{36})$/i.exec(href??'');if(ref)return <button type="button" className="ref" onClick={()=>ref[1]==='task'?onTask(ref[2]):ref[1]==='schedule'?onSchedule?.(ref[2]):onLabel(ref[2])}>{children}</button>;return /^https?:\/\//i.test(href??'')?<a href={href} target="_blank" rel="noopener noreferrer">{children}</a>:<span>{children}</span>;},
+function AgentResponse({text,references,onTask,onLabel,onSchedule,onRadar,onPerson}:Handlers&{text:string;references:Record<string,string>}){
+ return <div className="agent-response"><Markdown skipHtml remarkPlugins={[remarkGfm,[remarkAgentPresentation,{references}]]} urlTransform={url=>/^(task|label|schedule|radar|person):[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i.test(url)?url:defaultUrlTransform(url)} components={{
+  a:({href,children})=>{const ref=/^(task|label|schedule|radar|person):([0-9a-f-]{36})$/i.exec(href??'');if(ref)return <button type="button" className="ref" onClick={()=>{const open={task:onTask,label:onLabel,schedule:onSchedule,radar:onRadar,person:onPerson}[ref[1].toLowerCase() as 'task'];open?.(ref[2]);}}>{children}</button>;return /^https?:\/\//i.test(href??'')?<a href={href} target="_blank" rel="noopener noreferrer">{children}</a>:<span>{children}</span>;},
   img:()=>null,table:({children})=><div className="agent-table-scroll"><table>{children}</table></div>
  }}>{text}</Markdown></div>;
 }
@@ -37,7 +37,7 @@ type Props=Handlers&{
  onApply:(run:Run)=>void;onUndo:(run:Run)=>void;onRetry:(run:Run)=>void;
 };
 /** One request and its answer: user bubble, unframed answer and, when there are changes, the proposal card. */
-export function AgentTurn({run,working,locked,references,showValue,dismissed,onDismiss,onApply,onUndo,onRetry,onTask,onLabel,onSchedule}:Props){
+export function AgentTurn({run,working,locked,references,showValue,dismissed,onDismiss,onApply,onUndo,onRetry,onTask,onLabel,onSchedule,onRadar,onPerson}:Props){
  const [copied,setCopied]=useState(false);
  const state=proposalState[run.state as keyof typeof proposalState];
  async function copy(){try{await navigator.clipboard.writeText(run.response);setCopied(true);setTimeout(()=>setCopied(false),1500);}catch{setCopied(false);}}
@@ -47,7 +47,7 @@ export function AgentTurn({run,working,locked,references,showValue,dismissed,onD
   <div className="ag-user">{run.message}</div>
   <div className="ag-answer">
    {working?<p className="agent-working" role="status"><LoaderCircle size={16} aria-hidden="true"/> {run.state==='ready'?'Aplicando pedido…':run.state==='applied'?'Desfazendo…':'Consultando suas tarefas e labels…'}</p>:<>
-    {run.response&&<AgentResponse text={run.response} references={references} onTask={onTask} onLabel={onLabel} onSchedule={onSchedule}/>}
+    {run.response&&<AgentResponse text={run.response} references={references} onTask={onTask} onLabel={onLabel} onSchedule={onSchedule} onRadar={onRadar} onPerson={onPerson}/>}
     {run.response&&<div className="ag-tools"><button type="button" className="ico" aria-label={copied?'Resposta copiada':'Copiar resposta'} onClick={()=>void copy()}>{copied?<Check size={15} aria-hidden="true"/>:<Copy size={15} aria-hidden="true"/>}</button></div>}
     {pending&&run.state==='ready'&&dismissed&&<p className="desc" role="status">Proposta descartada. Nada foi alterado.</p>}
     {pending&&!(run.state==='ready'&&dismissed)&&<div className="ag-proposal">

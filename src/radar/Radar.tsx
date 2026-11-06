@@ -1,4 +1,4 @@
-import {useMemo,useState} from 'react';
+import {useEffect,useMemo,useState} from 'react';
 import {Plus,Search} from 'lucide-react';
 import {primaryPerson,type Task} from '@/task';
 import type {Label} from '@/features';
@@ -9,6 +9,7 @@ import {useRadar} from './useRadar';
 import {filterThemes,isRadarTheme,noFilters,radarCounters,radarLabelId,reviewPending,sortThemes,temperatureNames,type RadarFilters,type ThemeDraft,type RadarRecord,type RadarTheme,type Temperature} from './radarModel';
 
 type Props={
+ focus?:{key:number;id:string};
  userId:string;
  tasks:Task[];
  labels:Label[];
@@ -35,12 +36,14 @@ function reviewText(record:RadarRecord,pending:boolean){
  return `Próxima revisão ${longDate(record.nextReview!)}`;
 }
 
-export function Radar({userId,tasks,labels,people,ensurePerson,defaultArea,onRefresh,onOpenTask,onSaveTask,onCreated,onCreateAction,onClose}:Props){
+export function Radar({focus,userId,tasks,labels,people,ensurePerson,defaultArea,onRefresh,onOpenTask,onSaveTask,onCreated,onCreateAction,onClose}:Props){
  const radarId=radarLabelId(labels);
  const themeTasks=useMemo(()=>tasks.filter(t=>isRadarTheme(t,radarId)),[tasks,radarId]);
  const radar=useRadar(userId,useMemo(()=>themeTasks.map(t=>t.id),[themeTasks]));
  const [filters,setFilters]=useState<RadarFilters>(noFilters);
  const [openId,setOpenId]=useState('');
+ // Link vindo do Modo IA: abre o tema pedido.
+ useEffect(()=>{if(focus)setOpenId(focus.id);},[focus?.key]);
  const [creating,setCreating]=useState(false);
  const themes:RadarTheme[]=themeTasks.flatMap(task=>radar.records[task.id]?[{task,record:radar.records[task.id]}]:[]);
  const counters=radarCounters(themes,radar.today);

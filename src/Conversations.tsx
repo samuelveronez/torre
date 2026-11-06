@@ -9,10 +9,13 @@ type Conversation=ConversationContent&{id:string;person_id:string;conversation_d
 const recentFirst=(a:Conversation,b:Conversation)=>b.conversation_date.localeCompare(a.conversation_date)||(b.created_at??b.updated_at??'').localeCompare(a.created_at??a.updated_at??'')||b.id.localeCompare(a.id);
 const displayDate=(value:string)=>new Date(value+'T12:00:00').toLocaleDateString('pt-BR');
 const blank=(person:string):Conversation=>({id:crypto.randomUUID(),person_id:person,conversation_date:conversationToday(),version:0,state:'draft',raw_text:'',check_in:'',decisions:'',agreements:[],created_at:new Date().toISOString()});
-export function Conversations({userId,tasks,aiEnabled,onOpenTask,onRefresh}:{userId:string;tasks:Task[];aiEnabled:boolean;onOpenTask:(id:string)=>void;onRefresh:()=>void}){
+export function Conversations({focus,userId,tasks,aiEnabled,onOpenTask,onRefresh}:{focus?:{key:number;id:string};userId:string;tasks:Task[];aiEnabled:boolean;onOpenTask:(id:string)=>void;onRefresh:()=>void}){
  const [people,setPeople]=useState<Person[]>([]),[records,setRecords]=useState<Conversation[]>([]),[current,setCurrent]=useState<Conversation|null>(null);
  const [name,setName]=useState(''),[error,setError]=useState(''),[status,setStatus]=useState(''),[busy,setBusy]=useState(false),[loading,setLoading]=useState(true);
  const [peopleView,setPeopleView]=useState(true);
+ // Link vindo do Modo IA: mostra o histórico da pessoa pedida, uma vez por clique.
+ const focused=useRef(0);
+ useEffect(()=>{if(!focus||focused.current===focus.key||!people.some(p=>p.id===focus.id))return;focused.current=focus.key;setSelectedPerson(focus.id);setPeopleView(false);},[focus?.key,people]);
  const peopleScroll=useRef(0),peoplePanel=useRef<HTMLElement|null>(null);
  const [suggestion,setSuggestion]=useState<ConversationContent|null>(null);
  const [personEdit,setPersonEdit]=useState<Person|null>(null),[personName,setPersonName]=useState(''),[personError,setPersonError]=useState(''),[personSaving,setPersonSaving]=useState(false);

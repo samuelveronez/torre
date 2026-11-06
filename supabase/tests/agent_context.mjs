@@ -19,6 +19,7 @@ class Query{
  constructor(table){this.table=table;this.filters=[];this.take=Infinity;this.offset=0;}
  select(){return this;}eq(k,v){this.filters.push(r=>r[k]===v);return this;}neq(k,v){this.filters.push(r=>r[k]!==v);return this;}
  is(k,v){return this.eq(k,v);}not(k,_op,value){const excluded=value.slice(1,-1).split(',');this.filters.push(r=>!excluded.includes(r[k]));return this;}
+ gte(k,v){this.filters.push(r=>r[k]>=v);return this;}lte(k,v){this.filters.push(r=>r[k]<=v);return this;}in(k,v){this.filters.push(r=>v.includes(r[k]));return this;}
  order(){return this;}limit(n){this.take=n;return this;}range(from,to){this.offset=from;this.take=to-from+1;return this;}update(){this.updating=true;return this;}
  maybeSingle(){const rows=history.filter(r=>this.filters.every(f=>f(r)));return Promise.resolve({data:this.table==='torre_ai_settings'?{has_key:true,default_model:defaultModel}:rows[0]??null});}single(){return Promise.resolve({data:{state:'answered',response:'Resposta sintética'}});}
  then(resolve,reject){const rows=(this.table==='torre_agent_runs'?history:this.table==='torre_tasks'?tasks:[]).filter(r=>this.filters.every(f=>f(r)));return Promise.resolve({data:rows.slice(this.offset,this.offset+this.take),count:rows.length}).then(resolve,reject);}
@@ -27,6 +28,7 @@ globalThis.__agentServiceTest={db:{from:table=>new Query(table),rpc:async(name,a
 const source=(await readFile(new URL('../functions/_shared/agentService.ts',import.meta.url),'utf8'))
  .replace("import {preparePlan} from './planService.ts';","const preparePlan=async()=>{throw new Error('Planning is outside this context test');};")
  .replace("import {db,checked,secret} from './google.ts';","const {db,checked,secret}=globalThis.__agentServiceTest;")
+ .replace("import {queryRadar,queryConversations,sourceSummary} from './agentSources.ts';","const queryRadar=async()=>({items:[]}),queryConversations=async()=>({items:[]}),sourceSummary=async()=>({radar:{themes:0},conversations:{savedLast60Days:0}});")
  .replace("import {radarThemeIds,notInThemes} from './radar.ts';","const radarThemeIds=async()=>globalThis.__radarThemes??[],notInThemes=ids=>`(${ids.join(',')})`;")
  .replace("from './aiSettings.ts'",`from '${new URL('../functions/_shared/aiSettings.ts',import.meta.url).href}'`)
  .replace("from './agent.ts'",`from '${new URL('../functions/_shared/agent.ts',import.meta.url).href}'`);
@@ -62,7 +64,12 @@ try{
  globalThis.__radarThemes=[];
  round=0;globalThis.fetch=async()=>new Response(JSON.stringify({model:'google/gemini-2.5-flash',choices:[{message:{role:'assistant',content:null,tool_calls:[{id:'bad-area',type:'function',function:{name:'query_tasks',arguments:JSON.stringify({area:'profissional'})}}]}}]}));
  await assert.rejects(()=>agentAction(uid,{action:'agent-chat',runId:crypto.randomUUID(),message:'Consulta',mode:'analyze',model:'openrouter/free',conversationId:fresh}),/Área inválida/);
+ round=0;globalThis.fetch=async(_url,options)=>{sent=JSON.parse(options.body);const message=round++<1?{role:'assistant',content:null,tool_calls:[{id:'r',type:'function',function:{name:'query_radar',arguments:'{}'}},{id:'c',type:'function',function:{name:'query_conversations',arguments:'{}'}}]}:{role:'assistant',content:'Resumo sintético'};return new Response(JSON.stringify({model:'google/gemini-2.5-flash',usage:{cost:0},choices:[{message}]}));};
+ await agentAction(uid,{action:'agent-chat',runId:crypto.randomUUID(),message:'Resuma',mode:'analyze',model:'openrouter/free',conversationId:fresh});
+ assert.deepEqual(sent.messages.filter(m=>m.role==='tool').map(m=>m.tool_call_id),['r','c'],'Radar and conversation tools are routed by the service');
+ assert.ok(sent.tools.some(t=>t.function.name==='query_radar')&&sent.tools.some(t=>t.function.name==='query_conversations'));
  console.log('PASS: real service scopes the last six requests to conversation and owner, excludes errors/processing, isolates new/legacy context');
+ console.log('PASS: query_radar and query_conversations are routed and offered to the model');
  console.log('PASS: Radar themes are excluded from default agent task queries');
  console.log('PASS: Gemini area tool queries filter professional rows across pages, exclude personal/foreign/completed/archived rows and reject invalid areas');
 }finally{globalThis.fetch=originalFetch;delete globalThis.__agentServiceTest;}
